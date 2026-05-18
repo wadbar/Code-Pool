@@ -1,11 +1,23 @@
-<div align="center">
+# Wadbar Code Pool & Blueprint Auditor
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Este é um ambiente de armazenamento e auditoria projetado para o ecossistema @wadbar.
 
-  <h1>Built with AI Studio</h2>
+## Objetivo
+- **Sincronização**: Centralizar múltiplos repositórios GitHub em um único monorepo.
+- **Auditoria**: Analisar e documentar o tech stack de cada projeto.
+- **Decomposição Modular**: Separar o código em blocos reutilizáveis (blueprints).
+- **Sem Interface**: Ambiente focado em terminal e logs de engenharia.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Estrutura da Piscina (/POOL)
+Cada repositório é mapeado em:
+- `blueprint.md`: Mapa de arquitetura e módulos.
+- `package.json`: Dependências específicas.
+- `/src`: Blocos de código reais indexados para reuso.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Como usar
+1.  Consulte `/POOL/BLUEPRINTS.md` para ver o índice.
+2.  Acesse as pastas individuais para auditar o código.
+3.  Use o terminal (API) em `/api/pool/status` para verificar a saúde do Pool.
 
-</div>
+---
+*Ambiente gerado via AI Studio Build - Foco em Engenharia Pura.*

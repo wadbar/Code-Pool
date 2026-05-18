@@ -1,0 +1,25 @@
+{
+  "repositories": [
+    { "url": "https://github.com/wadbar/papercreeper", "lastSync": null },
+    { "url": "https://github.com/wadbar/paperfabrik", "lastSync": null },
+    { "url": "https://github.com/wadbar/ueai", "lastSync": null },
+    { "url": "https://github.com/wadbar/RetroForge", "lastSync": null },
+    { "url": "https://github.com/wadbar/Fliper", "lastSync": null },
+    { "url": "https://github.com/wadbar/papermu", "lastSync": null },
+    { "url": "https://github.com/wadbar/Nebula", "lastSync": null },
+    { "url": "https://github.com/wadbar/papervideo", "lastSync": null },
+    { "url": "https://github.com/wadbar/Minecrafter.ai", "lastSync": null },
+    { "url": "https://github.com/levyvix/scraper-filmes", "lastSync": null },
+    { "url": "https://github.com/videolan/vlc", "lastSync": null },
+    { "url": "https://github.com/CocoJoe2411/repository.cocoscrapers", "lastSync": null },
+    { "url": "https://github.com/chromium/chromium", "lastSync": null },
+    { "url": "https://github.com/xbmc/xbmc", "lastSync": null },
+    { "url": "https://github.com/opensearch-project/opensearch", "lastSync": null },
+    { "url": "https://github.com/FreeCAD/FreeCAD", "lastSync": null },
+    { "url": "https://github.com/blender/blender", "lastSync": null },
+    { "url": "https://github.com/openscad/openscad", "lastSync": null },
+    { "url": "https://github.com/Tencent-Hunyuan/HY-World-2.0", "lastSync": null },
+    { "url": "https://github.com/alicevision/AliceVision", "lastSync": null },
+    { "url": "https://github.com/mrdoob/three.js", "lastSync": null }
+  ]
+}

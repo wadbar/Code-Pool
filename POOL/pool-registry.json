@@ -1,25 +1,480 @@
 {
   "repositories": [
-    { "url": "https://github.com/wadbar/papercreeper", "lastSync": null },
-    { "url": "https://github.com/wadbar/paperfabrik", "lastSync": null },
-    { "url": "https://github.com/wadbar/ueai", "lastSync": null },
-    { "url": "https://github.com/wadbar/RetroForge", "lastSync": null },
-    { "url": "https://github.com/wadbar/Fliper", "lastSync": null },
-    { "url": "https://github.com/wadbar/papermu", "lastSync": null },
-    { "url": "https://github.com/wadbar/Nebula", "lastSync": null },
-    { "url": "https://github.com/wadbar/papervideo", "lastSync": null },
-    { "url": "https://github.com/wadbar/Minecrafter.ai", "lastSync": null },
-    { "url": "https://github.com/levyvix/scraper-filmes", "lastSync": null },
-    { "url": "https://github.com/videolan/vlc", "lastSync": null },
-    { "url": "https://github.com/CocoJoe2411/repository.cocoscrapers", "lastSync": null },
-    { "url": "https://github.com/chromium/chromium", "lastSync": null },
-    { "url": "https://github.com/xbmc/xbmc", "lastSync": null },
-    { "url": "https://github.com/opensearch-project/opensearch", "lastSync": null },
-    { "url": "https://github.com/FreeCAD/FreeCAD", "lastSync": null },
-    { "url": "https://github.com/blender/blender", "lastSync": null },
-    { "url": "https://github.com/openscad/openscad", "lastSync": null },
-    { "url": "https://github.com/Tencent-Hunyuan/HY-World-2.0", "lastSync": null },
-    { "url": "https://github.com/alicevision/AliceVision", "lastSync": null },
-    { "url": "https://github.com/mrdoob/three.js", "lastSync": null }
+    {
+      "url": "https://github.com/wadbar/papercreeper",
+      "lastSync": "2026-05-18T23:05:55.810Z"
+    },
+    {
+      "url": "https://github.com/wadbar/paperfabrik",
+      "lastSync": "2026-05-18T23:05:57.900Z"
+    },
+    {
+      "url": "https://github.com/wadbar/ueai",
+      "lastSync": "2026-05-18T23:05:59.237Z"
+    },
+    {
+      "url": "https://github.com/wadbar/RetroForge",
+      "lastSync": "2026-05-18T23:06:02.427Z"
+    },
+    {
+      "url": "https://github.com/wadbar/Fliper",
+      "lastSync": "2026-05-18T23:06:05.981Z"
+    },
+    {
+      "url": "https://github.com/wadbar/papermu",
+      "lastSync": "2026-05-18T23:06:09.858Z"
+    },
+    {
+      "url": "https://github.com/wadbar/Nebula",
+      "lastSync": "2026-05-18T23:06:11.055Z"
+    },
+    {
+      "url": "https://github.com/wadbar/papervideo",
+      "lastSync": "2026-05-18T23:06:14.591Z"
+    },
+    {
+      "url": "https://github.com/wadbar/Minecrafter.ai",
+      "lastSync": "2026-05-18T23:06:16.702Z"
+    },
+    {
+      "url": "https://github.com/levyvix/scraper-filmes",
+      "lastSync": "2026-05-18T23:06:22.731Z"
+    },
+    {
+      "url": "https://github.com/videolan/vlc",
+      "lastSync": "2026-05-18T23:06:48.799Z"
+    },
+    {
+      "url": "https://github.com/CocoJoe2411/repository.cocoscrapers",
+      "lastSync": "2026-05-18T23:06:51.083Z"
+    },
+    {
+      "url": "https://github.com/chromium/chromium",
+      "lastSync": "2026-05-18T23:07:36.087Z"
+    },
+    {
+      "url": "https://github.com/xbmc/xbmc",
+      "lastSync": "2026-05-18T23:08:21.091Z"
+    },
+    {
+      "url": "https://github.com/opensearch-project/opensearch",
+      "lastSync": "2026-05-18T23:08:35.012Z"
+    },
+    {
+      "url": "https://github.com/FreeCAD/FreeCAD",
+      "lastSync": "2026-05-18T23:09:43.743Z"
+    },
+    {
+      "url": "https://github.com/blender/blender",
+      "lastSync": "2026-05-18T23:10:28.746Z"
+    },
+    {
+      "url": "https://github.com/openscad/openscad",
+      "lastSync": "2026-05-18T23:11:08.710Z"
+    },
+    {
+      "url": "https://github.com/Tencent-Hunyuan/HY-World-2.0",
+      "lastSync": "2026-05-18T23:11:53.714Z"
+    },
+    {
+      "url": "https://github.com/alicevision/AliceVision",
+      "lastSync": "2026-05-18T23:12:38.236Z"
+    },
+    {
+      "url": "https://github.com/mrdoob/three.js",
+      "lastSync": "2026-05-18T23:13:23.240Z"
+    },
+    {
+      "url": "https://github.com/iuricode/recursos-gratuitos",
+      "lastSync": "2026-05-18T23:13:23.896Z"
+    },
+    {
+      "url": "https://github.com/anuraghazra/github-readme-stats",
+      "lastSync": "2026-05-18T23:13:30.135Z"
+    },
+    {
+      "url": "https://github.com/vitalysim/Awesome-Hacking-Resources",
+      "lastSync": "2026-05-18T23:13:30.907Z"
+    },
+    {
+      "url": "https://github.com/florinpop17/app-ideas",
+      "lastSync": "2026-05-18T23:13:33.535Z"
+    },
+    {
+      "url": "https://github.com/EbookFoundation/free-programming-books",
+      "lastSync": "2026-05-18T23:13:36.137Z"
+    },
+    {
+      "url": "https://github.com/public-apis/public-apis",
+      "lastSync": "2026-05-18T23:13:37.872Z"
+    },
+    {
+      "url": "https://github.com/goldbergyoni/javascript-testing-best-practices",
+      "lastSync": "2026-05-18T23:14:07.625Z"
+    },
+    {
+      "url": "https://github.com/jlevy/the-art-of-command-line",
+      "lastSync": "2026-05-18T23:14:10.739Z"
+    },
+    {
+      "url": "https://github.com/kamranahmedse/developer-roadmap",
+      "lastSync": "2026-05-18T23:14:24.447Z"
+    },
+    {
+      "url": "https://github.com/ryanmcdermott/clean-code-javascript",
+      "lastSync": "2026-05-18T23:14:29.923Z"
+    },
+    {
+      "url": "https://github.com/jupeter/clean-code-php",
+      "lastSync": "2026-05-18T23:14:30.593Z"
+    },
+    {
+      "url": "https://github.com/thangchung/clean-code-dotnet",
+      "lastSync": "2026-05-18T23:14:32.578Z"
+    },
+    {
+      "url": "https://github.com/labs42io/clean-code-typescript",
+      "lastSync": "2026-05-18T23:14:33.242Z"
+    },
+    {
+      "url": "https://github.com/uohzxela/clean-code-ruby",
+      "lastSync": "2026-05-18T23:14:33.986Z"
+    },
+    {
+      "url": "https://github.com/jwasham/coding-interview-university",
+      "lastSync": "2026-05-18T23:14:35.931Z"
+    },
+    {
+      "url": "https://github.com/frontendbr/vagas",
+      "lastSync": "2026-05-18T23:14:36.687Z"
+    },
+    {
+      "url": "https://github.com/backend-br/vagas",
+      "lastSync": "2026-05-18T23:14:37.600Z"
+    },
+    {
+      "url": "https://github.com/flutter-brazil/vagas",
+      "lastSync": "2026-05-18T23:14:38.319Z"
+    },
+    {
+      "url": "https://github.com/react-brasil/vagas",
+      "lastSync": "2026-05-18T23:14:38.922Z"
+    },
+    {
+      "url": "https://github.com/vuejs-br/vagas",
+      "lastSync": "2026-05-18T23:14:39.511Z"
+    },
+    {
+      "url": "https://github.com/soujava/vagas-java",
+      "lastSync": "2026-05-18T23:14:49.469Z"
+    },
+    {
+      "url": "https://github.com/qa-brasil/vagas",
+      "lastSync": "2026-05-18T23:14:50.078Z"
+    },
+    {
+      "url": "https://github.com/alinebastos/contrate-junior-estagio",
+      "lastSync": "2026-05-18T23:14:50.695Z"
+    },
+    {
+      "url": "https://github.com/felipefialho/frontend-challenges",
+      "lastSync": "2026-05-18T23:14:51.318Z"
+    },
+    {
+      "url": "https://github.com/CollabCodeTech/backend-challenges",
+      "lastSync": "2026-05-18T23:14:51.927Z"
+    },
+    {
+      "url": "https://github.com/tinyhumansai/openhuman",
+      "lastSync": "2026-05-18T23:15:53.846Z"
+    },
+    {
+      "url": "https://github.com/Imbad0202/academic-research-skills",
+      "lastSync": "2026-05-18T23:16:06.666Z"
+    },
+    {
+      "url": "https://github.com/HKUDS/CLI-Anything",
+      "lastSync": "2026-05-18T23:17:39.828Z"
+    },
+    {
+      "url": "https://github.com/supertone-inc/supertonic",
+      "lastSync": "2026-05-18T23:18:28.559Z"
+    },
+    {
+      "url": "https://github.com/CloakHQ/CloakBrowser",
+      "lastSync": "2026-05-18T23:20:20.719Z"
+    },
+    {
+      "url": "https://github.com/tech-leads-club/agent-skills",
+      "lastSync": "2026-05-18T23:20:49.115Z"
+    },
+    {
+      "url": "https://github.com/BigBodyCobain/Shadowbroker",
+      "lastSync": "2026-05-18T23:22:07.155Z"
+    },
+    {
+      "url": "https://github.com/plausible/analytics",
+      "lastSync": "2026-05-18T23:25:46.594Z"
+    },
+    {
+      "url": "https://github.com/sindresorhus/awesome",
+      "lastSync": "2026-05-18T23:26:34.816Z"
+    },
+    {
+      "url": "https://github.com/codecrafters-io/build-your-own-x",
+      "lastSync": "2026-05-18T23:28:05.887Z"
+    },
+    {
+      "url": "https://github.com/getify/You-Dont-Know-JS",
+      "lastSync": "2026-05-18T23:28:47.567Z"
+    },
+    {
+      "url": "https://github.com/trekhleb/javascript-algorithms",
+      "lastSync": "2026-05-18T23:29:08.212Z"
+    },
+    {
+      "url": "https://github.com/twbs/bootstrap",
+      "lastSync": "2026-05-18T23:29:14.247Z"
+    },
+    {
+      "url": "https://github.com/vinta/awesome-python",
+      "lastSync": "2026-05-18T23:29:15.227Z"
+    },
+    {
+      "url": "https://github.com/ohmyzsh/ohmyzsh",
+      "lastSync": "2026-05-18T23:29:16.607Z"
+    },
+    {
+      "url": "https://github.com/zed-industries/zed",
+      "lastSync": "2026-05-18T23:31:20.294Z"
+    },
+    {
+      "url": "https://github.com/radix-ui/primitives",
+      "lastSync": "2026-05-18T23:33:24.469Z"
+    },
+    {
+      "url": "https://github.com/pydantic/fastui",
+      "lastSync": "2026-05-18T23:33:30.553Z"
+    },
+    {
+      "url": "https://github.com/Exafunction/codeium",
+      "lastSync": "2026-05-18T23:33:31.580Z"
+    },
+    {
+      "url": "https://github.com/emmett-framework/granian",
+      "lastSync": "2026-05-18T23:33:35.264Z"
+    },
+    {
+      "url": "https://github.com/eveningkid/denodb",
+      "lastSync": "2026-05-18T23:34:05.764Z",
+      "digestedCount": 30
+    },
+    {
+      "url": "https://github.com/lanterndata/lantern",
+      "lastSync": "2026-05-18T23:34:07.100Z",
+      "digestedCount": 6
+    },
+    {
+      "url": "https://github.com/marimo-team/marimo",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/juspay/hyperswitch",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/lichess-org/lila",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/framer/motion",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/themesberg/flowbite",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/solutions/industry",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/solutions/use-case",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/resources/articles",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/resources/events",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/resources/whitepapers",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/solutions/executive-insights",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/orgs/community",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/sponsors/explore",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/apps/github-actions",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/ggml-org/llama.cpp",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/ruvnet/RuView",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/apps/dependabot",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/apps/tech-leads-club-release-bot",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/humanlayer/12-factor-agents",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/NVlabs/Sana",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/microsoft/ai-agents-for-beginners",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/ZhuLinsen/daily_stock_analysis",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/sponsors/plausible",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/apps/github-merge-queue",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/freeCodeCamp/freeCodeCamp",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/donnemartin/system-design-primer",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/facebook/react",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/tensorflow/tensorflow",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/modelcontextprotocol/server",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/shadcn/ui",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/BuilderIO/mitosis",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/dai-shi/waku",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/oven-sh/bun",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/tinyplex/tinybase",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/hoppscotch/hoppscotch",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/drizzle-team/drizzle-orm",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    }
   ]
 }

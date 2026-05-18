@@ -1,9 +1,14 @@
 import fs from 'fs';
 import path from 'path';
+import { RepoIngester } from './RepoIngester';
 
 export interface WatchedRepository {
     url: string;
     lastSync: string | null;
+    isMonster?: boolean;
+    retryCount?: number;
+    digestedCount?: number;
+    totalFiles?: number;
 }
 
 export class UpdateManager {
@@ -61,28 +66,101 @@ export class UpdateManager {
         return this.getRegistry().repositories;
     }
 
+    public static getControlStatus(): { status: 'running' | 'paused' | 'stop_after_current' } {
+        const controlPath = path.join(process.cwd(), 'POOL', 'worker-status.json');
+        if (!fs.existsSync(controlPath)) {
+            try {
+                if (!fs.existsSync(path.join(process.cwd(), 'POOL'))) {
+                    fs.mkdirSync(path.join(process.cwd(), 'POOL'), { recursive: true });
+                }
+                fs.writeFileSync(controlPath, JSON.stringify({ status: 'running' }));
+            } catch (e) {}
+            return { status: 'running' };
+        }
+        try {
+            return JSON.parse(fs.readFileSync(controlPath, 'utf8'));
+        } catch (e) {
+            return { status: 'running' };
+        }
+    }
+
+    public static async waitIfPaused() {
+        while (this.getControlStatus().status === 'paused') {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 2s
+        }
+    }
+
+    private getControlStatus() {
+        return UpdateManager.getControlStatus();
+    }
+
+    private async waitIfPaused() {
+        return UpdateManager.waitIfPaused();
+    }
+
     /**
      * Executa um ciclo de sincronização em todos os repositórios
      * Extrai, decompõe e consolida recursos novos ou alterados
      */
-    async syncAll() {
+    async syncAll(force: boolean = false) {
         console.log(`[UPDATE-MANAGER] Iniciando ciclo de sincronização global da Piscina...`);
         const registry = this.getRegistry();
         let updatedCount = 0;
 
-        for (const repo of registry.repositories) {
-            console.log(`[UPDATE-MANAGER] Verificando: ${repo.url}`);
-            // Mock de verificação de commits. Na prática, consultaria a API do GitHub
-            const fakeHasUpdates = Math.random() > 0.7; // 30% chance de ter atualização simulada
+        for (let i = 0; i < registry.repositories.length; i++) {
+            // Check for pause/stop
+            await this.waitIfPaused();
+            const control = this.getControlStatus();
+            if (control.status === 'stop_after_current') {
+                console.log(`[UPDATE-MANAGER] Comando STOP_AFTER_CURRENT detectado. Encerrando ciclo prematuramente.`);
+                break;
+            }
 
-            if (fakeHasUpdates || !repo.lastSync) {
-                console.log(`[UPDATE-MANAGER] Atualização detectada em ${repo.url}! Extraindo blocos de código...`);
-                repo.lastSync = new Date().toISOString();
-                updatedCount++;
+            const repo = registry.repositories[i];
+            console.log(`[UPDATE-MANAGER] Verificando: ${repo.url}`);
+
+            if (force || !repo.lastSync) {
+                console.log(`[UPDATE-MANAGER] Atualização real do repositório: ${repo.url}. Extraindo blocos de código...`);
                 
-                // Aqui nós chamamos o RepoIngester.ingestFromGitHub(repo.url) internamente
+                // Ingestão autônoma e real
+                const result = await RepoIngester.ingestFromGitHub(repo.url, repo.isMonster ? 180000 : 45000);
+                
+                if (result.status === "monster") {
+                    console.log(`[UPDATE-MANAGER] REPO MONSTRO DETECTADO: ${repo.url}. Escalando prioridade e movendo para o fim da fila.`);
+                    repo.isMonster = true;
+                    repo.retryCount = (repo.retryCount || 0) + 1;
+                    
+                    registry.repositories.splice(i, 1);
+                    registry.repositories.push(repo);
+                    i--;
+                    this.saveRegistry(registry);
+                    continue;
+                }
+
+                if (result.status === "partial") {
+                    console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila para continuar.`);
+                    
+                    repo.digestedCount = (repo.digestedCount || 0) + (result.filesProcessed || 0);
+                    repo.totalFiles = result.totalFiles;
+                    repo.isMonster = true; // Se é parcial, tratamos como monstro/grande
+                    
+                    // Move pro fim para não trancar a fila, mas NÃO marca lastSync final
+                    registry.repositories.splice(i, 1);
+                    registry.repositories.push(repo);
+                    i--;
+                    this.saveRegistry(registry);
+                    continue;
+                }
+
+                if (result.status === "success") {
+                    repo.digestedCount = repo.totalFiles || result.totalFiles;
+                    repo.lastSync = new Date().toISOString();
+                }
+                
+                updatedCount++;
+                this.saveRegistry(registry);
             } else {
-                console.log(`[UPDATE-MANAGER] Nenhuma mudança em ${repo.url}.`);
+                console.log(`[UPDATE-MANAGER] Repositório já persistido no registro: ${repo.url}. (Use force=true para re-ingestão).`);
             }
         }
 

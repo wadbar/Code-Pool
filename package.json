@@ -8,6 +8,7 @@
     "dev": "tsx server.ts",
     "build": "esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
+    "ingest": "tsx worker_ingest.ts",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },
@@ -31,6 +32,7 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "playwright": "^1.60.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "socket.io": "^4.8.3",

@@ -33,6 +33,17 @@ export class UpdateManager {
      * Adiciona um novo repositório à lista de monitoramento
      */
     addRepository(url: string) {
+        // Ignora o repositório da própria piscina para evitar loop/redução redundante
+        const excludedRepos = [
+            'https://github.com/wadbar/Code-Pool',
+            'https://github.com/wadbar/Code-Pool.git'
+        ];
+
+        if (excludedRepos.includes(url.replace(/\/$/, ''))) {
+            console.log(`[UPDATE-MANAGER] Ignorando repositório de infraestrutura (a própria pool): ${url}`);
+            return false;
+        }
+
         const registry = this.getRegistry();
         if (!registry.repositories.find(repo => repo.url === url)) {
             registry.repositories.push({ url, lastSync: null });

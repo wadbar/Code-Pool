@@ -135,6 +135,26 @@ app.get('/api/pool/registry', (req, res) => {
   });
 });
 
+// Endpoint para contar blueprints reais na pasta POOL/blueprints
+app.get('/api/pool/blueprints', (req, res) => {
+  const blueprintsPath = path.join(process.cwd(), 'POOL', 'blueprints');
+  if (!fs.existsSync(blueprintsPath)) {
+    return res.json({ count: 0, blueprints: [] });
+  }
+  try {
+    const files = fs.readdirSync(blueprintsPath).filter(f => f.endsWith('.md'));
+    res.json({
+      count: files.length,
+      blueprints: files.map(f => ({
+        name: f.replace('.md', '').replaceAll('___', '://').replaceAll('_', '/'),
+        filename: f
+      }))
+    });
+  } catch (err: any) {
+    res.json({ count: 0, blueprints: [] });
+  }
+});
+
 app.post('/api/pool/registry/remove', express.json(), (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL is required' });

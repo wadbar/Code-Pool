@@ -51,23 +51,54 @@ export class RepoIngester {
                     return { status: "monster", reason: "clone_timeout" };
                 }
 
-                // 3. Varredura e Filtro de Progresso
+                // 3. Varredura e Filtro de Progresso (The Elite Scout)
                 let allFiles = this.scanDirForSourceCode(tmpPath);
                 
-                // Priorização: Arquivos menores e tipos TS/JS primeiro
-                allFiles = allFiles.sort((a, b) => {
+                console.log(`[INGESTER] Analisando a presa... ${allFiles.length} arquivos brutos detectados.`);
+                
+                // --- ELITE HEURISTIC FILTERING (Golden Standard) ---
+                let goldenFiles = allFiles.filter(f => {
+                    const relative = f.replace(tmpPath, '').toLowerCase();
+                    const fileName = path.basename(f).toLowerCase();
+                    
+                    // Rigorous exclusionary rules to drop junk but keep the golden blocks
+                    if (relative.includes('/.git/') || relative.includes('/node_modules/')) return false;
+                    if (relative.includes('.test.') || relative.includes('.spec.')) return false;
+                    if (relative.includes('/__mocks__/') || relative.includes('/__tests__/')) return false;
+                    if (relative.includes('/fixtures/') || relative.includes('/stories/')) return false;
+                    if (relative.includes('/docs/') || relative.includes('/assets/')) return false;
+                    if (fileName.endsWith('.d.ts')) return false; 
+                    if (fileName === 'setupTests' || fileName === 'reportWebVitals') return false;
+                    
+                    const size = fs.statSync(f).size;
+                    // Ignore empty or extremely tiny files (unlikely to be complex lego pieces)
+                    if (size < 150) return false;
+                    // Ignore gigantic files (likely generated bundles or massive JSON dumps)
+                    if (size > 120000) return false; 
+
+                    // Ignore root configuration files unless they are unusually large/complex
+                    if (relative.split('/').length <= 2 && (fileName.includes('config') || fileName.includes('rc.') || fileName === 'package.json')) {
+                        return false;
+                    }
+
+                    return true;
+                });
+                
+                // Prioritization: TypeScript/React components are often highest value for UI Lego
+                goldenFiles = goldenFiles.sort((a, b) => {
                     const extA = path.extname(a);
                     const extB = path.extname(b);
-                    const priority = { '.ts': 1, '.tsx': 1, '.js': 2, '.jsx': 2, '.py': 3 };
+                    const priority = { '.tsx': 1, '.ts': 2, '.jsx': 3, '.js': 4, '.py': 5 };
                     const pA = (priority as any)[extA] || 99;
                     const pB = (priority as any)[extB] || 99;
-                    return pA - pB || fs.statSync(a).size - fs.statSync(b).size;
+                    // Primary sort by extension priority, secondary sort by size descending (bigger usually more complex)
+                    return pA - pB || fs.statSync(b).size - fs.statSync(a).size;
                 });
 
-                // Filtrar o que já foi digerido (compara pelo caminho relativo dentro do repo)
-                const remainingFiles = allFiles.filter(f => !digestedFiles.includes(f.replace(tmpPath, '')));
+                // Filtrar o que já foi digerido
+                const remainingFiles = goldenFiles.filter(f => !digestedFiles.includes(f.replace(tmpPath, '')));
                 
-                console.log(`[INGESTER] Telemetria: ${allFiles.length} totais. ${remainingFiles.length} pendentes.`);
+                console.log(`[INGESTER] Padrões Ouro identificados: ${goldenFiles.length} arquivos relevantes. ${remainingFiles.length} aguardando extração cirúrgica.`);
 
                 // 4. Gerar Blueprint apenas se for a primeira vez
                 const safeRepoName = repoUrl.replace(/[^a-zA-Z0-9]/g, '_');

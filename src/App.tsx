@@ -332,6 +332,23 @@ export default function App() {
                 <div className="flex gap-2">
                   <button 
                     onClick={async () => {
+                      showConfirm('Você está prestes a comitar todas as peças modularizadas para salvaguardar a Pool. Deseja continuar?', async () => {
+                        try {
+                          const res = await fetch('/api/pool/worker/commit', { method: 'POST' });
+                          const data = await res.json();
+                          showAlert(data.status === 'Committed' ? data.message || 'Peças comitadas cirurgicamente e salvas no histórico com sucesso.' : data.message || data.error);
+                        } catch (e: any) {
+                          showAlert('Falha ao acionar a engine de commit: ' + e.message);
+                        }
+                      });
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-bold transition-all"
+                  >
+                    <Github className="w-3 h-3" />
+                    Commit Pool
+                  </button>
+                  <button 
+                    onClick={async () => {
                       showConfirm('Deseja limpar todos os arquivos temporários criados pelos clones?', async () => {
                         await fetch('/api/pool/worker/purge-tmp', { method: 'POST' });
                         showAlert('Arquivos temporários expurgados da POOL.');

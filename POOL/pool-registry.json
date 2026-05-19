@@ -275,186 +275,18 @@
       "digestedCount": 6
     },
     {
-      "url": "https://github.com/marimo-team/marimo",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/juspay/hyperswitch",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/lichess-org/lila",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/framer/motion",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/themesberg/flowbite",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/solutions/industry",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/solutions/use-case",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/resources/articles",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/resources/events",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/resources/whitepapers",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/solutions/executive-insights",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/orgs/community",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/sponsors/explore",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/apps/github-actions",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/K-Dense-AI/scientific-agent-skills",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/ggml-org/llama.cpp",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/ruvnet/RuView",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/apps/dependabot",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/apps/tech-leads-club-release-bot",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/humanlayer/12-factor-agents",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/NVlabs/Sana",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
       "url": "https://github.com/microsoft/ai-agents-for-beginners",
-      "lastSync": null,
+      "lastSync": "2026-05-19T00:02:12.199Z",
       "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/ZhuLinsen/daily_stock_analysis",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/sponsors/plausible",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/apps/github-merge-queue",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/freeCodeCamp/freeCodeCamp",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
+      "retryCount": 1,
+      "digestedCount": 12
     },
     {
       "url": "https://github.com/donnemartin/system-design-primer",
-      "lastSync": null,
+      "lastSync": "2026-05-19T00:02:47.367Z",
       "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/facebook/react",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/tensorflow/tensorflow",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/modelcontextprotocol/server",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
-    },
-    {
-      "url": "https://github.com/shadcn/ui",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/BuilderIO/mitosis",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/dai-shi/waku",
-      "lastSync": null
+      "retryCount": 1,
+      "digestedCount": 26
     },
     {
       "url": "https://github.com/oven-sh/bun",
@@ -463,18 +295,243 @@
       "retryCount": 1
     },
     {
+      "url": "https://github.com/themesberg/flowbite",
+      "lastSync": "2026-05-19T00:12:12.347Z",
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 61,
+      "totalFiles": 61
+    },
+    {
+      "url": "https://github.com/humanlayer/12-factor-agents",
+      "lastSync": "2026-05-19T00:18:03.668Z",
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 175,
+      "totalFiles": 175
+    },
+    {
+      "url": "https://github.com/NVlabs/Sana",
+      "lastSync": "2026-05-19T00:23:06.313Z",
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 245,
+      "totalFiles": 245
+    },
+    {
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills",
+      "lastSync": "2026-05-19T00:27:31.855Z",
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 259,
+      "totalFiles": 259
+    },
+    {
+      "url": "https://github.com/tensorflow/tensorflow",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 300,
+      "totalFiles": 3160
+    },
+    {
+      "url": "https://github.com/modelcontextprotocol/server",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 7
+    },
+    {
+      "url": "https://github.com/shadcn/ui",
+      "lastSync": null,
+      "digestedCount": 300,
+      "totalFiles": 3549,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/BuilderIO/mitosis",
+      "lastSync": null,
+      "digestedCount": 300,
+      "totalFiles": 749,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/dai-shi/waku",
+      "lastSync": null,
+      "digestedCount": 300,
+      "totalFiles": 744,
+      "isMonster": true
+    },
+    {
       "url": "https://github.com/tinyplex/tinybase",
-      "lastSync": null
+      "lastSync": null,
+      "digestedCount": 300,
+      "totalFiles": 532,
+      "isMonster": true
     },
     {
       "url": "https://github.com/hoppscotch/hoppscotch",
-      "lastSync": null
+      "lastSync": null,
+      "digestedCount": 300,
+      "totalFiles": 1079,
+      "isMonster": true
     },
     {
       "url": "https://github.com/drizzle-team/drizzle-orm",
       "lastSync": null,
       "isMonster": true,
-      "retryCount": 1
+      "retryCount": 1,
+      "digestedCount": 300,
+      "totalFiles": 946
+    },
+    {
+      "url": "https://github.com/marimo-team/marimo",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 300,
+      "totalFiles": 3432
+    },
+    {
+      "url": "https://github.com/juspay/hyperswitch",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 300,
+      "totalFiles": 2684
+    },
+    {
+      "url": "https://github.com/lichess-org/lila",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 300,
+      "totalFiles": 902
+    },
+    {
+      "url": "https://github.com/framer/motion",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 300,
+      "totalFiles": 1143
+    },
+    {
+      "url": "https://github.com/solutions/industry",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/solutions/use-case",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/resources/articles",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/resources/events",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/resources/whitepapers",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/solutions/executive-insights",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/orgs/community",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/sponsors/explore",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/apps/github-actions",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/ggml-org/llama.cpp",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 350,
+      "totalFiles": 430
+    },
+    {
+      "url": "https://github.com/ruvnet/RuView",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 2,
+      "digestedCount": 300,
+      "totalFiles": 417
+    },
+    {
+      "url": "https://github.com/apps/dependabot",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/apps/tech-leads-club-release-bot",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/ZhuLinsen/daily_stock_analysis",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 350,
+      "totalFiles": 530
+    },
+    {
+      "url": "https://github.com/sponsors/plausible",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/apps/github-merge-queue",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 8
+    },
+    {
+      "url": "https://github.com/freeCodeCamp/freeCodeCamp",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 350,
+      "totalFiles": 1114
+    },
+    {
+      "url": "https://github.com/facebook/react",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 350,
+      "totalFiles": 4364
     }
   ]
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshCw, Search, Target, Github, Database, Layers, Box, Play, Pause, RotateCw } from 'lucide-react';
+import { RefreshCw, Search, Target, Github, Database, Layers, Box, Play, Pause, RotateCw, Trash2 } from 'lucide-react';
 
 interface WatchedRepository {
   url: string;
@@ -30,7 +30,22 @@ export default function App() {
   const [scraping, setScraping] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [hunting, setHunting] = useState(false);
-  const [logs, setLogs] = useState({ ingestion: '', blueprints: '' });
+  const [logs, setLogs] = useState({ ingestion: '', blueprints: '', system: '' });
+
+  const [dialog, setDialog] = useState<{
+    isOpen: boolean;
+    type: 'alert' | 'confirm';
+    message: React.ReactNode;
+    onConfirm?: () => void;
+  }>({ isOpen: false, type: 'alert', message: '' });
+
+  const showAlert = (message: React.ReactNode) => {
+    setDialog({ isOpen: true, type: 'alert', message });
+  };
+
+  const showConfirm = (message: React.ReactNode, onConfirm: () => void) => {
+    setDialog({ isOpen: true, type: 'confirm', message, onConfirm });
+  };
 
   const fetchRegistry = async () => {
     setLoading(true);
@@ -90,15 +105,36 @@ export default function App() {
     }
   };
 
+  const handleRemoveRepo = async (url: string) => {
+    showConfirm(`Are you sure you want to remove ${url}? This will stop monitoring but won't delete already ingested data.`, async () => {
+      try {
+        const res = await fetch('/api/pool/registry/remove', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        if (res.ok) {
+          await fetchRegistry();
+        } else {
+          const data = await res.json();
+          showAlert(data.error || 'Failed to remove repository');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  };
+
   const handleRestartWorker = async () => {
-    if (!confirm('This will kill all background processes and restart them. Continue?')) return;
-    try {
-      await fetch('/api/pool/worker/restart', { method: 'POST' });
-      alert('Workers restarted.');
-      fetchWorkerStatus();
-    } catch (e) {
-      console.error(e);
-    }
+    showConfirm('This will kill all background processes and restart them. Continue?', async () => {
+      try {
+        await fetch('/api/pool/worker/restart', { method: 'POST' });
+        showAlert('Workers restarted.');
+        fetchWorkerStatus();
+      } catch (e) {
+        console.error(e);
+      }
+    });
   };
 
   useEffect(() => {
@@ -128,15 +164,24 @@ export default function App() {
   };
 
   const handleHunt = async () => {
-    setHunting(true);
-    try {
-      await fetch('/api/pool/hunt', { method: 'POST' });
-      await fetchRegistry();
-      await fetchInventory();
-    } catch (e) {
-      console.error(e);
-    }
-    setHunting(false);
+    showConfirm('Shark Mode: Initiate autonomous search for new repositories? The engine will scan current targets for forks and similar projects.', async () => {
+      setHunting(true);
+      try {
+        const res = await fetch('/api/pool/hunt', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showAlert(`Hunt successful! Found ${data.hunted || 0} new repositories to ingest. ${(data.newTargets || []).join(', ')}`);
+          await fetchRegistry();
+          await fetchInventory();
+        } else {
+          showAlert(data.error || 'The hunt failed.');
+        }
+      } catch (e) {
+        console.error(e);
+        showAlert('Network error during hunt initiation.');
+      }
+      setHunting(false);
+    });
   };
 
   const handleIngest = async (e: React.FormEvent) => {
@@ -168,7 +213,7 @@ export default function App() {
         body: JSON.stringify({ sourceUrl: scrapeUrl }),
       });
       const data = await res.json();
-      alert(`Scraping complete: Found ${data.found || 0} repos. Added ${data.added || 0} uniquely.`);
+      showAlert(`Scraping complete: Found ${data.found || 0} repos. Added ${data.added || 0} uniquely.`);
       setScrapeUrl('');
       await fetchRegistry();
     } catch (e) {
@@ -287,10 +332,15 @@ export default function App() {
                 <div className="flex gap-2">
                   <button 
                     onClick={async () => {
-                      if (!confirm('This will create a git commit in the POOL directory. Continue?')) return;
-                      const res = await fetch('/api/pool/worker/commit', { method: 'POST' });
-                      const data = await res.json();
-                      alert(data.status === 'Committed' ? 'Changes committed to POOL.' : data.message || data.error);
+                      showConfirm('Você está prestes a comitar todas as peças modularizadas para salvaguardar a Pool. Deseja continuar?', async () => {
+                        try {
+                          const res = await fetch('/api/pool/worker/commit', { method: 'POST' });
+                          const data = await res.json();
+                          showAlert(data.status === 'Committed' ? data.message || 'Peças comitadas cirurgicamente e salvas no histórico com sucesso.' : data.message || data.error);
+                        } catch (e: any) {
+                          showAlert('Falha ao acionar a engine de commit.');
+                        }
+                      });
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-bold transition-all"
                   >
@@ -299,9 +349,10 @@ export default function App() {
                   </button>
                   <button 
                     onClick={async () => {
-                      if (!confirm('Clean up all temporary clone data?')) return;
-                      await fetch('/api/pool/worker/purge-tmp', { method: 'POST' });
-                      alert('Temp files purged.');
+                      showConfirm('Deseja limpar todos os arquivos temporários criados pelos clones?', async () => {
+                        await fetch('/api/pool/worker/purge-tmp', { method: 'POST' });
+                        showAlert('Arquivos temporários expurgados da POOL.');
+                      });
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-lg text-xs font-bold transition-all"
                   >
@@ -310,9 +361,10 @@ export default function App() {
                   </button>
                   <button 
                     onClick={async () => {
-                      if (!confirm('Clear all log files?')) return;
-                      await fetch('/api/pool/worker/purge-logs', { method: 'POST' });
-                      setLogs({ ingestion: '', blueprints: '' });
+                      showConfirm('Deseja limpar a tela dos logs?', async () => {
+                        await fetch('/api/pool/worker/purge-logs', { method: 'POST' });
+                        setLogs({ ingestion: '', blueprints: '' });
+                      });
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-lg text-xs font-bold transition-all"
                   >
@@ -341,12 +393,12 @@ export default function App() {
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-black/60 border border-slate-800 rounded-xl p-5 font-mono text-[11px] leading-relaxed relative overflow-hidden backdrop-blur-sm shadow-2xl">
                 <div className="flex items-center justify-between mb-4 text-slate-400 uppercase tracking-widest text-[10px] font-bold">
                     <span className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
-                        Ingestion Engine Feed (Live)
+                        Ingestion Engine Feed
                         {activeRepo && (
                           <span className="ml-2 px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 rounded text-[9px] text-emerald-300 font-bold animate-in fade-in slide-in-from-left-2 duration-500 flex items-center gap-2">
                              ACTIVE: {activeRepo}
@@ -362,7 +414,6 @@ export default function App() {
                         <button onClick={fetchLogs} className="hover:text-emerald-400 transition-colors">
                             <RefreshCw className="w-3 h-3" />
                         </button>
-                        <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded text-[9px]">Master_Worker</span>
                     </div>
                 </div>
                 <div className="h-80 overflow-y-auto custom-scrollbar whitespace-pre-wrap text-emerald-400/90 selection:bg-emerald-500/30">
@@ -380,11 +431,27 @@ export default function App() {
                         <button onClick={fetchLogs} className="hover:text-blue-400 transition-colors">
                             <RefreshCw className="w-3 h-3" />
                         </button>
-                        <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[9px]">Retro_Worker</span>
                     </div>
                 </div>
                 <div className="h-80 overflow-y-auto custom-scrollbar whitespace-pre-wrap text-blue-400/90 selection:bg-blue-500/30">
                     {logs.blueprints || "Waiting for stream from Blueprint Engine..."}
+                </div>
+            </div>
+
+            <div className="bg-black/60 border border-slate-800 rounded-xl p-5 font-mono text-[11px] leading-relaxed relative overflow-hidden backdrop-blur-sm shadow-2xl">
+                <div className="flex items-center justify-between mb-4 text-slate-400 uppercase tracking-widest text-[10px] font-bold">
+                    <span className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.8)]"></span>
+                        System & Commit Logs
+                    </span>
+                    <div className="flex items-center gap-3">
+                        <button onClick={fetchLogs} className="hover:text-amber-400 transition-colors">
+                            <RefreshCw className="w-3 h-3" />
+                        </button>
+                    </div>
+                </div>
+                <div className="h-80 overflow-y-auto custom-scrollbar whitespace-pre-wrap text-amber-400/90 selection:bg-amber-500/30">
+                    {logs.system || "Aguardando eventos do sistema..."}
                 </div>
             </div>
         </div>
@@ -426,6 +493,7 @@ export default function App() {
                     <th className="pb-3 font-medium text-center">Digestion</th>
                     <th className="pb-3 font-medium text-right">Status</th>
                     <th className="pb-3 font-medium text-right">Last Sync</th>
+                    <th className="pb-3 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
@@ -474,6 +542,15 @@ export default function App() {
                         </td>
                         <td className="py-3 text-right text-slate-400">
                           {repo.lastSync ? new Date(repo.lastSync).toLocaleString() : 'Never'}
+                        </td>
+                        <td className="py-3 text-right">
+                           <button 
+                             onClick={() => handleRemoveRepo(repo.url)}
+                             className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                             title="Remove Task"
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </button>
                         </td>
                       </tr>
                     ))
@@ -584,6 +661,36 @@ export default function App() {
         </div>
 
       </div>
+
+      {dialog.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-200 mb-4">{dialog.type === 'confirm' ? 'Confirmação Necessária' : 'Aviso do Sistema'}</h3>
+            <p className="text-slate-300 mb-6">{dialog.message}</p>
+            <div className="flex justify-end gap-3">
+              {dialog.type === 'confirm' && (
+                <button 
+                  onClick={() => setDialog({ ...dialog, isOpen: false })}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold rounded-lg transition-colors border border-slate-600"
+                >
+                  Cancelar
+                </button>
+              )}
+              <button 
+                onClick={() => {
+                  if (dialog.type === 'confirm' && dialog.onConfirm) {
+                    dialog.onConfirm();
+                  }
+                  setDialog({ ...dialog, isOpen: false });
+                }}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-emerald-900/20"
+              >
+                {dialog.type === 'confirm' ? 'Confirmar' : 'Entendido'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

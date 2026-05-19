@@ -60,6 +60,22 @@ export class UpdateManager {
     }
 
     /**
+     * Remove um repositório da lista de monitoramento
+     */
+    removeRepository(url: string) {
+        const registry = this.getRegistry();
+        const initialLength = registry.repositories.length;
+        registry.repositories = registry.repositories.filter(repo => repo.url !== url);
+        
+        if (registry.repositories.length < initialLength) {
+            this.saveRegistry(registry);
+            console.log(`[UPDATE-MANAGER] Repositório removido da vigilância: ${url}`);
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Lista todos os repositórios monitorados
      */
     listWatched() {

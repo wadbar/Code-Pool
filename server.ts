@@ -15,7 +15,17 @@ const hungryPool = new HungryPoolEngine(updateManager);
 
 app.use(express.json());
 
-// Set up periodic automatic hunt triggering (every 1 hour for demo purposes)
+// Block access to .tmp from frontend and prevent Vite from trying to transform missing assets
+app.use('/POOL/.tmp', (req, res, next) => {
+  const fullPath = path.join(process.cwd(), 'POOL', '.tmp', req.path);
+  if (!fs.existsSync(fullPath)) {
+    return res.status(404).json({ error: 'File not found in temporary storage' });
+  }
+  // If it exists, block it anyway to be safe and prevent Vite from processing it
+  res.status(403).json({ error: 'Access to temporary files is restricted' });
+});
+
+// Set up periodic automatic hunt triggering
 setInterval(async () => {
   console.log(`[SYS] Triggering automatic hunt...`);
   try {
@@ -119,6 +129,18 @@ app.get('/api/pool/registry', (req, res) => {
   });
 });
 
+app.post('/api/pool/registry/remove', express.json(), (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL is required' });
+  
+  const removed = updateManager.removeRepository(url);
+  if (removed) {
+    res.json({ status: 'Removed', url });
+  } else {
+    res.status(404).json({ error: 'Repository not found in registry' });
+  }
+});
+
 // Endpoint para Sync Manual da Pool
 app.post('/api/pool/sync', async (req, res) => {
   try {
@@ -160,10 +182,12 @@ app.get('/api/pool/logs', (req, res) => {
     try {
         const ingestLogs = fs.existsSync('ingest.log') ? fs.readFileSync('ingest.log', 'utf8').split('\n').slice(-50).join('\n') : "Aguardando worker de ingestão...";
         const blueprintLogs = fs.existsSync('blueprints.log') ? fs.readFileSync('blueprints.log', 'utf8').split('\n').slice(-30).join('\n') : "Aguardando worker de blueprints...";
+        const systemLogs = fs.existsSync('system.log') ? fs.readFileSync('system.log', 'utf8').split('\n').slice(-50).join('\n') : "";
         
         res.json({
             ingestion: ingestLogs,
             blueprints: blueprintLogs,
+            system: systemLogs,
             timestamp: new Date().toISOString()
         });
     } catch (err) {
@@ -198,13 +222,18 @@ app.post('/api/pool/worker/control', (req, res) => {
 });
 
 app.post('/api/pool/worker/purge-tmp', (req, res) => {
-    const tmpPath = path.join(process.cwd(), 'POOL', '.tmp');
+    const tmpPathOld = path.join(process.cwd(), 'POOL', '.tmp');
+    const tmpPathNew = path.join(require('os').tmpdir(), 'lego-pool-tmp');
     try {
-        if (fs.existsSync(tmpPath)) {
-            fs.rmSync(tmpPath, { recursive: true, force: true });
-            fs.mkdirSync(tmpPath, { recursive: true });
+        if (fs.existsSync(tmpPathOld)) {
+            fs.rmSync(tmpPathOld, { recursive: true, force: true });
+            fs.mkdirSync(tmpPathOld, { recursive: true });
         }
-        res.json({ status: 'Purged' });
+        if (fs.existsSync(tmpPathNew)) {
+            fs.rmSync(tmpPathNew, { recursive: true, force: true });
+            fs.mkdirSync(tmpPathNew, { recursive: true });
+        }
+        res.json({ status: 'Purged all temp locations' });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
     }
@@ -216,6 +245,7 @@ app.post('/api/pool/worker/purge-logs', (req, res) => {
         if (fs.existsSync('ingest.err')) fs.writeFileSync('ingest.err', '');
         if (fs.existsSync('blueprints.log')) fs.writeFileSync('blueprints.log', '');
         if (fs.existsSync('blueprints.err')) fs.writeFileSync('blueprints.err', '');
+        if (fs.existsSync('system.log')) fs.writeFileSync('system.log', '');
         res.json({ status: 'Logs purged' });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
@@ -224,32 +254,101 @@ app.post('/api/pool/worker/purge-logs', (req, res) => {
 
 app.post('/api/pool/worker/commit', async (req, res) => {
     const { execSync } = require('child_process');
-    const poolPath = path.join(process.cwd(), 'POOL');
+    const rootPath = process.cwd();
+    const poolPath = path.join(rootPath, 'POOL');
+    
     try {
-        // Ensure we are not committing the .tmp directory
-        const gitignorePath = path.join(poolPath, '.gitignore');
-        if (!fs.existsSync(gitignorePath)) {
-            fs.writeFileSync(gitignorePath, '.tmp/\n*.log\n*.err\n');
+        // Ensure pool directory exists
+        if (!fs.existsSync(poolPath)) {
+            fs.mkdirSync(poolPath, { recursive: true });
         }
 
-        if (!fs.existsSync(path.join(poolPath, '.git'))) {
-            execSync('git init', { cwd: poolPath });
-            execSync('git config user.email "pool@wadbar.ai"', { cwd: poolPath });
-            execSync('git config user.name "Lego Pool Bot"', { cwd: poolPath });
+        // Ensure git identity is set for the root repo to prevent commit failures
+        try {
+            execSync('git config user.email', { cwd: rootPath, stdio: 'pipe' });
+        } catch (e) {
+            console.log("[SYS] Configurando identidade Git base...");
+            execSync('git config user.email "pool@wadbar.ai"', { cwd: rootPath });
+            execSync('git config user.name "Lego Pool Bot"', { cwd: rootPath });
         }
+
+        // Clean up any rogue nested .git directory in POOL that would break root sync
+        const nestedGitPath = path.join(poolPath, '.git');
+        if (fs.existsSync(nestedGitPath)) {
+            fs.rmSync(nestedGitPath, { recursive: true, force: true });
+            console.log("[SYS] Removed rogue nested .git directory inside POOL.");
+        }
+
+        // Use --porcelain=v1 to get a clean status of the POOL directory relative to root
+        // The output paths will be relative to rootPath
+        const statusOutput = execSync('git status --porcelain=v1 POOL/', { 
+            cwd: rootPath,
+            maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large repos
+        }).toString();
         
-        execSync('git add .', { cwd: poolPath });
-        // Check if there are changes to commit
-        const status = execSync('git status --porcelain', { cwd: poolPath }).toString();
-        if (status.trim().length === 0) {
-            return res.json({ status: 'No changes', message: 'Nothing to commit.' });
+        // Parse status output
+        const files = statusOutput.split('\n')
+            .filter(line => line.trim().length > 0)
+            .map(line => {
+                let filePath = line.substring(3).trim();
+                if (filePath.startsWith('"') && filePath.endsWith('"')) {
+                    filePath = filePath.substring(1, filePath.length - 1);
+                }
+                return filePath;
+            });
+            
+        if (files.length === 0) {
+            return res.json({ status: 'No changes', message: 'Nenhuma nova peça Lego encontrada para commit.' });
         }
 
-        execSync('git commit -m "Consolidation requested from Dashboard"', { cwd: poolPath });
-        res.json({ status: 'Committed' });
+        console.log(`[SYS] Iniciando commit cirúrgico peça por peça para ${files.length} blocos...`);
+
+        let commitsDone = 0;
+        
+        for (let i = 0; i < files.length; i++) {
+            const filePath = files[i];
+            
+            // Ignora arquivos temporários se por acaso vazarem pro git
+            if (filePath.includes('.tmp/') || filePath.endsWith('.log') || filePath.endsWith('.err')) {
+                continue;
+            }
+            
+            const escapedFile = `"${filePath.replace(/"/g, '\\"')}"`;
+            
+            // Extrai só o nome final do arquivo pra mensagem ficar bonita
+            const fileName = filePath.split('/').pop() || 'bloco_desconhecido';
+            
+            try {
+                // Adiciona e comita cada peça cirurgicamente
+                execSync(`git add ${escapedFile}`, { cwd: rootPath });
+                
+                // Mensagem especial formatada
+                const commitMsg = `📦 [Lego Pool] Reforço Arquitetural: ${fileName}`;
+                execSync(`git commit -m "${commitMsg}"`, { cwd: rootPath });
+                
+                commitsDone++;
+                const logMsg = `[SYS] Commit isolado realizado: ${commitMsg}`;
+                console.log(logMsg);
+                fs.appendFileSync(path.join(rootPath, 'system.log'), `[${new Date().toISOString()}] ${logMsg}\n`);
+            } catch (err: any) {
+                const errMsg = `[SYS] Falha ao isolar bloco ${filePath}: ${err.message}`;
+                console.error(errMsg);
+                fs.appendFileSync(path.join(rootPath, 'system.log'), `[${new Date().toISOString()}] ERROR: ${errMsg}\n`);
+            }
+        }
+
+        res.json({ 
+            status: 'Committed', 
+            filesChanged: files.length, 
+            commitsCount: commitsDone,
+            message: `Auditoria concluída: ${commitsDone} peças Lego individualmente blindadas e enviadas para o histórico.`
+        });
     } catch (err: any) {
-        console.error("[SYS] Commit failed:", err.message);
-        res.status(500).json({ error: 'Commit failed', details: err.message });
+        console.error("[SYS] Falha crítica de sincronização:", err.message);
+        res.status(500).json({ 
+            error: 'Falha sincronização cirúrgica', 
+            details: err.message
+        });
     }
 });
 

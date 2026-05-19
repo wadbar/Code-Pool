@@ -199,20 +199,20 @@ export class UrlScraper {
             let recursiveFound = 0;
             let recursiveAdded = 0;
 
-            // Se for Depth 0 (primeiro scrape) e encontrar muitos perfis, iterar sobre eles
-            if (depth === 0 && foundProfiles.length > 5 && matches.length < foundProfiles.length) {
+            // Se for Depth 0 (primeiro scrape) e encontrar perfis de usuários, iterar sobre eles
+            if (depth === 0 && foundProfiles.length > 0) {
                 console.log(`[URL-SCRAPER] Lista de usuários detectada (${foundProfiles.length}). Scraping iterativo iniciado...`);
-                // Limite de 20 usuários iniciais para não estourar rate limit imediatamente
-                const targetUsers = foundProfiles.slice(0, 20);
+                // Limite de 30 usuários iniciais para não estourar rate limit da API do GitHub
+                const targetUsers = foundProfiles.slice(0, 30);
                 for (const user of targetUsers) {
                     try {
-                        const recResult = await this.scrapeAndQueueRepos(`https://github.com/${user}?tab=repositories&sort=updated`, undefined, depth + 1);
+                        const recResult = await this.scrapeAndQueueRepos(`https://github.com/${user}`, undefined, depth + 1);
                         if (recResult.status === "success") {
                             recursiveFound += (recResult.found || 0);
                             recursiveAdded += (recResult.added || 0);
                         }
                         // Pequeno delay para evitar 429
-                        await new Promise(r => setTimeout(r, 200));
+                        await new Promise(r => setTimeout(r, 100));
                     } catch (e) {}
                 }
             }

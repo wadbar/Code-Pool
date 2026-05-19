@@ -46,36 +46,45 @@ export default function App() {
     onConfirm();
   };
 
+  const safeFetchJson = async (url: string, options?: RequestInit) => {
+    const res = await fetch(url, options);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error("Received non-JSON content");
+    }
+    return await res.json();
+  };
+
   const fetchRegistry = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/pool/registry');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/pool/registry');
       setRepositories(data.watched || []);
       setTotal(data.total || 0);
-    } catch (error) {
-      console.error('Failed to fetch registry', error);
+    } catch (error: any) {
+      console.warn(`[Background Poll Info] Failed to fetch registry: ${error.message}`);
     }
     setLoading(false);
   };
 
   const fetchInventory = async () => {
     try {
-      const res = await fetch('/api/pool/inventory');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/pool/inventory');
       setInventory(data.inventory || []);
-    } catch (e) {
-      console.error('Failed to fetch inventory', e);
+    } catch (e: any) {
+      console.warn(`[Background Poll Info] Failed to fetch inventory: ${e.message}`);
     }
   };
 
   const fetchLogs = async () => {
     try {
-      const res = await fetch('/api/pool/logs');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/pool/logs');
       setLogs(data);
-    } catch (e) {
-      console.error('Failed to fetch logs', e);
+    } catch (e: any) {
+      console.warn(`[Background Poll Info] Failed to fetch logs: ${e.message}`);
     }
   };
 
@@ -83,11 +92,10 @@ export default function App() {
 
   const fetchWorkerStatus = async () => {
     try {
-      const res = await fetch('/api/pool/worker/status');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/pool/worker/status');
       setWorkerStatus(data.status);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.warn(`[Background Poll Info] Failed to fetch worker status: ${e.message}`);
     }
   };
 
@@ -121,8 +129,12 @@ export default function App() {
         if (res.ok) {
           await fetchRegistry();
         } else {
-          const data = await res.json();
-          showAlert(data.error || 'Failed to remove repository');
+          try {
+            const data = await res.json();
+            showAlert(data.error || 'Failed to remove repository');
+          } catch {
+            showAlert('Failed to remove repository (Server Error)');
+          }
         }
       } catch (e) {
         console.error(e);
@@ -146,10 +158,11 @@ export default function App() {
 
   const fetchCommitStatus = async () => {
     try {
-      const res = await fetch('/api/pool/worker/commit-status');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/pool/worker/commit-status');
       setCommitStatus(data);
-    } catch (e) {}
+    } catch (e: any) {
+      console.warn(`[Background Poll Info] Failed to fetch commit status: ${e.message}`);
+    }
   };
 
   useEffect(() => {

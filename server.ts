@@ -289,6 +289,18 @@ app.post('/api/pool/worker/commit', async (req, res) => {
     }
 
     try {
+        if (!fs.existsSync(path.join(rootPath, '.git'))) {
+            logSystem("[Git Setup] Repositório Git local não detectado. Inicializando...");
+            execSync('git init', { cwd: rootPath });
+            execSync('git config user.name "Lego Pool Bot"', { cwd: rootPath });
+            execSync('git config user.email "bot@lego-pool.local"', { cwd: rootPath });
+            logSystem("[Git Setup] Ambiente Git local configurado com sucesso.");
+        }
+    } catch (gitInitErr: any) {
+        logSystem(`[Git Setup Error] Falha ao inicializar o Git: ${gitInitErr.message}`);
+    }
+
+    try {
         let statusOutput = execSync('git status --porcelain=v1 .', { 
             cwd: rootPath,
             maxBuffer: 20 * 1024 * 1024 
@@ -360,7 +372,8 @@ app.post('/api/pool/worker/commit', async (req, res) => {
         });
 
     } catch (err: any) {
-        res.status(500).json({ error: 'Erro', details: err.message });
+        logSystem(`[Git Commit Engine Error] Falha de pré-voo: ${err.message}`);
+        res.status(500).json({ error: 'Erro de Commit: ' + err.message, details: err.message });
     }
 });
 

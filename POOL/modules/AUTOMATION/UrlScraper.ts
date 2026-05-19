@@ -55,6 +55,40 @@ export class UrlScraper {
                             const user = pathParts[0];
                             const skip = ['explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 'security', 'pricing', 'blog', 'search', 'pulls', 'issues'];
                             if (!skip.includes(user.toLowerCase())) {
+                                console.log(`[URL-SCRAPER] Perfil GitHub detectado: ${user}. Tentando buscar via API oficial do GitHub...`);
+                                try {
+                                    const apiResponse = await fetch(`https://api.github.com/users/${user}/repos?per_page=100&sort=updated`, {
+                                        headers: {
+                                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                                            'Accept': 'application/vnd.github.v3+json'
+                                        }
+                                    });
+                                    if (apiResponse.ok) {
+                                        const repos = await apiResponse.json();
+                                        if (Array.isArray(repos)) {
+                                            const manager = new UpdateManager();
+                                            let addedCount = 0;
+                                            for (const r of repos) {
+                                                if (r.html_url) {
+                                                    if (manager.addRepository(r.html_url)) {
+                                                        addedCount++;
+                                                    }
+                                                }
+                                            }
+                                            console.log(`[URL-SCRAPER] API oficial retornou ${repos.length} repositórios para ${user}. Adicionados: ${addedCount}`);
+                                            return {
+                                                status: "success",
+                                                found: repos.length,
+                                                added: addedCount,
+                                                message: `User API: Encontrados ${repos.length} repositórios de ${user}, adicionados ${addedCount} novos.`
+                                            };
+                                        }
+                                    } else {
+                                        console.log(`[URL-SCRAPER] API retornou status ${apiResponse.status}, caindo de volta para o scraping HTML...`);
+                                    }
+                                } catch (apiErr: any) {
+                                    console.log(`[URL-SCRAPER] Erro ao chamar API do GitHub: ${apiErr.message}. Caindo de volta para o scraping HTML...`);
+                                }
                                 // Redirecionamos para a aba de repositórios para o scraper buscar tudo
                                 sourceUrl = `https://github.com/${user}?tab=repositories&sort=updated`;
                                 console.log(`[URL-SCRAPER] Perfil GitHub detectado: ${user}. Redirecionando para aba de repositórios...`);

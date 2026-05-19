@@ -4,5 +4,9 @@ dist/
 coverage/
 .DS_Store
 *.log
+*.err
 .env*
 !.env.example
+POOL/.tmp/
+POOL/worker-status.json
+POOL/ingestion-progress.json

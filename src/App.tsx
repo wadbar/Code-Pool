@@ -222,6 +222,62 @@ export default function App() {
 
   const [commitStatus, setCommitStatus] = useState<{ total: number, done: number, active: boolean }>({ total: 0, done: 0, active: false });
 
+  // Git Remote Safeguard Sync Config and States
+  const [gitRemoteUrl, setGitRemoteUrl] = useState('');
+  const [gitToken, setGitToken] = useState('');
+  const [gitBranch, setGitBranch] = useState('main');
+  const [gitAutoPush, setGitAutoPush] = useState(true);
+  const [gitHasToken, setGitHasToken] = useState(false);
+  const [gitPushing, setGitPushing] = useState(false);
+  const [isSavingGit, setIsSavingGit] = useState(false);
+
+  const fetchGitConfig = async () => {
+    try {
+      const data = await safeFetchJson('/api/pool/git/config');
+      setGitRemoteUrl(data.remoteUrl || '');
+      setGitBranch(data.branch || 'main');
+      setGitAutoPush(data.autoPush !== undefined ? data.autoPush : true);
+      setGitHasToken(data.hasToken || false);
+    } catch (e: any) {
+      console.warn(`[Background Git config parse] Failed to load: ${e.message}`);
+    }
+  };
+
+  const handleSaveGitConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingGit(true);
+    try {
+      const payload: any = { remoteUrl: gitRemoteUrl, branch: gitBranch, autoPush: gitAutoPush };
+      if (gitToken) {
+        payload.token = gitToken;
+      }
+      const data = await safeFetchJson('/api/pool/git/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      showAlert(data.message || 'Configuração de backup salva com sucesso!', 'success');
+      setGitToken('');
+      await fetchGitConfig();
+    } catch (e: any) {
+      showAlert('Erro ao salvar configuração: ' + e.message, 'error');
+    }
+    setIsSavingGit(false);
+  };
+
+  const handleForceGitPush = async () => {
+    setGitPushing(true);
+    try {
+      showAlert('Sincronizando todas as peças com o repositório remoto...', 'info');
+      const data = await safeFetchJson('/api/pool/git/push', { method: 'POST' });
+      showAlert(data.message || 'Persistência completa na piscina remota e estável!', 'success');
+      await fetchLogs();
+    } catch (e: any) {
+      showAlert('Falha na persistência: ' + e.message, 'error');
+    }
+    setGitPushing(false);
+  };
+
   const fetchCommitStatus = async () => {
     try {
       const data = await safeFetchJson('/api/pool/worker/commit-status');
@@ -247,6 +303,7 @@ export default function App() {
     fetchWorkerStatus();
     fetchBlueprints();
     fetchRealScanData();
+    fetchGitConfig();
     
     const interval = setInterval(() => {
       fetchLogs();
@@ -699,6 +756,133 @@ export default function App() {
                 >
                   Gerenciar Watchlist
                 </button>
+              </div>
+            </div>
+
+            {/* Git Remote Preservation and Sync Section */}
+            <div className="bg-slate-900 border border-slate-850 rounded-xl p-5 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-850 pb-3">
+                <div>
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <Github className="w-5 h-5 text-indigo-400" />
+                    PRESERVAÇÃO DA PISCINA DE LEGOS (SINCRONIZAÇÃO FÍSICA PARA O GITHUB)
+                  </h3>
+                  <p className="text-slate-400 text-xs mt-0.5">
+                    Conecte o ambiente efêmero ao seu repositório remoto para salvar as peças LEGO extraídas e blueprints de forma estável.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
+                    gitRemoteUrl ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-950 text-slate-500 border-slate-850'
+                  }`}>
+                    {gitRemoteUrl ? 'Mapeado (Online)' : 'Local Apenas'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Form to configure remote URL and Token */}
+                <form onSubmit={handleSaveGitConfig} className="lg:col-span-2 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 font-mono">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">URL HTTPS do Repositório</label>
+                      <input 
+                        type="url"
+                        placeholder="https://github.com/usuario/meu-repositorio-da-pool"
+                        value={gitRemoteUrl}
+                        onChange={(e) => setGitRemoteUrl(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 font-mono">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center justify-between">
+                        <span>GitHub Token / PAT</span>
+                        {gitHasToken && (
+                          <span className="text-[9px] text-emerald-400 normal-case">✓ Token Configurado</span>
+                        )}
+                      </label>
+                      <input 
+                        type="password"
+                        placeholder={gitHasToken ? "•••••••••••••••••••• (Substituir Token)" : "ghp_seuTokenAqui..."}
+                        value={gitToken}
+                        onChange={(e) => setGitToken(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div className="space-y-1.5 font-mono">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Branch de Destino</label>
+                      <input 
+                        type="text"
+                        placeholder="main"
+                        value={gitBranch}
+                        onChange={(e) => setGitBranch(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2.5 pt-4">
+                      <input 
+                        type="checkbox"
+                        id="autoPushCheck"
+                        checked={gitAutoPush}
+                        onChange={(e) => setGitAutoPush(e.target.checked)}
+                        className="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-800 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
+                      />
+                      <label htmlFor="autoPushCheck" className="text-xs text-slate-300 font-semibold cursor-pointer select-none">
+                        Push automático a cada Commit de Auditoria
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSavingGit}
+                      className="px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 text-xs font-bold rounded-lg transition-all disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSavingGit ? 'animate-spin' : ''}`} />
+                      {isSavingGit ? 'Salvando...' : 'Salvar Configurações de Backup'}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Direct Action triggers panel */}
+                <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-xl flex flex-col justify-between space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider font-mono">Forçar Sincronização Extrema</h4>
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-sans">
+                      Força a sincronização instantânea do local com seu repositório GitHub remoto, sobrescrevendo a branch de destino para correspondência física de 100%.
+                    </p>
+                  </div>
+
+                  {gitRemoteUrl ? (
+                    <button
+                      onClick={handleForceGitPush}
+                      disabled={gitPushing || !gitRemoteUrl}
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-950/30 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${gitPushing ? 'animate-spin' : ''}`} />
+                      {gitPushing ? 'Fazendo Push...' : 'Forçar Push para o Origin'}
+                    </button>
+                  ) : (
+                    <div className="text-center p-3 border border-dashed border-slate-850 rounded-lg bg-slate-950/40 text-[10px] text-slate-500">
+                      Configure o repositório remoto para habilitar o push manual.
+                    </div>
+                  )}
+
+                  <div className="text-[10px] text-slate-400 font-mono flex items-start gap-1.5 bg-indigo-950/10 border border-indigo-900/10 p-2.5 rounded-lg">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                    <span>Os blocos criados na sessão ativa do Cloud Run agora serão mantidos e salvos de verdade na piscina de preservação! Zero simulação.</span>
+                  </div>
+                </div>
+
               </div>
             </div>
 

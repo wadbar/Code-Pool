@@ -481,6 +481,20 @@ app.post('/api/pool/worker/commit', async (req, res) => {
                     }
                 }
                 logSystem(`Status: Ciclo de Auditoria de commits concluído com sucesso.`);
+                
+                // Auto-push to remote backup if configured
+                try {
+                    const gitConfigPath = path.join(rootPath, "POOL", "git-config.json");
+                    if (fs.existsSync(gitConfigPath)) {
+                        const config = JSON.parse(fs.readFileSync(gitConfigPath, "utf8"));
+                        if (config.remoteUrl && config.autoPush) {
+                            logSystem("[Git Backup] Auto-push ativo. Persistindo alterações na piscina remota...");
+                            await executeGitPushInternal();
+                        }
+                    }
+                } catch (pushErr: any) {
+                    logSystem(`[Git Backup Run Error] Auto-push falhou: ${pushErr.message}`);
+                }
             } finally {
                 commitProgress.active = false;
             }
@@ -489,6 +503,121 @@ app.post('/api/pool/worker/commit', async (req, res) => {
     } catch (err: any) {
         logSystem(`[Git Commit Engine Error] Falha de pré-voo: ${err.message}`);
         res.status(500).json({ error: 'Erro de Commit: ' + err.message, details: err.message });
+    }
+});
+
+export function executeGitPushInternal(): Promise<void> {
+    return new Promise((resolve, reject) => {
+        try {
+            const rootPath = process.cwd();
+            const gitConfigPath = path.join(rootPath, 'POOL', 'git-config.json');
+            if (!fs.existsSync(gitConfigPath)) {
+                throw new Error('Configuração de Git remoto não localizada.');
+            }
+            
+            const config = JSON.parse(fs.readFileSync(gitConfigPath, 'utf8'));
+            const remoteUrl = config.remoteUrl || '';
+            const token = config.token || '';
+            const branch = config.branch || 'main';
+            
+            if (!remoteUrl) {
+                throw new Error('A URL do repositório remoto não foi configurada.');
+            }
+            
+            // Normalize and inject token into URL if provided
+            let targetUrl = remoteUrl;
+            if (token && remoteUrl.includes('github.com')) {
+                // Remove existing user info inside URL if any
+                const cleanUrl = remoteUrl.replace(/https?:\/\/([^@]+)@/, 'https://');
+                targetUrl = cleanUrl.replace('https://', `https://${token}@`);
+            }
+            
+            logSystem(`[Git Backup] Configurando remote origin para link persistente...`);
+            
+            try {
+                execSync('git remote remove origin', { cwd: rootPath, stdio: 'ignore' });
+            } catch (e) {}
+            
+            execSync(`git remote add origin "${targetUrl.replace(/"/g, '\\"')}"`, { cwd: rootPath });
+            
+            logSystem(`[Git Backup] Iniciando push forçado (force push) na branch ${branch}...`);
+            
+            try {
+                execSync(`git branch -M ${branch}`, { cwd: rootPath });
+            } catch (e) {}
+            
+            execSync(`git push -f origin ${branch}`, { 
+                cwd: rootPath,
+                timeout: 90000 
+            });
+            
+            logSystem(`[Git Backup Success] Sincronização de peças concluída com total fidelidade na piscina remota.`);
+            resolve();
+        } catch (err: any) {
+            console.error(`[Git Push Error] Fail:`, err.message);
+            logSystem(`[Git Push Error] Falha crítica de persistência remota: ${err.message}`);
+            reject(err);
+        }
+    });
+}
+
+// Endpoints de Configuração de Git Remoto (Salvaguarda Real / Backup)
+app.get('/api/pool/git/config', (req, res) => {
+    const gitConfigPath = path.join(process.cwd(), 'POOL', 'git-config.json');
+    if (!fs.existsSync(gitConfigPath)) {
+        return res.json({ remoteUrl: '', branch: 'main', autoPush: true, hasToken: false });
+    }
+    try {
+        const config = JSON.parse(fs.readFileSync(gitConfigPath, 'utf8'));
+        res.json({
+            remoteUrl: config.remoteUrl || '',
+            branch: config.branch || 'main',
+            autoPush: config.autoPush !== undefined ? !!config.autoPush : true,
+            hasToken: !!config.token
+        });
+    } catch (err: any) {
+        res.status(500).json({ error: 'Falha ao carregar configuração.' });
+    }
+});
+
+app.post('/api/pool/git/config', express.json(), (req, res) => {
+    const { remoteUrl, token, branch, autoPush } = req.body;
+    const gitConfigPath = path.join(process.cwd(), 'POOL', 'git-config.json');
+    if (!fs.existsSync(path.join(process.cwd(), 'POOL'))) {
+        fs.mkdirSync(path.join(process.cwd(), 'POOL'), { recursive: true });
+    }
+    
+    try {
+        let existingConfig: any = {};
+        if (fs.existsSync(gitConfigPath)) {
+            try {
+                existingConfig = JSON.parse(fs.readFileSync(gitConfigPath, 'utf8'));
+            } catch (e) {}
+        }
+        
+        const newConfig = {
+            remoteUrl: remoteUrl !== undefined ? remoteUrl : existingConfig.remoteUrl || '',
+            token: token !== undefined ? token : existingConfig.token || '',
+            branch: branch || existingConfig.branch || 'main',
+            autoPush: autoPush !== undefined ? !!autoPush : existingConfig.autoPush !== undefined ? existingConfig.autoPush : true
+        };
+        
+        fs.writeFileSync(gitConfigPath, JSON.stringify(newConfig, null, 2));
+        logSystem(`[Git Backup] Configurações de backup atualizadas: URL=${newConfig.remoteUrl}, Branch=${newConfig.branch}, AutoPush=${newConfig.autoPush}`);
+        res.json({ status: 'success', message: 'Salvaguarda de Git configurada com sucesso.' });
+    } catch (err: any) {
+        res.status(500).json({ error: 'Falha ao salvar configuração.' });
+    }
+});
+
+// Endpoint para acionar o Push Remoto manual
+app.post('/api/pool/git/push', async (req, res) => {
+    try {
+        logSystem(`[Git Backup] Sincronização remota acionada manualmente...`);
+        await executeGitPushInternal();
+        res.json({ status: 'success', message: 'Módulos persistidos com sucesso na piscina remota (GitHub)!' });
+    } catch (err: any) {
+        res.status(500).json({ error: 'Erro ao sincronizar com GitHub remoto', details: err.message });
     }
 });
 

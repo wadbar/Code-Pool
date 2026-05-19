@@ -237,97 +237,6 @@
       "status": "error"
     },
     {
-      "url": "https://github.com/solutions/industry",
-      "lastSync": "2026-05-19T21:38:22.627Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/solutions/use-case",
-      "lastSync": "2026-05-19T21:38:22.628Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/resources/articles",
-      "lastSync": "2026-05-19T21:38:22.633Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/resources/events",
-      "lastSync": "2026-05-19T21:38:22.634Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/resources/whitepapers",
-      "lastSync": "2026-05-19T21:38:22.634Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/solutions/executive-insights",
-      "lastSync": "2026-05-19T21:38:22.635Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/orgs/community",
-      "lastSync": "2026-05-19T21:38:22.635Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/sponsors/explore",
-      "lastSync": "2026-05-19T21:38:22.636Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/apps/github-actions",
-      "lastSync": "2026-05-19T21:38:22.637Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/apps/dependabot",
-      "lastSync": "2026-05-19T21:38:43.047Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/apps/tech-leads-club-release-bot",
-      "lastSync": "2026-05-19T21:38:43.047Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/sponsors/plausible",
-      "lastSync": "2026-05-19T21:39:10.648Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
-      "url": "https://github.com/apps/github-merge-queue",
-      "lastSync": "2026-05-19T21:39:10.649Z",
-      "isMonster": true,
-      "retryCount": 8,
-      "status": "error"
-    },
-    {
       "url": "https://github.com/TheOdinProject/curriculum",
       "lastSync": "2026-05-19T21:39:39.273Z",
       "digestedCount": 28,
@@ -357,10 +266,6 @@
       "url": "https://github.com/thedaviddias/Front-End-Checklist",
       "lastSync": "2026-05-19T21:42:55.154Z",
       "status": "synced"
-    },
-    {
-      "url": "https://github.com/topics/html5-boilerplate",
-      "lastSync": null
     },
     {
       "url": "https://github.com/jixserver/free-for-dev",

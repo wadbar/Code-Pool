@@ -73,7 +73,12 @@ export class RepoIngester {
             try {
                 console.log(`[INGESTER] Tentativa de Clone ${attempt}/${retries} para ${repoUrl}...`);
                 const activeTimeout = Math.floor(timeout * (attempt === 1 ? 1 : attempt === 2 ? 1.5 : 2));
-                execSync(`git clone --depth 1 --single-branch ${repoUrl} ${destPath}`, {
+                
+                // Strategy variation: use full clone on last attempt
+                const isFinalAttempt = attempt === retries;
+                const cloneCmd = isFinalAttempt ? `git clone ${repoUrl} ${destPath}` : `git clone --depth 1 --single-branch ${repoUrl} ${destPath}`;
+                
+                execSync(cloneCmd, {
                     stdio: 'pipe',
                     timeout: activeTimeout,
                     killSignal: 'SIGKILL'

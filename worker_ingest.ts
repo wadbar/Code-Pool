@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { UpdateManager } from './POOL/modules/AUTOMATION/UpdateManager';
 import fs from 'fs';
 import path from 'path';

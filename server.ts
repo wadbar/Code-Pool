@@ -9,11 +9,15 @@ import { UpdateManager } from './POOL/modules/AUTOMATION/UpdateManager';
 import { RepoIngester } from './POOL/modules/AUTOMATION/RepoIngester';
 import { HungryPoolEngine } from './POOL/modules/AUTOMATION/HungryPoolEngine';
 import { UrlScraper } from './POOL/modules/AUTOMATION/UrlScraper';
+import { ScannerAgent } from './POOL/modules/AUTOMATION/ScannerAgent';
 
 const app = express();
 const PORT = 3000;
 const updateManager = new UpdateManager();
 const hungryPool = new HungryPoolEngine(updateManager);
+
+const scannerAgent = new ScannerAgent();
+scannerAgent.startDaemon(5000); // Executa varreduras assíncronas do disco físico a cada 5 segundos
 
 export function logSystem(msg: string) {
   const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -21,6 +25,39 @@ export function logSystem(msg: string) {
     fs.appendFileSync(path.join(process.cwd(), 'system.log'), `[${timestamp}] ${msg}\n`);
   } catch (err) {
     console.error('Failed to write to system.log', err);
+  }
+}
+
+let lastDaemonCheckTime = 0;
+
+export function checkAndResurrectDaemons(force = false) {
+  const now = Date.now();
+  if (!force && (now - lastDaemonCheckTime < 10000)) return;
+  lastDaemonCheckTime = now;
+
+  const controlPath = path.join(process.cwd(), 'POOL', 'worker-status.json');
+  let currentStatus = 'running';
+  if (fs.existsSync(controlPath)) {
+    try {
+      currentStatus = JSON.parse(fs.readFileSync(controlPath, 'utf8')).status || 'running';
+    } catch (e) {}
+  }
+
+  if (currentStatus === 'paused') {
+    return;
+  }
+
+  try {
+    const ingestRunning = execSync("ps aux | grep 'worker_ingest' | grep -v grep || true").toString().trim().length > 0;
+    const blueprintsRunning = execSync("ps aux | grep 'worker_blueprints' | grep -v grep || true").toString().trim().length > 0;
+
+    if (!ingestRunning || !blueprintsRunning) {
+      console.log(`[SYS-AUTO-HEAL] Daemons missing (Ingest: ${ingestRunning}, Blueprints: ${blueprintsRunning}). Resurrecting silently...`);
+      logSystem(`[AUTO-HEAL] Daemons de background detectados inativos pela infraestrutura serverless. Ressuscitando de forma automatizada e transparente...`);
+      execSync('npx -y tsx start_daemons.mjs');
+    }
+  } catch (err: any) {
+    console.error(`[SYS-AUTO-HEAL] Failed to verify or resurrect daemons:`, err.message);
   }
 }
 
@@ -63,6 +100,31 @@ app.get('/api/pool/inventory', (req, res) => {
 
 // Code Pool Auditor API
 app.get('/api/check-gemini', (req, res) => res.json({ hasKey: !!process.env.GEMINI_API_KEY, len: (process.env.GEMINI_API_KEY || '').length }));
+
+// Novo endpoint do Agente de Varredura de Eventos em Tempo Real do Disco e Logs (Wadbar Direct Scan)
+app.get('/api/pool/real-scan-data', (req, res) => {
+  checkAndResurrectDaemons();
+
+  const cachePath = path.join(process.cwd(), 'POOL', 'system-scan-cache.json');
+  if (!fs.existsSync(cachePath)) {
+    return res.json({ 
+      lastScanTime: new Date().toISOString(),
+      totalRepos: updateManager.listWatched().length,
+      totalBlocks: 0,
+      totalBlueprints: 0,
+      totalDigestedFiles: 0,
+      diskSizeKB: 0,
+      categoriesCount: {},
+      events: [{ timestamp: new Date().toISOString(), type: 'SERVER', message: 'Mecanismo de auditoria em carregamento inicial...' }]
+    });
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Falha ao ler cache do scanner', details: e.message });
+  }
+});
 
 app.get('/api/pool/status', (req, res) => {
   const poolPath = path.join(process.cwd(), 'POOL', 'modules');
@@ -161,6 +223,8 @@ app.post('/api/pool/registry/remove', express.json(), (req, res) => {
   
   const removed = updateManager.removeRepository(url);
   if (removed) {
+    scannerAgent.addEvent('WATCHLIST', `URL removida: ${url}`);
+    scannerAgent.executeScan();
     res.json({ status: 'Removed', url });
   } else {
     res.status(404).json({ error: 'Repository not found in registry' });
@@ -171,7 +235,13 @@ app.post('/api/pool/registry/add', express.json(), (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL is required' });
   
-  updateManager.addRepository(url);
+  const added = updateManager.addRepository(url);
+  if (added) {
+    scannerAgent.addEvent('WATCHLIST', `Nova URL adicionada à Watchlist: ${url}`);
+  } else {
+    scannerAgent.addEvent('WATCHLIST', `Tentativa de registrar URL duplicada/inválida: ${url}`);
+  }
+  scannerAgent.executeScan();
   res.json({ status: 'success', message: 'Repositório enfileirado para digestão.' });
 });
 
@@ -219,6 +289,7 @@ app.post('/api/pool/scrape-url', express.json(), async (req, res) => {
 
 // Endpoint para visualizar os logs de ingestão em "tempo real" (últimas linhas)
 app.get('/api/pool/logs', (req, res) => {
+    checkAndResurrectDaemons();
     try {
         const ingestLogs = fs.existsSync('ingest.log') ? fs.readFileSync('ingest.log', 'utf8').split('\n').slice(-50).join('\n') : "Aguardando worker de ingestão...";
         const blueprintLogs = fs.existsSync('blueprints.log') ? fs.readFileSync('blueprints.log', 'utf8').split('\n').slice(-30).join('\n') : "Aguardando worker de blueprints...";

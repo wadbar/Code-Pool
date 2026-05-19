@@ -36,11 +36,30 @@ interface InventoryCategory {
   blocks: string[];
 }
 
+export interface RealScanEvent {
+  timestamp: string;
+  type: 'DISC' | 'LEGO' | 'BLUEPRINT' | 'WATCHLIST' | 'SERVER';
+  message: string;
+}
+
+export interface RealScanData {
+  lastScanTime: string;
+  totalRepos: number;
+  totalBlocks: number;
+  totalBlueprints: number;
+  totalDigestedFiles: number;
+  diskSizeKB: number;
+  categoriesCount: Record<string, number>;
+  events: RealScanEvent[];
+}
+
 export default function App() {
   const [repositories, setRepositories] = useState<WatchedRepository[]>([]);
   const [inventory, setInventory] = useState<InventoryCategory[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  const [realScanData, setRealScanData] = useState<RealScanData | null>(null);
   
   // Custom states requested by user
   const [activeTab, setActiveTab] = useState<'overview' | 'repos' | 'legos' | 'logs'>('overview');
@@ -212,18 +231,31 @@ export default function App() {
     }
   };
 
+  const fetchRealScanData = async () => {
+    try {
+      const data = await safeFetchJson('/api/pool/real-scan-data');
+      setRealScanData(data);
+    } catch (e: any) {
+      console.warn(`[Background Scanner Poll Info] Failed to fetch real scan data: ${e.message}`);
+    }
+  };
+
   useEffect(() => {
     fetchRegistry();
     fetchInventory();
     fetchLogs();
     fetchWorkerStatus();
     fetchBlueprints();
+    fetchRealScanData();
     
     const interval = setInterval(() => {
       fetchLogs();
       fetchWorkerStatus();
       fetchCommitStatus();
       fetchBlueprints();
+      fetchRealScanData();
+      fetchRegistry();
+      fetchInventory();
     }, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -332,21 +364,24 @@ export default function App() {
   };
   const sliceProgress = getSliceProgress(logs.ingestion);
 
-  // Math metrics (100% Real, non-simulated numbers computed on active arrays)
-  const totalRepos = repositories.length;
-  const totalBlocks = inventory.reduce((acc, cat) => acc + cat.blocks.length, 0);
-  const totalBlueprints = blueprintInfo.count;
+  // Math metrics (100% Real, non-simulated numbers computed on active arrays or fallback to realScanData from filesystem scanner)
+  const totalRepos = realScanData ? realScanData.totalRepos : repositories.length;
+  const totalBlocks = realScanData ? realScanData.totalBlocks : inventory.reduce((acc, cat) => acc + cat.blocks.length, 0);
+  const totalBlueprints = realScanData ? realScanData.totalBlueprints : blueprintInfo.count;
   
   const syncedRepos = repositories.filter(repo => repo.lastSync).length;
   const pendingRepos = repositories.filter(repo => !repo.lastSync).length;
   const monsterRepos = repositories.filter(repo => repo.isMonster).length;
   const errorRepos = repositories.filter(repo => (repo.retryCount || 0) > 3).length;
 
-  const totalDigestedFiles = repositories.reduce((acc, repo) => acc + (repo.digestedCount || 0), 0);
+  const totalDigestedFiles = realScanData ? realScanData.totalDigestedFiles : repositories.reduce((acc, repo) => acc + (repo.digestedCount || 0), 0);
   const totalExpectedFiles = repositories.reduce((acc, repo) => acc + (repo.totalFiles || 0), 0);
 
   const globalSyncPercentage = totalRepos > 0 ? Math.round((syncedRepos / totalRepos) * 100) : 0;
-  const globalFilesPercentage = totalExpectedFiles > 0 ? Math.round((totalDigestedFiles / totalExpectedFiles) * 100) : 0;
+  // Fallback se totalExpectedFiles for zero para mostrar estimativa ou progresso alternativo baseado em realScanData se disponível
+  const globalFilesPercentage = totalExpectedFiles > 0 
+    ? Math.round((totalDigestedFiles / totalExpectedFiles) * 100) 
+    : (totalRepos > 0 ? Math.round((syncedRepos / totalRepos) * 100) : 0);
 
   // Filtering actions
   const filteredRepos = repositories.filter(repo => 
@@ -623,7 +658,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Ingestion Engine feed preview directly in overview */}
+            {/* Devourer Ingestion Engaged Feed & Control Terminal */}
             <div className="bg-slate-900 border border-slate-850 rounded-xl p-5 relative overflow-hidden space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -637,11 +672,11 @@ export default function App() {
                 </span>
                 <span className="text-[10px] font-mono text-slate-500 uppercase">Daemon Processo Mestre</span>
               </div>
-              <div className="bg-black/60 p-4 rounded-lg font-mono text-[11px] h-[500px] overflow-y-auto whitespace-pre-wrap select-text custom-scrollbar text-emerald-400/90 border border-slate-950">
+              <div className="bg-black/60 p-4 rounded-lg font-mono text-[11px] h-[450px] overflow-y-auto whitespace-pre-wrap select-text custom-scrollbar text-emerald-400/90 border border-slate-950">
                 {logs.ingestion || "Waiting for stream from master ingestor..."}
               </div>
 
-              <div className="pt-2 flex flex-wrap gap-3 border-t border-slate-850">
+              <div className="pt-4 flex flex-wrap gap-3 border-t border-slate-850 mt-4">
                 <button
                   onClick={async () => {
                     if (commitStatus.active) return;
@@ -662,7 +697,7 @@ export default function App() {
                   onClick={() => setActiveTab('repos')}
                   className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4.5 py-2.5 rounded-lg transition-all flex items-center gap-2 border border-slate-700"
                 >
-                  Gerenciar Repositórios Watchlist
+                  Gerenciar Watchlist
                 </button>
               </div>
             </div>

@@ -28,7 +28,52 @@ export class UpdateManager {
 
     private getRegistry(): { repositories: WatchedRepository[] } {
         const data = fs.readFileSync(this.registryPath, 'utf8');
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        const originalLength = parsed.repositories.length;
+        parsed.repositories = parsed.repositories.filter((repo: WatchedRepository) => 
+            UpdateManager.isValidGitHubRepoUrl(repo.url)
+        );
+        if (parsed.repositories.length < originalLength) {
+            console.log(`[UPDATE-MANAGER] Removendo ${originalLength - parsed.repositories.length} repositórios inválidos/ruído do registro.`);
+            this.saveRegistry(parsed);
+        }
+        return parsed;
+    }
+
+    public static isValidGitHubRepoUrl(url: string | null | undefined): boolean {
+        if (!url || typeof url !== 'string') return false;
+        const clean = url.replace(/\.git$/, '').replace(/\/$/, '');
+        const parts = clean.split('github.com/')[1]?.split('/');
+        if (!parts || parts.length < 2) return false;
+        
+        const user = parts[0].toLowerCase();
+        const repo = parts[1].toLowerCase();
+        
+        const skipUsers = [
+            'explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 
+            'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 
+            'security', 'pricing', 'blog', 'search', 'pulls', 'issues', 'privacy', 'terms',
+            'solutions', 'resources', 'sponsors', 'apps', 'image', 'text', 'application', 
+            'rank_only', 'countries', 'css', 'javascript', 'html', 'json', 'png', 'jpeg', 
+            'gif', 'svg', 'assets', 'styles', 'scripts', 'dist', 'node_modules', 'public', 
+            'build', 'temp', 'tmp'
+        ];
+        
+        if (skipUsers.includes(user)) return false;
+        
+        const skipRepos = [
+            'css', 'javascript', 'html', 'json', 'png', 'jpeg', 'gif', 'svg', 'x-icon', 
+            'plain', 'octet-stream', 'regions', 'errors', 'test-error', 'error', 'test', 'demo',
+            'styles', 'scripts', 'assets'
+        ];
+        
+        if (skipRepos.includes(repo)) return false;
+        
+        if (repo.includes('test-error') || repo === 'error') {
+            return false;
+        }
+        
+        return true;
     }
 
     private saveRegistry(data: { repositories: WatchedRepository[] }) {
@@ -39,6 +84,11 @@ export class UpdateManager {
      * Adiciona um novo repositório à lista de monitoramento
      */
     addRepository(url: string) {
+        if (!UpdateManager.isValidGitHubRepoUrl(url)) {
+            console.log(`[UPDATE-MANAGER] Repositório rejeitado (verificação de integridade/ruído falhou): ${url}`);
+            return false;
+        }
+
         // Ignora o repositório da própria piscina para evitar loop/redução redundante
         const excludedRepos = [
             'https://github.com/wadbar/Code-Pool',

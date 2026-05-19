@@ -33,7 +33,9 @@ export class UrlScraper {
                     
                     if (pathParts) {
                         // Caso 1: Repositório Direto (User/Repo)
-                        if (pathParts.length >= 2) {
+                        const isMainRepoUrl = pathParts.length === 2 || (pathParts.length === 3 && pathParts[2] === '');
+                        const hasSubpathKeywords = pathParts.includes('blob') || pathParts.includes('raw') || pathParts.includes('tree');
+                        if (isMainRepoUrl && !hasSubpathKeywords) {
                             const user = pathParts[0];
                             const repo = pathParts[1];
                             const skip = ['explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 'security', 'pricing', 'blog', 'search'];
@@ -187,7 +189,15 @@ export class UrlScraper {
             let pMatch;
             while ((pMatch = profileRegex.exec(text)) !== null) {
                 const user = pMatch[1];
-                const skip = ['explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 'security', 'pricing', 'blog', 'search', 'pulls', 'issues', 'privacy', 'terms'];
+                const skip = [
+                    'explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 
+                    'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 
+                    'security', 'pricing', 'blog', 'search', 'pulls', 'issues', 'privacy', 'terms',
+                    'solutions', 'resources', 'sponsors', 'apps', 'image', 'text', 'application', 
+                    'rank_only', 'countries', 'css', 'javascript', 'html', 'json', 'png', 'jpeg', 
+                    'gif', 'svg', 'assets', 'styles', 'scripts', 'dist', 'node_modules', 'public', 
+                    'build', 'temp', 'tmp'
+                ];
                 if (!skip.includes(user.toLowerCase())) {
                     foundProfiles.push(user);
                 }

@@ -47,15 +47,39 @@ export default function App() {
   };
 
   const safeFetchJson = async (url: string, options?: RequestInit) => {
-    const res = await fetch(url, options);
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+    try {
+      const res = await fetch(url, options);
+      const contentType = res.headers.get("content-type");
+      const isJson = contentType && contentType.includes("application/json");
+
+      if (!res.ok) {
+        if (isJson) {
+          try {
+            const data = await res.json();
+            throw new Error(data.error || data.message || `HTTP ${res.status}`);
+          } catch (e: any) {
+            throw new Error(e.message || `HTTP ${res.status}`);
+          }
+        } else {
+          throw new Error(`Erro na conexão (HTTP ${res.status}). O servidor pode estar indisponível ou reiniciando.`);
+        }
+      }
+
+      if (!isJson) {
+        throw new Error("O servidor retornou uma resposta inválida (não JSON). Tente novamente em alguns instantes.");
+      }
+
+      try {
+        return await res.json();
+      } catch {
+        throw new Error("Falha ao descriptografar dados JSON do servidor.");
+      }
+    } catch (err: any) {
+      if (err.message && (err.message.includes("Failed to fetch") || err.message.includes("fetch failed"))) {
+        throw new Error("Não foi possível conectar ao servidor. Verifique se ele está ativo e tente novamente.");
+      }
+      throw err;
     }
-    const contentType = res.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      throw new Error("Received non-JSON content");
-    }
-    return await res.json();
   };
 
   const fetchRegistry = async () => {
@@ -121,23 +145,14 @@ export default function App() {
   const handleRemoveRepo = async (url: string) => {
     showConfirm(`Are you sure you want to remove ${url}? This will stop monitoring but won't delete already ingested data.`, async () => {
       try {
-        const res = await fetch('/api/pool/registry/remove', {
+        await safeFetchJson('/api/pool/registry/remove', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url }),
         });
-        if (res.ok) {
-          await fetchRegistry();
-        } else {
-          try {
-            const data = await res.json();
-            showAlert(data.error || 'Failed to remove repository');
-          } catch {
-            showAlert('Failed to remove repository (Server Error)');
-          }
-        }
-      } catch (e) {
-        console.error(e);
+        await fetchRegistry();
+      } catch (e: any) {
+        showAlert('Falha ao remover repositório: ' + e.message, 'error');
       }
     });
   };
@@ -196,18 +211,12 @@ export default function App() {
     showConfirm('Shark Mode: Initiate autonomous search for new repositories? The engine will scan current targets for forks and similar projects.', async () => {
       setHunting(true);
       try {
-        const res = await fetch('/api/pool/hunt', { method: 'POST' });
-        const data = await res.json();
-        if (res.ok) {
-          showAlert(`Hunt successful! Found ${data.hunted || 0} new repositories to ingest.`, 'success');
-          await fetchRegistry();
-          await fetchInventory();
-        } else {
-          showAlert(data.error || 'The hunt failed.', 'error');
-        }
-      } catch (e) {
-        console.error(e);
-        showAlert('Network error during hunt initiation.', 'error');
+        const data = await safeFetchJson('/api/pool/hunt', { method: 'POST' });
+        showAlert(`Hunt successful! Found ${data.hunted || 0} new repositories to ingest.`, 'success');
+        await fetchRegistry();
+        await fetchInventory();
+      } catch (e: any) {
+        showAlert('A caçada falhou: ' + e.message, 'error');
       }
       setHunting(false);
     });
@@ -218,21 +227,16 @@ export default function App() {
     if (!ingestUrl) return;
     setIngesting(true);
     try {
-      const res = await fetch('/api/pool/ingest', {
+      const data = await safeFetchJson('/api/pool/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ githubUrl: ingestUrl }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        showAlert(data.message || 'Alvo adicionado à fila de digestão em background.', 'success');
-      } else {
-        showAlert(data.error || 'Falha ao adicionar repositório.', 'error');
-      }
+      showAlert(data.message || 'Alvo adicionado à fila de digestão em background.', 'success');
       setIngestUrl('');
       await fetchRegistry();
     } catch (e: any) {
-      showAlert('Erro na conexão com a engine: ' + e.message, 'error');
+      showAlert('Falha na ingestão: ' + e.message, 'error');
     }
     setIngesting(false);
   };
@@ -247,7 +251,7 @@ export default function App() {
     
     setScraping(true);
     try {
-      const res = await fetch('/api/pool/scrape-url', {
+      const data = await safeFetchJson('/api/pool/scrape-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -255,17 +259,12 @@ export default function App() {
           rawContent: scrapeMode === 'raw' ? rawContent : undefined
         }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        showAlert(`Sucesso! Encontrados ${data.found || 0} repositórios. ${data.added || 0} novos alvos foram enfileirados.`, 'success');
-        setScrapeUrl('');
-        setRawContent('');
-        await fetchRegistry();
-      } else {
-        showAlert(data.error || 'Falha ao processar conteúdo.', 'error');
-      }
+      showAlert(`Sucesso! Encontrados ${data.found || 0} repositórios. ${data.added || 0} novos alvos foram enfileirados.`, 'success');
+      setScrapeUrl('');
+      setRawContent('');
+      await fetchRegistry();
     } catch (e: any) {
-      showAlert('Erro: ' + e.message, 'error');
+      showAlert('Erro no Scraper: ' + e.message, 'error');
     }
     setScraping(false);
   };
@@ -401,15 +400,10 @@ export default function App() {
                     onClick={async () => {
                       showConfirm('Você está prestes a comitar todas as peças modularizadas para salvaguardar a Pool. Deseja continuar?', async () => {
                         try {
-                          const res = await fetch('/api/pool/worker/commit', { method: 'POST' });
-                          const data = await res.json();
-                          if (res.ok) {
-                            showAlert(data.message || 'Auditoria de salvaguarda iniciada em background.');
-                          } else {
-                            showAlert(data.error || 'Falha ao iniciar commit.');
-                          }
+                          const data = await safeFetchJson('/api/pool/worker/commit', { method: 'POST' });
+                          showAlert(data.message || 'Auditoria de salvaguarda iniciada em background.', 'success');
                         } catch (e: any) {
-                          showAlert('Falha ao acionar a engine de commit: ' + e.message);
+                          showAlert('Falha ao acionar a engine de commit: ' + e.message, 'error');
                         }
                       });
                     }}

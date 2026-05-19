@@ -237,166 +237,126 @@
       "status": "error"
     },
     {
-      "url": "https://github.com/framer/motion",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 300,
-      "totalFiles": 1143
-    },
-    {
       "url": "https://github.com/solutions/industry",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.627Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/solutions/use-case",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.628Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/resources/articles",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.633Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/resources/events",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.634Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/resources/whitepapers",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.634Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/solutions/executive-insights",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.635Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/orgs/community",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.635Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/sponsors/explore",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.636Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/apps/github-actions",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:22.637Z",
       "isMonster": true,
-      "retryCount": 8
-    },
-    {
-      "url": "https://github.com/ggml-org/llama.cpp",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 350,
-      "totalFiles": 430
-    },
-    {
-      "url": "https://github.com/ruvnet/RuView",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 2,
-      "digestedCount": 300,
-      "totalFiles": 417
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/apps/dependabot",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:43.047Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/apps/tech-leads-club-release-bot",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:38:43.047Z",
       "isMonster": true,
-      "retryCount": 8
-    },
-    {
-      "url": "https://github.com/ZhuLinsen/daily_stock_analysis",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 350,
-      "totalFiles": 530
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/sponsors/plausible",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:39:10.648Z",
       "isMonster": true,
-      "retryCount": 8
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/apps/github-merge-queue",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:39:10.649Z",
       "isMonster": true,
-      "retryCount": 8
-    },
-    {
-      "url": "https://github.com/freeCodeCamp/freeCodeCamp",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 350,
-      "totalFiles": 1114
-    },
-    {
-      "url": "https://github.com/facebook/react",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 350,
-      "totalFiles": 4364
+      "retryCount": 8,
+      "status": "error"
     },
     {
       "url": "https://github.com/TheOdinProject/curriculum",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:39:39.273Z",
+      "digestedCount": 28,
+      "status": "synced"
     },
     {
       "url": "https://github.com/danistefanovic/build-your-own-x",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/tensorflow/models",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/facebook/react-native",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:39:39.947Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/wesbos/JavaScript30",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:40:18.040Z",
+      "digestedCount": 7,
+      "status": "synced"
     },
     {
       "url": "https://github.com/css-grid/css-grid-ama",
       "lastSync": null
     },
     {
-      "url": "https://github.com/nodejs/node",
-      "lastSync": null
-    },
-    {
       "url": "https://github.com/awesomedata/awesome-public-datasets",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:42:53.910Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/thedaviddias/Front-End-Checklist",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:42:55.154Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/topics/html5-boilerplate",
@@ -404,15 +364,18 @@
     },
     {
       "url": "https://github.com/jixserver/free-for-dev",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:43:05.710Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/lydiahallie/javascript-questions",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:43:06.847Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/mdh266/SQL-Practice",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:43:07.481Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/learning-zone/php-interview-questions",
@@ -420,65 +383,75 @@
     },
     {
       "url": "https://github.com/backend-br/desafios",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:43:17.957Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/felipe-augusto/clean-code-javascript",
-      "lastSync": null
+      "lastSync": "2026-05-19T21:43:18.668Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/wadbar/papercreeper",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:43:20.276Z",
       "isMonster": true,
-      "retryCount": 1
+      "retryCount": 1,
+      "status": "synced"
     },
     {
       "url": "https://github.com/wadbar/paperfabrik",
-      "lastSync": null,
+      "lastSync": "2026-05-19T21:43:20.939Z",
       "isMonster": true,
-      "retryCount": 1
+      "retryCount": 1,
+      "status": "synced"
     },
     {
       "url": "https://github.com/wadbar/RetroForge",
-      "lastSync": null,
-      "digestedCount": 25,
+      "lastSync": "2026-05-19T21:43:21.992Z",
+      "digestedCount": 57,
       "totalFiles": 57,
-      "isMonster": true
+      "isMonster": true,
+      "status": "synced"
     },
     {
       "url": "https://github.com/wadbar/Fliper",
-      "lastSync": null,
-      "digestedCount": 25,
+      "lastSync": "2026-05-19T21:43:23.421Z",
+      "digestedCount": 85,
       "totalFiles": 85,
-      "isMonster": true
+      "isMonster": true,
+      "status": "synced"
     },
     {
       "url": "https://github.com/wadbar/papermu",
-      "lastSync": null,
-      "digestedCount": 25,
+      "lastSync": "2026-05-19T21:43:24.724Z",
+      "digestedCount": 61,
       "totalFiles": 61,
-      "isMonster": true
+      "isMonster": true,
+      "status": "synced"
     },
     {
       "url": "https://github.com/wadbar/papervideo",
-      "lastSync": null,
-      "digestedCount": 25,
+      "lastSync": "2026-05-19T21:43:26.802Z",
+      "digestedCount": 47,
       "totalFiles": 47,
-      "isMonster": true
+      "isMonster": true,
+      "status": "synced"
     },
     {
       "url": "https://github.com/wadbar/Minecrafter.ai",
-      "lastSync": null,
-      "digestedCount": 25,
+      "lastSync": "2026-05-19T21:43:27.549Z",
+      "digestedCount": 35,
       "totalFiles": 35,
-      "isMonster": true
+      "isMonster": true,
+      "status": "synced"
     },
     {
       "url": "https://github.com/levyvix/scraper-filmes",
-      "lastSync": null,
-      "digestedCount": 25,
+      "lastSync": "2026-05-19T21:43:28.466Z",
+      "digestedCount": 63,
       "totalFiles": 63,
-      "isMonster": true
+      "isMonster": true,
+      "status": "synced"
     },
     {
       "url": "https://github.com/videolan/vlc",
@@ -749,50 +722,253 @@
       "digestedCount": 350,
       "totalFiles": 902
     },
-    { "url": "https://github.com/bayandin/awesome-awesomeness", "lastSync": null },
-    { "url": "https://github.com/avelino/awesome-go", "lastSync": null },
-    { "url": "https://github.com/sorrycc/awesome-javascript", "lastSync": null },
-    { "url": "https://github.com/rust-unofficial/awesome-rust", "lastSync": null },
-    { "url": "https://github.com/ziadoz/awesome-php", "lastSync": null },
-    { "url": "https://github.com/enaqx/awesome-react", "lastSync": null },
-    { "url": "https://github.com/vuejs/awesome-vue", "lastSync": null },
-    { "url": "https://github.com/sindresorhus/awesome-nodejs", "lastSync": null },
-    { "url": "https://github.com/unicodeveloper/awesome-nextjs", "lastSync": null },
-    { "url": "https://github.com/josephmisiti/awesome-machine-learning", "lastSync": null },
-    { "url": "https://github.com/Hannibal046/Awesome-LLM", "lastSync": null },
-    { "url": "https://github.com/f/awesome-chatgpt-prompts", "lastSync": null },
-    { "url": "https://github.com/jivoi/awesome-osint", "lastSync": null },
-    { "url": "https://github.com/sbilly/awesome-security", "lastSync": null },
-    { "url": "https://github.com/Hack-with-Github/Awesome-Hacking", "lastSync": null },
-    { "url": "https://github.com/apsdehal/awesome-ctf", "lastSync": null },
-    { "url": "https://github.com/thehappydinoa/awesome-censys-queries", "lastSync": null },
-    { "url": "https://github.com/awesome-selfhosted/awesome-selfhosted", "lastSync": null },
-    { "url": "https://github.com/wmariuss/awesome-devops", "lastSync": null },
-    { "url": "https://github.com/mezod/awesome-indie", "lastSync": null },
-    { "url": "https://github.com/lukasz-madon/awesome-remote-job", "lastSync": null },
-    { "url": "https://github.com/KrishMunot/awesome-startup", "lastSync": null },
-    { "url": "https://github.com/gztchan/awesome-design", "lastSync": null },
-    { "url": "https://github.com/awesome-css-group/awesome-css", "lastSync": null },
-    { "url": "https://github.com/dicktracey909/awesome-adhd-tools", "lastSync": null },
-    { "url": "https://github.com/dicktracey909/awesome-construction-calculators", "lastSync": null },
-    { "url": "https://github.com/stax76/awesome-mpv", "lastSync": null },
-    { "url": "https://github.com/rothgar/awesome-tuis", "lastSync": null },
-    { "url": "https://github.com/toplap/awesome-livecoding", "lastSync": null },
-    { "url": "https://github.com/terremoth/awesome-hilarious-repos", "lastSync": null },
-    { "url": "https://github.com/thewellfrog/awesome-online-tarot-reading-sites", "lastSync": null },
-    { "url": "https://github.com/thewellfrog/awesome-angel-number-calculator", "lastSync": null },
-    { "url": "https://github.com/thewellfrog/awesome-spirit-animal-quiz", "lastSync": null },
-    { "url": "https://github.com/thewellfrog/awesome-twin-flame-calculator", "lastSync": null },
-    { "url": "https://github.com/thewellfrog/awesome-commercial-kitchen-uk", "lastSync": null },
-    { "url": "https://github.com/dicktracey909/awesome-face-shape-analysis", "lastSync": null },
-    { "url": "https://github.com/thewellfrog/awesome-relationship-psychology-quizzes", "lastSync": null },
-    { "url": "https://github.com/Codepoints/awesome-codepoints", "lastSync": null },
-    { "url": "https://github.com/h4cc/awesome-elixir", "lastSync": null },
-    { "url": "https://github.com/0PandaDEV/awesome-windows", "lastSync": null },
-    { "url": "https://github.com/awesome-foss/awesome-sysadmin", "lastSync": null },
-    { "url": "https://github.com/bloo-berries/Awesome-Endo-Adeno-Resources", "lastSync": null },
-    { "url": "https://github.com/AboutRSS/ALL-about-RSS", "lastSync": null },
-    { "url": "https://github.com/future-agi/traceAI", "lastSync": null },
-    { "url": "https://github.com/Premo-Cloud/apijack", "lastSync": null }
+    {
+      "url": "https://github.com/bayandin/awesome-awesomeness",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/avelino/awesome-go",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/sorrycc/awesome-javascript",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/rust-unofficial/awesome-rust",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/ziadoz/awesome-php",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/enaqx/awesome-react",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/vuejs/awesome-vue",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/sindresorhus/awesome-nodejs",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/unicodeveloper/awesome-nextjs",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/josephmisiti/awesome-machine-learning",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/Hannibal046/Awesome-LLM",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/f/awesome-chatgpt-prompts",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/jivoi/awesome-osint",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/sbilly/awesome-security",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/Hack-with-Github/Awesome-Hacking",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/apsdehal/awesome-ctf",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/thehappydinoa/awesome-censys-queries",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/awesome-selfhosted/awesome-selfhosted",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/wmariuss/awesome-devops",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/mezod/awesome-indie",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/lukasz-madon/awesome-remote-job",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/KrishMunot/awesome-startup",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/gztchan/awesome-design",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/awesome-css-group/awesome-css",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/dicktracey909/awesome-adhd-tools",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/dicktracey909/awesome-construction-calculators",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/stax76/awesome-mpv",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/rothgar/awesome-tuis",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/toplap/awesome-livecoding",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/terremoth/awesome-hilarious-repos",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/thewellfrog/awesome-online-tarot-reading-sites",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/thewellfrog/awesome-angel-number-calculator",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/thewellfrog/awesome-spirit-animal-quiz",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/thewellfrog/awesome-twin-flame-calculator",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/thewellfrog/awesome-commercial-kitchen-uk",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/dicktracey909/awesome-face-shape-analysis",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/thewellfrog/awesome-relationship-psychology-quizzes",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/Codepoints/awesome-codepoints",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/h4cc/awesome-elixir",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/0PandaDEV/awesome-windows",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/awesome-foss/awesome-sysadmin",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/bloo-berries/Awesome-Endo-Adeno-Resources",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/AboutRSS/ALL-about-RSS",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/future-agi/traceAI",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/Premo-Cloud/apijack",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/framer/motion",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 340,
+      "totalFiles": 1143
+    },
+    {
+      "url": "https://github.com/ggml-org/llama.cpp",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 390,
+      "totalFiles": 1181
+    },
+    {
+      "url": "https://github.com/ruvnet/RuView",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 2,
+      "digestedCount": 340,
+      "totalFiles": 917
+    },
+    {
+      "url": "https://github.com/ZhuLinsen/daily_stock_analysis",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 430,
+      "totalFiles": 532
+    },
+    {
+      "url": "https://github.com/freeCodeCamp/freeCodeCamp",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 390,
+      "totalFiles": 1114
+    },
+    {
+      "url": "https://github.com/facebook/react",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 390,
+      "totalFiles": 4364
+    },
+    {
+      "url": "https://github.com/tensorflow/models",
+      "lastSync": null,
+      "digestedCount": 40,
+      "totalFiles": 2689,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/facebook/react-native",
+      "lastSync": null,
+      "digestedCount": 40,
+      "totalFiles": 4238,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/nodejs/node",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    }
   ]
 }

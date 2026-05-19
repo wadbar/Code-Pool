@@ -279,9 +279,8 @@ app.post('/api/pool/worker/commit', async (req, res) => {
             console.log("[SYS] Removed rogue nested .git directory inside POOL.");
         }
 
-        // Use --porcelain=v1 to get a clean status of the POOL directory relative to root
-        // The output paths will be relative to rootPath
-        const statusOutput = execSync('git status --porcelain=v1 POOL/', { 
+        // Use --porcelain=v1 to get a clean status of the ENTIRE repo
+        const statusOutput = execSync('git status --porcelain=v1 .', { 
             cwd: rootPath,
             maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large repos
         }).toString();
@@ -298,7 +297,7 @@ app.post('/api/pool/worker/commit', async (req, res) => {
             });
             
         if (files.length === 0) {
-            return res.json({ status: 'No changes', message: 'Nenhuma nova peça Lego encontrada para commit.' });
+            return res.json({ status: 'No changes', message: 'Nenhuma nova peça Lego ou alteração na Engine encontrada para commit.' });
         }
 
         console.log(`[SYS] Iniciando commit cirúrgico peça por peça para ${files.length} blocos...`);
@@ -308,26 +307,57 @@ app.post('/api/pool/worker/commit', async (req, res) => {
         for (let i = 0; i < files.length; i++) {
             const filePath = files[i];
             
-            // Ignora arquivos temporários se por acaso vazarem pro git
-            if (filePath.includes('.tmp/') || filePath.endsWith('.log') || filePath.endsWith('.err')) {
+            // Filtros severos: ignorar tralha de runtime, logs e repositórios temporários
+            if (
+                filePath.includes('.tmp/') || 
+                filePath.includes('node_modules/') ||
+                filePath.includes('dist/') ||
+                filePath.endsWith('.log') || 
+                filePath.endsWith('.err') ||
+                filePath.endsWith('worker-status.json') ||
+                filePath.includes('ingestion-progress.json')
+            ) {
                 continue;
             }
             
             const escapedFile = `"${filePath.replace(/"/g, '\\"')}"`;
-            
-            // Extrai só o nome final do arquivo pra mensagem ficar bonita
             const fileName = filePath.split('/').pop() || 'bloco_desconhecido';
+            
+            let commitMsg = '';
+
+            // Detecta qual área da engine sofreu mutação
+            if (filePath.startsWith('POOL/modules/') || filePath.startsWith('POOL/blueprints/')) {
+                // Tenta extrair a URL de origem da peça
+                let sourceUrl = '';
+                try {
+                    const fullAbsPath = path.join(rootPath, filePath);
+                    if (fs.existsSync(fullAbsPath)) {
+                        const contentHead = fs.readFileSync(fullAbsPath, 'utf8').substring(0, 500);
+                        const match = contentHead.match(/\/\/\s*Última Contribuição:\s*(https:\/\/github\.com\/[^\s]+)/i);
+                        if (match && match[1]) {
+                            sourceUrl = match[1].replace('.git', '');
+                        }
+                    }
+                } catch (e) {}
+                
+                const typeName = filePath.startsWith('POOL/blueprints/') ? 'Blueprint' : 'Módulo';
+                commitMsg = `📦 [Lego ${typeName}] ${fileName}`;
+                if (sourceUrl) {
+                    commitMsg += `\n\nOrigem destilada: ${sourceUrl}`;
+                }
+            } else {
+                // Mudanças na própria infraestrutura do Dashboard/Worker (ex: App.tsx, server.ts)
+                commitMsg = `🛠️ [Dashboard Infra] Reforço e aprimoramento no core: ${fileName}`;
+            }
             
             try {
                 // Adiciona e comita cada peça cirurgicamente
                 execSync(`git add ${escapedFile}`, { cwd: rootPath });
                 
-                // Mensagem especial formatada
-                const commitMsg = `📦 [Lego Pool] Reforço Arquitetural: ${fileName}`;
                 execSync(`git commit -m "${commitMsg}"`, { cwd: rootPath });
                 
                 commitsDone++;
-                const logMsg = `[SYS] Commit isolado realizado: ${commitMsg}`;
+                const logMsg = `[SYS] Commit isolado: ${commitMsg.split('\n')[0]}`;
                 console.log(logMsg);
                 fs.appendFileSync(path.join(rootPath, 'system.log'), `[${new Date().toISOString()}] ${logMsg}\n`);
             } catch (err: any) {
@@ -341,7 +371,7 @@ app.post('/api/pool/worker/commit', async (req, res) => {
             status: 'Committed', 
             filesChanged: files.length, 
             commitsCount: commitsDone,
-            message: `Auditoria concluída: ${commitsDone} peças Lego individualmente blindadas e enviadas para o histórico.`
+            message: `Auditoria concluída: ${commitsDone} commits singulares blindados e propagados para a raiz do ecossistema.`
         });
     } catch (err: any) {
         console.error("[SYS] Falha crítica de sincronização:", err.message);

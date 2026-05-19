@@ -44,41 +44,50 @@ export class UrlScraper {
                     return `https://github.com/${clean}`;
                 }).filter(u => u !== null) as string[];
                 
-                // Extra failsafe: Search for headings that might imply famous repos
-                const headingMatches = text.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi) || [];
-                const possibleNames = headingMatches.map(h => {
-                    return h.replace(/<[^>]+>/g, '').replace(/^[0-9]+[\.\-\)\s]+/, '').trim();
-                }).filter(name => name.length > 3 && name.length < 40 && !name.toLowerCase().includes('github') && !name.toLowerCase().includes('explore'));
-                
-                const customMapping: Record<string, string> = {
-                    'freecodecamp': 'freeCodeCamp/freeCodeCamp',
-                    'free programming books': 'EbookFoundation/free-programming-books',
-                    'coding interview university': 'jwasham/coding-interview-university',
-                    'developer roadmap': 'kamranahmedse/developer-roadmap',
-                    'tensorflow': 'tensorflow/tensorflow',
-                    'bootstrap': 'twbs/bootstrap',
-                    'public apis': 'public-apis/public-apis',
-                    'the algorithms - python': 'TheAlgorithms/Python',
-                    'the algorithms python': 'TheAlgorithms/Python',
-                    'react': 'facebook/react',
-                    'vue': 'vuejs/vue',
-                    'linux': 'torvalds/linux',
-                    'javascript': 'trekhleb/javascript-algorithms',
-                    'd3': 'd3/d3'
-                };
-                
-                for (const name of possibleNames) {
-                    const lowName = name.toLowerCase();
-                    if (customMapping[lowName]) {
-                        impliedUrls.push(`https://github.com/${customMapping[lowName]}`);
-                    } else {
-                        // Tenta achar padrões user/repo diretos no título (ex: facebook/react)
-                        const slashIdx = lowName.indexOf('/');
-                        if (slashIdx > 0 && slashIdx < lowName.length - 1 && !lowName.includes(' ')) {
-                            impliedUrls.push(`https://github.com/${lowName}`);
-                        }
+            // Extra failsafe: Search for headings OR bold text patterns that might imply famous repos
+            const headingMatches = text.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>|<b>(.*?)<\/b>|<strong>(.*?)<\/strong>|<span>(.*?)<\/span>/gi) || [];
+            const possibleNames = headingMatches.map(h => {
+                return h.replace(/<[^>]+>/g, '')
+                        .replace(/^[0-9]+[\.\-\)\s]+/, '') // Remove "1. ", "1)", etc
+                        .trim();
+            }).filter(name => name.length > 3 && name.length < 50 && !name.toLowerCase().includes('github') && !name.toLowerCase().includes('explore'));
+            
+            const customMapping: Record<string, string> = {
+                'freecodecamp': 'freeCodeCamp/freeCodeCamp',
+                'free programming books': 'EbookFoundation/free-programming-books',
+                'coding interview university': 'jwasham/coding-interview-university',
+                'developer roadmap': 'kamranahmedse/developer-roadmap',
+                'tensorflow': 'tensorflow/tensorflow',
+                'bootstrap': 'twbs/bootstrap',
+                'public apis': 'public-apis/public-apis',
+                'the algorithms - python': 'TheAlgorithms/Python',
+                'the algorithms python': 'TheAlgorithms/Python',
+                'react': 'facebook/react',
+                'vue': 'vuejs/vue',
+                'linux': 'torvalds/linux',
+                'javascript': 'trekhleb/javascript-algorithms',
+                'd3': 'd3/d3',
+                'system design primer': 'donnemartin/system-design-primer',
+                'awesome mackenzie': 'mackenziep/awesome-repositories'
+            };
+            
+            for (const name of possibleNames) {
+                const lowName = name.toLowerCase();
+                // Match exact mapping
+                if (customMapping[lowName]) {
+                    impliedUrls.push(`https://github.com/${customMapping[lowName]}`);
+                } else {
+                    // Try exact "user/repo" hidden in text
+                    const slashIdx = lowName.indexOf('/');
+                    if (slashIdx > 0 && slashIdx < lowName.length - 1 && !lowName.includes(' ')) {
+                        impliedUrls.push(`https://github.com/${lowName}`);
+                    }
+                    // Try to guess if it is a common library if the name is very specific (e.g., "Tencent-Hunyuan")
+                    if (lowName.startsWith('tencent') || lowName.startsWith('microsoft') || lowName.startsWith('google')) {
+                        // Heurística de busca provável ou apenas logar
                     }
                 }
+            }
                 
                 if (impliedUrls.length > 0) {
                     console.log(`[URL-SCRAPER] Heurística Profunda: Encontrou ${impliedUrls.length} potenciais repositórios a partir do texto/estruturas.`);

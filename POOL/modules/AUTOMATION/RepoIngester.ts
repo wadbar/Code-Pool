@@ -72,14 +72,9 @@ export class RepoIngester {
                     
                     const size = fs.statSync(f).size;
                     // Ignore empty or extremely tiny files (unlikely to be complex lego pieces)
-                    if (size < 150) return false;
+                    if (size < 100) return false;
                     // Ignore gigantic files (likely generated bundles or massive JSON dumps)
-                    if (size > 120000) return false; 
-
-                    // Ignore root configuration files unless they are unusually large/complex
-                    if (relative.split('/').length <= 2 && (fileName.includes('config') || fileName.includes('rc.') || fileName === 'package.json')) {
-                        return false;
-                    }
+                    if (size > 150000) return false; 
 
                     return true;
                 });
@@ -91,14 +86,13 @@ export class RepoIngester {
                     const priority = { '.tsx': 1, '.ts': 2, '.jsx': 3, '.js': 4, '.py': 5 };
                     const pA = (priority as any)[extA] || 99;
                     const pB = (priority as any)[extB] || 99;
-                    // Primary sort by extension priority, secondary sort by size descending (bigger usually more complex)
                     return pA - pB || fs.statSync(b).size - fs.statSync(a).size;
                 });
 
                 // Filtrar o que já foi digerido
                 const remainingFiles = goldenFiles.filter(f => !digestedFiles.includes(f.replace(tmpPath, '')));
                 
-                console.log(`[INGESTER] Padrões Ouro identificados: ${goldenFiles.length} arquivos relevantes. ${remainingFiles.length} aguardando extração cirúrgica.`);
+                console.log(`[INGESTER] Padrões Ouro identificados: ${goldenFiles.length} arquivos relevantes. ${remainingFiles.length} aguardando extração.`);
 
                 // 4. Gerar Blueprint apenas se for a primeira vez
                 const safeRepoName = repoUrl.replace(/[^a-zA-Z0-9]/g, '_');
@@ -109,9 +103,10 @@ export class RepoIngester {
                     this.saveBlueprint(repoUrl, appBlueprint);
                 }
 
-                // 5. Fatiamento: Se for monstro ou muito grande, processamos 50 por vez
-                const isMonsterPass = timeout > 45000 || allFiles.length > 300;
-                const sliceSize = isMonsterPass ? 50 : 25; // Smaller slices for stability
+                // 5. Fatiamento Dinâmico (The Great Devourer)
+                const totalRelevant = goldenFiles.length;
+                const isHuge = totalRelevant > 800; // Only 800+ files is truly "Huge"
+                const sliceSize = isHuge ? 40 : 80; // Bigger slices
                 const filesToProcess = remainingFiles.slice(0, sliceSize);
                 
                 if (filesToProcess.length === 0) {

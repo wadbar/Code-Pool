@@ -173,11 +173,17 @@ export class UpdateManager {
                 }
 
                 if (result.status === "partial") {
-                    console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila para continuar no próximo ciclo.`);
+                    console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila.`);
                     
                     repo.digestedCount = (repo.digestedCount || 0) + (result.filesProcessed || 0);
                     repo.totalFiles = result.totalFiles;
-                    repo.isMonster = true; // Se é parcial, tratamos como monstro/grande
+                    
+                    // Somente é MONSTRO se tiver mais de 800 arquivos ou se estiver realmente demorado
+                    if (result.totalFiles && result.totalFiles > 800) {
+                        repo.isMonster = true;
+                    } else if (result.totalFiles && result.totalFiles < 400) {
+                        repo.isMonster = false; // Corrigindo injustiça: se é pequeno, não é monstro.
+                    }
                     
                     // Move pro fim para não trancar a fila e tenta de novo no próximo ciclo de sync
                     registryArr.splice(i, 1);

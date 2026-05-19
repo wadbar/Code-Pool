@@ -99,6 +99,12 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
+      
+      // Se for resume, também dá um empurrão nos workers
+      if (status === 'running') {
+        fetch('/api/pool/worker/restart', { method: 'POST' }).catch(() => {});
+      }
+      
       fetchWorkerStatus();
     } catch (e) {
       console.error(e);
@@ -137,6 +143,16 @@ export default function App() {
     });
   };
 
+  const [commitStatus, setCommitStatus] = useState<{ total: number, done: number, active: boolean }>({ total: 0, done: 0, active: false });
+
+  const fetchCommitStatus = async () => {
+    try {
+      const res = await fetch('/api/pool/worker/commit-status');
+      const data = await res.json();
+      setCommitStatus(data);
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchRegistry();
     fetchInventory();
@@ -147,6 +163,7 @@ export default function App() {
     const interval = setInterval(() => {
       fetchLogs();
       fetchWorkerStatus();
+      fetchCommitStatus();
     }, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -331,21 +348,26 @@ export default function App() {
                 
                 <div className="flex gap-2">
                   <button 
+                    disabled={commitStatus.active}
                     onClick={async () => {
                       showConfirm('Você está prestes a comitar todas as peças modularizadas para salvaguardar a Pool. Deseja continuar?', async () => {
                         try {
                           const res = await fetch('/api/pool/worker/commit', { method: 'POST' });
                           const data = await res.json();
-                          showAlert(data.status === 'Committed' ? data.message || 'Peças comitadas cirurgicamente e salvas no histórico com sucesso.' : data.message || data.error);
+                          if (res.ok) {
+                            showAlert(data.message || 'Auditoria de salvaguarda iniciada em background.');
+                          } else {
+                            showAlert(data.error || 'Falha ao iniciar commit.');
+                          }
                         } catch (e: any) {
                           showAlert('Falha ao acionar a engine de commit: ' + e.message);
                         }
                       });
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-bold transition-all"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all border ${commitStatus.active ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30 cursor-not-allowed' : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border-blue-500/30'}`}
                   >
                     <Github className="w-3 h-3" />
-                    Commit Pool
+                    {commitStatus.active ? `Committing (${commitStatus.done}/${commitStatus.total})...` : 'Commit Pool'}
                   </button>
                   <button 
                     onClick={async () => {

@@ -15,6 +15,15 @@ const PORT = 3000;
 const updateManager = new UpdateManager();
 const hungryPool = new HungryPoolEngine(updateManager);
 
+export function logSystem(msg: string) {
+  const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  try {
+    fs.appendFileSync(path.join(process.cwd(), 'system.log'), `[${timestamp}] ${msg}\n`);
+  } catch (err) {
+    console.error('Failed to write to system.log', err);
+  }
+}
+
 app.use(express.json());
 
 // Block access to .tmp from frontend and prevent Vite from trying to transform missing assets
@@ -149,9 +158,12 @@ app.post('/api/pool/registry/add', express.json(), (req, res) => {
 // Endpoint para Sync Manual da Pool
 app.post('/api/pool/sync', async (req, res) => {
   try {
+      logSystem("Iniciando sincronização (sync) manual de todos os repositórios...");
       const result = await updateManager.syncAll();
+      logSystem(`Sincronização manual concluída! Repositórios novos adicionados e processamento enfileirado.`);
       res.json(result);
   } catch (err: any) {
+      logSystem(`Falha na sincronização manual: ${err.message}`);
       res.status(500).json({ error: 'Falha na sincronização global', details: err.message });
   }
 });
@@ -159,13 +171,16 @@ app.post('/api/pool/sync', async (req, res) => {
 // Endpoint para Caçada Autônoma (Hungry Pool)
 app.post('/api/pool/hunt', async (req, res) => {
   try {
+      logSystem("Iniciando caçada autônoma por repositórios do GitHub (Hungry Pool)...");
       const result = await hungryPool.huntForCode();
+      logSystem(`Caçada concluída! Total de novos repositórios encontrados: ${result.hunted || 0}`);
       res.json({
           status: 'Hunting completed',
           ...result,
           message: 'A Piscina Faminta encontrou novos repositórios e os adicionou ao fluxo de digestão (ingestão).'
       });
   } catch (err: any) {
+      logSystem(`Erro durante a caçada: ${err.message}`);
       res.status(500).json({ error: 'A caçada falhou.', details: err.message });
   }
 });
@@ -223,6 +238,7 @@ app.post('/api/pool/worker/control', (req, res) => {
     }
     fs.writeFileSync(controlPath, JSON.stringify({ status }));
     console.log(`[SYS] Control status updated to: ${status}`);
+    logSystem(`Status do Worker alterado para: ${status.toUpperCase()}`);
     res.json({ status });
 });
 
@@ -238,6 +254,7 @@ app.post('/api/pool/worker/purge-tmp', (req, res) => {
             fs.rmSync(tmpPathNew, { recursive: true, force: true });
             fs.mkdirSync(tmpPathNew, { recursive: true });
         }
+        logSystem("Limpeza de arquivos temporários (.tmp e lego-pool-tmp) concluída.");
         res.json({ status: 'Purged all temp locations' });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
@@ -251,6 +268,7 @@ app.post('/api/pool/worker/purge-logs', (req, res) => {
         if (fs.existsSync('blueprints.log')) fs.writeFileSync('blueprints.log', '');
         if (fs.existsSync('blueprints.err')) fs.writeFileSync('blueprints.err', '');
         if (fs.existsSync('system.log')) fs.writeFileSync('system.log', '');
+        logSystem("Todos os arquivos de log (ingestão, blueprints e sistema) foram limpos pelo usuário.");
         res.json({ status: 'Logs purged' });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
@@ -291,6 +309,7 @@ app.post('/api/pool/worker/commit', async (req, res) => {
         }
 
         commitProgress = { total: files.length, done: 0, active: true };
+        logSystem(`Iniciando Auditoria de Commit Git para ${files.length} arquivos alterados.`);
 
         res.json({ 
             status: 'Committed', 
@@ -326,12 +345,15 @@ app.post('/api/pool/worker/commit', async (req, res) => {
                     try {
                         execSync(`git add ${escapedFile}`, { cwd: rootPath });
                         execSync(`git commit -m "${commitMsg}"`, { cwd: rootPath });
+                        logSystem(`[Git Commit] Código salvo com sucesso: ${filePath}`);
                         commitProgress.done++;
                         await new Promise(r => setTimeout(r, 20));
-                    } catch (e) {
+                    } catch (e: any) {
+                        logSystem(`[Git Commit Sync Error] Falha ao commitar ${filePath}: ${e.message}`);
                         commitProgress.done++;
                     }
                 }
+                logSystem(`Status: Ciclo de Auditoria de commits concluído com sucesso.`);
             } finally {
                 commitProgress.active = false;
             }
@@ -345,13 +367,17 @@ app.post('/api/pool/worker/commit', async (req, res) => {
 app.post('/api/pool/worker/restart', async (req, res) => {
     try {
         console.log(`[SYS] Force restarting workers...`);
+        logSystem("Solicitado reinício forçado dos Workers (Ingestion & Blueprints). Matando processos órfãos...");
         execSync('npx -y tsx kill_stuck.js');
+        logSystem("Inicializando novos processos de Daemons...");
         execSync('npx -y tsx start_daemons.mjs');
         // Reset control to running on restart
         const controlPath = path.join(process.cwd(), 'POOL', 'worker-status.json');
         fs.writeFileSync(controlPath, JSON.stringify({ status: 'running' }));
+        logSystem("Workers reiniciados com sucesso. Status redefinido para 'RUNNING'.");
         res.json({ status: 'Restarted' });
     } catch (err: any) {
+        logSystem(`Erro na reinicialização de workers: ${err.message}`);
         res.status(500).json({ error: 'Falha ao reiniciar workers', details: err.message });
     }
 });
@@ -375,12 +401,18 @@ async function startServer() {
     console.log(`[TERMINAL] Code Pool Environment running on http://localhost:${PORT}`);
     console.log(`[AUDIT] Consolidated resources ready for extraction.`);
     
+    logSystem("========================================= DEPLOYMENT INIT =========================================");
+    logSystem(`Servidor Code Pool ativo na porta ${PORT}. Pronto para receber repositórios.`);
+    
     // Auto-start daemons
     try {
         console.log(`[SYS] Booting default daemons...`);
+        logSystem("Inicializando Daemons secundários automáticos (worker_ingest e worker_blueprints)...");
         execSync('npx -y tsx start_daemons.mjs');
-    } catch (e) {
+        logSystem("Daemons iniciados com sucesso.");
+    } catch (e: any) {
         console.error('Failed to auto-start daemons', e);
+        logSystem(`Falha ao iniciar Daemons automaticamente: ${e.message}`);
     }
   });
 }

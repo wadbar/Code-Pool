@@ -37,16 +37,52 @@ export class UrlScraper {
             // Failsafe: search for "username/repo" text patterns inside href or strong tags for blog posts like GeeksforGeeks
             if (matches.length === 0) {
                 const textMatches = text.match(/>\s*([a-zA-Z0-9_\-\.]+)\/([a-zA-Z0-9_\-\.]+)\s*</g) || [];
-                const impliedUrl = textMatches.map(m => {
+                const impliedUrls = textMatches.map(m => {
                     const clean = m.replace(/[><\s]/g, '');
                     // Ignora strings comuns que não são repositórios
                     if (clean.includes('.') || clean.includes('118/0') || clean.toLowerCase() === 'dsa/placements' || clean.length < 5) return null;
                     return `https://github.com/${clean}`;
                 }).filter(u => u !== null) as string[];
                 
-                if (impliedUrl.length > 0) {
-                    console.log(`[URL-SCRAPER] Heurística Textual: Encontrou ${impliedUrl.length} potenciais repositórios "user/repo".`);
-                    matches.push(...impliedUrl);
+                // Extra failsafe: Search for headings that might imply famous repos
+                const headingMatches = text.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi) || [];
+                const possibleNames = headingMatches.map(h => {
+                    return h.replace(/<[^>]+>/g, '').replace(/^[0-9]+[\.\-\)\s]+/, '').trim();
+                }).filter(name => name.length > 3 && name.length < 40 && !name.toLowerCase().includes('github') && !name.toLowerCase().includes('explore'));
+                
+                const customMapping: Record<string, string> = {
+                    'freecodecamp': 'freeCodeCamp/freeCodeCamp',
+                    'free programming books': 'EbookFoundation/free-programming-books',
+                    'coding interview university': 'jwasham/coding-interview-university',
+                    'developer roadmap': 'kamranahmedse/developer-roadmap',
+                    'tensorflow': 'tensorflow/tensorflow',
+                    'bootstrap': 'twbs/bootstrap',
+                    'public apis': 'public-apis/public-apis',
+                    'the algorithms - python': 'TheAlgorithms/Python',
+                    'the algorithms python': 'TheAlgorithms/Python',
+                    'react': 'facebook/react',
+                    'vue': 'vuejs/vue',
+                    'linux': 'torvalds/linux',
+                    'javascript': 'trekhleb/javascript-algorithms',
+                    'd3': 'd3/d3'
+                };
+                
+                for (const name of possibleNames) {
+                    const lowName = name.toLowerCase();
+                    if (customMapping[lowName]) {
+                        impliedUrls.push(`https://github.com/${customMapping[lowName]}`);
+                    } else {
+                        // Tenta achar padrões user/repo diretos no título (ex: facebook/react)
+                        const slashIdx = lowName.indexOf('/');
+                        if (slashIdx > 0 && slashIdx < lowName.length - 1 && !lowName.includes(' ')) {
+                            impliedUrls.push(`https://github.com/${lowName}`);
+                        }
+                    }
+                }
+                
+                if (impliedUrls.length > 0) {
+                    console.log(`[URL-SCRAPER] Heurística Profunda: Encontrou ${impliedUrls.length} potenciais repositórios a partir do texto/estruturas.`);
+                    matches.push(...impliedUrls);
                 }
             }
             

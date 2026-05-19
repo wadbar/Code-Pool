@@ -15,18 +15,6 @@
       "lastSync": "2026-05-19T12:16:39.631Z"
     },
     {
-      "url": "https://github.com/opensearch-project/opensearch",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/FreeCAD/FreeCAD",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/blender/blender",
-      "lastSync": null
-    },
-    {
       "url": "https://github.com/openscad/openscad",
       "lastSync": null
     },
@@ -627,6 +615,49 @@
       "lastSync": null,
       "isMonster": true,
       "retryCount": 1
+    },
+    {
+      "url": "https://github.com/microsoft/Web-Dev-For-Beginners",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/yangshun/tech-interview-handbook",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/ripienaar/free-for-dev",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/gothinkster/realworld",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/the-momentum/python-ai-kit",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/opensearch-project/opensearch",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 150,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/FreeCAD/FreeCAD",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/blender/blender",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/TheAlgorithms/Python",
+      "lastSync": null
     }
   ]
 }

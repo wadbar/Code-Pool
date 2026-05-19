@@ -1,6 +1,8 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import { execSync } from 'child_process';
 import { createServer as createViteServer } from 'vite';
 
 import { UpdateManager } from './POOL/modules/AUTOMATION/UpdateManager';
@@ -226,7 +228,7 @@ app.post('/api/pool/worker/control', (req, res) => {
 
 app.post('/api/pool/worker/purge-tmp', (req, res) => {
     const tmpPathOld = path.join(process.cwd(), 'POOL', '.tmp');
-    const tmpPathNew = path.join(require('os').tmpdir(), 'lego-pool-tmp');
+    const tmpPathNew = path.join(os.tmpdir(), 'lego-pool-tmp');
     try {
         if (fs.existsSync(tmpPathOld)) {
             fs.rmSync(tmpPathOld, { recursive: true, force: true });
@@ -262,7 +264,6 @@ app.get('/api/pool/worker/commit-status', (req, res) => {
 });
 
 app.post('/api/pool/worker/commit', async (req, res) => {
-    const { execSync } = require('child_process');
     const rootPath = process.cwd();
     
     if (commitProgress.active) {
@@ -342,7 +343,6 @@ app.post('/api/pool/worker/commit', async (req, res) => {
 });
 
 app.post('/api/pool/worker/restart', async (req, res) => {
-    const { execSync } = require('child_process');
     try {
         console.log(`[SYS] Force restarting workers...`);
         execSync('npx -y tsx kill_stuck.js');
@@ -377,7 +377,6 @@ async function startServer() {
     
     // Auto-start daemons
     try {
-        const { execSync } = require('child_process');
         console.log(`[SYS] Booting default daemons...`);
         execSync('npx -y tsx start_daemons.mjs');
     } catch (e) {

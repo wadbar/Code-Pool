@@ -2,6 +2,11 @@
 // Finalidade: Execução de comandos remotos e gerenciamento de VPS
 // Status: Consolidado (Originalmente em papermu, papercreeper)
 
+/**
+ * @doc EXPLANATION OF EXTERNAL IMPORTS:
+ * - `Client` (from 'ssh2'): Classe de cliente SSH estrita que abre conexões SCP/SFTP,
+ *   gerencia canais SSH de fluxo duplo para executar comandos remotos síncronos/assíncronos nas VPS cadastradas.
+ */
 import { Client } from 'ssh2';
 
 export class SSHCommander {

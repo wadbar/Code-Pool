@@ -2,6 +2,11 @@
 // Finalidade: Segurança, JWT e Proteção de API
 // Status: Consolidado (Originalmente em Fliper, papervideo)
 
+/**
+ * @doc EXPLANATION OF EXTERNAL IMPORTS:
+ * - `jsonwebtoken`: Geração e verificação cifrada de tokens JWT síncronos, que autenticam com segurança o tráfego entre fatias do sistema.
+ * - `express-rate-limit`: Middleware que impede requisições excessivas do mesmo IP para evitar abusos simples de força bruta.
+ */
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 

@@ -2,13 +2,97 @@
 // Finalidade: Monitorar e fazer a ingestão automatizada de novos repositórios do GitHub.
 // Ele clona o código em memória, manda pro GeminiBridge decompor e salva no Pool.
 
+/**
+ * @doc EXPLANATION OF EXTERNAL IMPORTS:
+ * - `fs` (Node.js file system): Usado para leitura/escrita síncrona/assíncrona de arquivos de código e controle de progresso.
+ * - `path` (Node.js path): Utilitário para resolver diretórios e construir caminhos seguros de arquivos multi-plataforma.
+ * - `os` (Node.js os): Usado para acessar diretórios temporários padronizados do sistema operacional (os.tmpdir()).
+ * - `crypto` (Node.js crypto): Usado para gerar hashes de conteúdo de arquivos de modo a otimizar o cache de requisições de IA.
+ * - `execSync` (child_process): Execução de subprocessos sincronizados no sistema operacional, especializado em clonar repositórios do Git.
+ * - `GoogleGenerativeAI` (@google/generative-ai): Biblioteca oficial de integração do modelo Gemini do Google para análise e classificação inteligente de código.
+ */
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export class RepoIngester {
+    /**
+     * Utilitário de Cache Persistente para respostas da IA (salvo em /POOL/ai-cache.json)
+     */
+    private static getCache(key: string): any {
+        const cachePath = path.join(process.cwd(), 'POOL', 'ai-cache.json');
+        if (!fs.existsSync(cachePath)) return null;
+        try {
+            const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+            return cache[key] || null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    private static setCache(key: string, value: any): void {
+        const cachePath = path.join(process.cwd(), 'POOL', 'ai-cache.json');
+        let cache: Record<string, any> = {};
+        if (fs.existsSync(cachePath)) {
+            try {
+                cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+            } catch (e) {}
+        }
+        cache[key] = value;
+        try {
+            fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
+        } catch (e) {}
+    }
+
+    /**
+     * Encontra e lê o arquivo README do repositório clonado se ele existir.
+     */
+    private static findREADME(tmpPath: string): string | null {
+        try {
+            if (!fs.existsSync(tmpPath)) return null;
+            const filenames = fs.readdirSync(tmpPath);
+            const readmeFile = filenames.find(name => name.toLowerCase().startsWith('readme.'));
+            if (readmeFile) {
+                return fs.readFileSync(path.join(tmpPath, readmeFile), 'utf8');
+            }
+        } catch (e) {
+            console.warn(`[INGESTER] Erro ao ler README em ${tmpPath}:`, e);
+        }
+        return null;
+    }
+
+    /**
+     * Executa git clone com retentativa robusta sob falhas de rede ou timeout.
+     */
+    private static async cloneWithRetry(repoUrl: string, destPath: string, timeout: number, retries = 3): Promise<void> {
+        let lastError: any = null;
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                console.log(`[INGESTER] Tentativa de Clone ${attempt}/${retries} para ${repoUrl}...`);
+                const activeTimeout = Math.floor(timeout * (attempt === 1 ? 1 : attempt === 2 ? 1.5 : 2));
+                execSync(`git clone --depth 1 --single-branch ${repoUrl} ${destPath}`, {
+                    stdio: 'pipe',
+                    timeout: activeTimeout,
+                    killSignal: 'SIGKILL'
+                });
+                console.log(`[INGESTER] Clone concluído com sucesso na tentativa ${attempt}!`);
+                return;
+            } catch (err: any) {
+                lastError = err;
+                const stderr = err.stderr?.toString() || '';
+                console.warn(`[INGESTER] Falha no Clone (tentativa ${attempt}/${retries}): ${err.message}. Stderr: ${stderr}`);
+                if (attempt < retries) {
+                    const waitTime = 3000 * attempt;
+                    console.log(`[INGESTER] Aguardando ${waitTime}ms antes de retentar...`);
+                    await this.sleep(waitTime);
+                }
+            }
+        }
+        throw lastError;
+    }
     /**
      * Ingestão autônoma de um repositório
      */
@@ -38,22 +122,17 @@ export class RepoIngester {
 
             const extractedModules: any[] = [];
             try {
-                // 2. Clone real no SO
-                console.log(`[INGESTER] (Exec) git clone no rep: ${repoUrl}`);
+                // 2. Clone real no SO com retentativas e tratamento robusto
                 try {
-                    execSync(`git clone --depth 1 --single-branch ${repoUrl} ${tmpPath}`, {
-                        stdio: 'pipe', 
-                        timeout: timeout,
-                        killSignal: 'SIGKILL'
-                    });
+                    await this.cloneWithRetry(repoUrl, tmpPath, timeout);
                 } catch (cloneErr: any) {
                     const stderr = cloneErr.stderr?.toString() || '';
-                    console.warn(`[INGESTER] Erro no git clone para ${repoUrl}: ${cloneErr.message}. Stderr: ${stderr}`);
+                    console.error(`[INGESTER] Erro definitivo no git clone para ${repoUrl}: ${cloneErr.message}. Stderr: ${stderr}`);
                     
                     if (cloneErr.code === 'ETIMEDOUT' || cloneErr.signal === 'SIGKILL' || stderr.toLowerCase().includes('timeout')) {
                         return { status: "monster", reason: "clone_timeout" };
                     }
-                    return { status: "failed", error: `Clone failed: ${stderr.substring(0, 200)}` };
+                    return { status: "failed", error: `Clone failed after retries: ${stderr.substring(0, 200)}` };
                 }
 
                 // 3. Varredura e Filtro de Progresso (The Elite Scout)
@@ -215,13 +294,9 @@ export class RepoIngester {
                 if (!fs.existsSync(path.dirname(tmpPath))) fs.mkdirSync(path.dirname(tmpPath), { recursive: true });
 
                 try {
-                    execSync(`git clone --depth 1 --single-branch ${repo.url} ${tmpPath}`, { 
-                        stdio: 'ignore',
-                        timeout: 60000,
-                        killSignal: 'SIGKILL'
-                    });
+                    await this.cloneWithRetry(repo.url, tmpPath, 60000);
                 } catch (e: any) {
-                    console.warn(`[INGESTER] Falha/Timeout no clone retroativo para ${repo.url}`);
+                    console.warn(`[INGESTER] Falha/Timeout no clone retroativo para ${repo.url} após retentativas.`);
                     continue;
                 }
                 const files = this.scanDirForSourceCode(tmpPath);
@@ -275,24 +350,49 @@ export class RepoIngester {
     }
 
     private static async generateRepoBlueprint(repoUrl: string, files: string[], tmpPath: string): Promise<string> {
+        const cacheKey = `blueprint:${repoUrl}`;
+        const cached = this.getCache(cacheKey);
+        if (cached) {
+            console.log(`[INGESTER] Usando Blueprint em cache para: ${repoUrl}`);
+            return cached;
+        }
+
         try {
             const genAI = this.getAI();
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
             
             const tree = files.map(f => f.slice(tmpPath.length)).slice(0, 200).join('\n');
+            const readmeContent = this.findREADME(tmpPath) || "Nenhum README encontrado.";
+            const trimmedReadme = readmeContent.slice(0, 8000); // Protect context limits
             
-            const prompt = `Analise a estrutura de diretórios deste repositório e crie um MAPA DA ARQUITETURA (Blueprint).
-Isso será usado para remontar os blocos modulares no futuro. Explique o padrão arquitetural, como as coisas se conectam e a stack.
-URL: ${repoUrl}
+            const prompt = `Analise a estrutura de diretórios deste repositório e o seu README.md e crie um MAPA DA ARQUITETURA (Blueprint).
+No início (topo) do documento Markdown, inclua uma seção formatada de metadados estruturados:
+
+# METADADOS
+- **Main Programming Language**: [Linguagem principal detectada ou informada]
+- **License Type**: [Tipo de Licença, ex: MIT, Apache, GNU ou Indefinida]
+- **Project Purpose Summary**: [Resumo conciso de 2-3 frases do propósito do projeto]
+
+Em seguida, explique o padrão arquitetural, como as coisas se conectam e a stack tecnológica no corpo do Blueprint. Isso será usado para remontar os blocos modulares no futuro.
+
+URL do Repositório: ${repoUrl}
+README (parcial):
+${trimmedReadme}
+
 Arquivos:
 ${tree}
 
-Responda SOMENTE o documento em formato Markdown (Blueprint/Manual) sem blocos de código extras.`;
+Responda SOMENTE o documento em formato Markdown sem blocos de código extras.`;
             
             const result = await model.generateContent(prompt);
             const response = await result.response;
             await this.sleep(3000);
-            return response.text() || "Blueprint falhou.";
+            const text = response.text() || "Blueprint falhou.";
+            
+            if (text && text !== "Blueprint falhou.") {
+                this.setCache(cacheKey, text);
+            }
+            return text;
         } catch (err: any) {
             console.error(`[INGESTER] Falha no Blueprint:`, err.message);
             return "Erro ao extrair Blueprint.";
@@ -308,6 +408,15 @@ Responda SOMENTE o documento em formato Markdown (Blueprint/Manual) sem blocos d
     }
 
     private static async decomposeWithAI(source: string, filename: string, attempt = 1): Promise<{category: string, block_id: string, code: string} | null> {
+        // Criar chave de cache única baseada no hash do código do arquivo
+        const contentHash = crypto.createHash('sha256').update(source).digest('hex');
+        const cacheKey = `decompose:${contentHash}`;
+        const cached = this.getCache(cacheKey);
+        if (cached) {
+            console.log(`[INGESTER] Usando resultado Decompose em cache para: ${filename}`);
+            return cached;
+        }
+
         try {
             const genAI = this.getAI();
             const model = genAI.getGenerativeModel({ 
@@ -319,7 +428,7 @@ Responda SOMENTE o documento em formato Markdown (Blueprint/Manual) sem blocos d
             
             const prompt = `Atue como um arquiteto modular sênior. Analise o arquivo ${filename}. 
 Extraia a principal lógica (componente, função ou classe) e adapte-a para ser independente e modular em TypeScript.
-A categoria deve ser uma destas: [AUTH, DB, GEOMETRY, MEDIA, NETWORKING, SECURITY, AUTOMATION, UI, UTILS, ALGORITHM, ML].
+A categoria deve ser estritamente uma destas baseadas nos módulos existentes e recomendados: [AUTH, DB, GEOMETRY, MEDIA, NETWORKING, SECURITY, AUTOMATION, UI, UTILS, ALGORITHM, AI, ML, AUDITOR, DATA, PROCEDURAL, SEARCH, VISION, VALIDATION].
 IMPORTANTE: block_id deve ser snake_case descrevendo a funcionalidade.
 Responda APENAS JSON:
 {
@@ -343,7 +452,11 @@ ${source}
                 cleanText = cleanText.replace(/^```json/, '').replace(/```$/, '').trim();
                 
                 try {
-                    return JSON.parse(cleanText);
+                    const parsed = JSON.parse(cleanText);
+                    if (parsed && parsed.category && parsed.block_id && parsed.code) {
+                        this.setCache(cacheKey, parsed);
+                    }
+                    return parsed;
                 } catch (jsonErr) {
                     console.error(`[INGESTER] Erro JSON:`, cleanText.substring(0, 50));
                     return null;

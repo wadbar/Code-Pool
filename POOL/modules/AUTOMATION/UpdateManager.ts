@@ -9,6 +9,7 @@ export interface WatchedRepository {
     retryCount?: number;
     digestedCount?: number;
     totalFiles?: number;
+    status?: string;
 }
 
 export class UpdateManager {
@@ -178,11 +179,21 @@ export class UpdateManager {
                     repo.digestedCount = (repo.digestedCount || 0) + (result.filesProcessed || 0);
                     repo.totalFiles = result.totalFiles;
                     
-                    // Somente é MONSTRO se tiver mais de 800 arquivos ou se estiver realmente demorado
-                    if (result.totalFiles && result.totalFiles > 800) {
+                    // Somente é MONSTRO se tiver volume massivo REAL (> 600 arquivos elite)
+                    if (result.totalFiles && result.totalFiles > 600) {
                         repo.isMonster = true;
-                    } else if (result.totalFiles && result.totalFiles < 400) {
+                    } else if (result.totalFiles && result.totalFiles < 300) {
                         repo.isMonster = false; // Corrigindo injustiça: se é pequeno, não é monstro.
+                    } else if (result.filesProcessed === 0 && (repo.retryCount || 0) > 3) {
+                        // Se falhou repetidamente sem processar NADA, talvez precise de estômago reforçado
+                        repo.isMonster = true; 
+                    }
+                    
+                    if (result.totalFiles && result.totalFiles > 500) {
+                        repo.isMonster = true;
+                    } else if (result.totalFiles && result.totalFiles <= 500) {
+                        // Se é pequeno mas deu timeout, tentamos de novo sem rotular como monstro pesado
+                        repo.isMonster = false;
                     }
                     
                     // Move pro fim para não trancar a fila e tenta de novo no próximo ciclo de sync

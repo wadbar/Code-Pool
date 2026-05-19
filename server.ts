@@ -90,19 +90,12 @@ app.post('/api/pool/ingest', express.json(), async (req, res) => {
   }
   
   updateManager.addRepository(githubUrl);
-  console.log(`[TERMINAL] Comando de ingestão real recebido para: ${githubUrl}`);
+  console.log(`[TERMINAL] Alvo adicionado à fila de digestão: ${githubUrl}`);
   
-  // Real Ingestion in background
-  RepoIngester.ingestFromGitHub(githubUrl).then(() => {
-     console.log(`[TERMINAL] Finalizada ingestão background de: ${githubUrl}`);
-  }).catch(err => {
-     console.error(`[TERMINAL] Erro na ingestão background de ${githubUrl}:`, err);
-  });
-
   res.json({ 
-    status: 'Ingestion task started',
+    status: 'Ingestion Queued',
     target: githubUrl,
-    message: 'Processamento autônomo acionado. Os blocos modulares começarão a ser depositados na POOL.'
+    message: 'Repositório adicionado à esteira de processamento. O Devourer o processará em background.'
   });
 });
 
@@ -143,6 +136,14 @@ app.post('/api/pool/registry/remove', express.json(), (req, res) => {
   }
 });
 
+app.post('/api/pool/registry/add', express.json(), (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL is required' });
+  
+  updateManager.addRepository(url);
+  res.json({ status: 'success', message: 'Repositório enfileirado para digestão.' });
+});
+
 // Endpoint para Sync Manual da Pool
 app.post('/api/pool/sync', async (req, res) => {
   try {
@@ -169,10 +170,10 @@ app.post('/api/pool/hunt', async (req, res) => {
 
 // Endpoint para extrair links de github de uma URL ou lista de artigos/documentos e encher a esteira (fila de digestão)
 app.post('/api/pool/scrape-url', express.json(), async (req, res) => {
-  const { sourceUrl } = req.body;
-  if (!sourceUrl) return res.status(400).json({ error: 'Forneça a sourceUrl para raspar.' });
+  const { sourceUrl, rawContent } = req.body;
+  if (!sourceUrl && !rawContent) return res.status(400).json({ error: 'Forneça a sourceUrl ou rawContent para raspar.' });
 
-  const result = await UrlScraper.scrapeAndQueueRepos(sourceUrl);
+  const result = await UrlScraper.scrapeAndQueueRepos(sourceUrl, rawContent);
   if (result.status === "error") {
       return res.status(500).json(result);
   }

@@ -15,343 +15,226 @@
       "lastSync": "2026-05-19T12:16:39.631Z"
     },
     {
-      "url": "https://github.com/openscad/openscad",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/Tencent-Hunyuan/HY-World-2.0",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/alicevision/AliceVision",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/mrdoob/three.js",
-      "lastSync": null
-    },
-    {
       "url": "https://github.com/iuricode/recursos-gratuitos",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/anuraghazra/github-readme-stats",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:39:57.060Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/vitalysim/Awesome-Hacking-Resources",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:40:01.855Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/florinpop17/app-ideas",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:40:03.256Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/EbookFoundation/free-programming-books",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:40:04.961Z",
+      "digestedCount": 1,
+      "status": "synced"
     },
     {
       "url": "https://github.com/public-apis/public-apis",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:40:06.503Z",
+      "digestedCount": 6,
+      "status": "synced"
     },
     {
       "url": "https://github.com/goldbergyoni/javascript-testing-best-practices",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:40:17.317Z",
+      "digestedCount": 1,
+      "status": "synced"
     },
     {
       "url": "https://github.com/jlevy/the-art-of-command-line",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/kamranahmedse/developer-roadmap",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:40:18.589Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/ryanmcdermott/clean-code-javascript",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:04.505Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/jupeter/clean-code-php",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:05.184Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/thangchung/clean-code-dotnet",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:07.075Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/labs42io/clean-code-typescript",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:07.773Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/uohzxela/clean-code-ruby",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:08.491Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/jwasham/coding-interview-university",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:13.976Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/frontendbr/vagas",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:14.664Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/backend-br/vagas",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:15.449Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/flutter-brazil/vagas",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:16.088Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/react-brasil/vagas",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:16.748Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/vuejs-br/vagas",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:17.388Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/soujava/vagas-java",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:27.899Z",
+      "digestedCount": 225,
+      "status": "synced"
     },
     {
       "url": "https://github.com/qa-brasil/vagas",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:28.549Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/alinebastos/contrate-junior-estagio",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:29.190Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/felipefialho/frontend-challenges",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:29.868Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/CollabCodeTech/backend-challenges",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/tinyhumansai/openhuman",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/Imbad0202/academic-research-skills",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/HKUDS/CLI-Anything",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:41:30.484Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/supertone-inc/supertonic",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/CloakHQ/CloakBrowser",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/tech-leads-club/agent-skills",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/BigBodyCobain/Shadowbroker",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/plausible/analytics",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:43:09.538Z",
+      "digestedCount": 15,
+      "status": "synced"
     },
     {
       "url": "https://github.com/sindresorhus/awesome",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:44:02.969Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/codecrafters-io/build-your-own-x",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:44:03.749Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/getify/You-Dont-Know-JS",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/trekhleb/javascript-algorithms",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/twbs/bootstrap",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:44:16.275Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/vinta/awesome-python",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:44:59.487Z",
+      "digestedCount": 7,
+      "status": "synced"
     },
     {
       "url": "https://github.com/ohmyzsh/ohmyzsh",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/zed-industries/zed",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:45:08.768Z",
+      "digestedCount": 8,
+      "status": "synced"
     },
     {
       "url": "https://github.com/radix-ui/primitives",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:45:55.875Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/pydantic/fastui",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:46:00.288Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/Exafunction/codeium",
-      "lastSync": null
-    },
-    {
-      "url": "https://github.com/emmett-framework/granian",
-      "lastSync": null
+      "lastSync": "2026-05-19T12:46:01.234Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/eveningkid/denodb",
-      "lastSync": null,
-      "digestedCount": 30
-    },
-    {
-      "url": "https://github.com/lanterndata/lantern",
-      "lastSync": null,
-      "digestedCount": 6
-    },
-    {
-      "url": "https://github.com/microsoft/ai-agents-for-beginners",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 12
+      "lastSync": "2026-05-19T12:46:05.879Z",
+      "status": "synced"
     },
     {
       "url": "https://github.com/donnemartin/system-design-primer",
-      "lastSync": null,
+      "lastSync": "2026-05-19T12:49:31.450Z",
       "isMonster": true,
       "retryCount": 1,
-      "digestedCount": 26
-    },
-    {
-      "url": "https://github.com/oven-sh/bun",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1
+      "status": "synced"
     },
     {
       "url": "https://github.com/themesberg/flowbite",
-      "lastSync": null,
+      "lastSync": "2026-05-19T12:52:12.367Z",
       "isMonster": true,
       "retryCount": 1,
       "digestedCount": 61,
-      "totalFiles": 61
+      "totalFiles": 61,
+      "status": "synced"
     },
     {
       "url": "https://github.com/humanlayer/12-factor-agents",
-      "lastSync": null,
+      "lastSync": "2026-05-19T12:53:08.759Z",
       "isMonster": true,
       "retryCount": 1,
       "digestedCount": 175,
-      "totalFiles": 175
+      "totalFiles": 175,
+      "status": "synced"
     },
     {
       "url": "https://github.com/NVlabs/Sana",
-      "lastSync": null,
+      "lastSync": "2026-05-19T12:53:30.230Z",
       "isMonster": true,
       "retryCount": 1,
       "digestedCount": 245,
-      "totalFiles": 245
+      "totalFiles": 245,
+      "status": "synced"
     },
     {
       "url": "https://github.com/K-Dense-AI/scientific-agent-skills",
-      "lastSync": null,
+      "lastSync": "2026-05-19T12:54:12.825Z",
       "isMonster": true,
       "retryCount": 1,
       "digestedCount": 259,
-      "totalFiles": 259
-    },
-    {
-      "url": "https://github.com/tensorflow/tensorflow",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 300,
-      "totalFiles": 3160
+      "totalFiles": 259,
+      "status": "synced"
     },
     {
       "url": "https://github.com/modelcontextprotocol/server",
-      "lastSync": null,
+      "lastSync": "2026-05-19T12:56:31.195Z",
       "isMonster": true,
-      "retryCount": 7
-    },
-    {
-      "url": "https://github.com/shadcn/ui",
-      "lastSync": null,
-      "digestedCount": 300,
-      "totalFiles": 3549,
-      "isMonster": true
-    },
-    {
-      "url": "https://github.com/BuilderIO/mitosis",
-      "lastSync": null,
-      "digestedCount": 300,
-      "totalFiles": 749,
-      "isMonster": true
-    },
-    {
-      "url": "https://github.com/dai-shi/waku",
-      "lastSync": null,
-      "digestedCount": 300,
-      "totalFiles": 744,
-      "isMonster": true
-    },
-    {
-      "url": "https://github.com/tinyplex/tinybase",
-      "lastSync": null,
-      "digestedCount": 300,
-      "totalFiles": 532,
-      "isMonster": true
-    },
-    {
-      "url": "https://github.com/hoppscotch/hoppscotch",
-      "lastSync": null,
-      "digestedCount": 300,
-      "totalFiles": 1079,
-      "isMonster": true
-    },
-    {
-      "url": "https://github.com/drizzle-team/drizzle-orm",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 300,
-      "totalFiles": 946
-    },
-    {
-      "url": "https://github.com/marimo-team/marimo",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 300,
-      "totalFiles": 3432
-    },
-    {
-      "url": "https://github.com/juspay/hyperswitch",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 300,
-      "totalFiles": 2684
-    },
-    {
-      "url": "https://github.com/lichess-org/lila",
-      "lastSync": null,
-      "isMonster": true,
-      "retryCount": 1,
-      "digestedCount": 300,
-      "totalFiles": 902
+      "retryCount": 7,
+      "status": "error"
     },
     {
       "url": "https://github.com/framer/motion",
@@ -656,8 +539,260 @@
       "retryCount": 1
     },
     {
-      "url": "https://github.com/TheAlgorithms/Python",
-      "lastSync": null
-    }
+      "url": "https://github.com/openscad/openscad",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 293,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/Tencent-Hunyuan/HY-World-2.0",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/alicevision/AliceVision",
+      "lastSync": null,
+      "digestedCount": 50,
+      "totalFiles": 675,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/mrdoob/three.js",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/anuraghazra/github-readme-stats",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 84,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/kamranahmedse/developer-roadmap",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/tinyhumansai/openhuman",
+      "lastSync": null,
+      "digestedCount": 50,
+      "totalFiles": 2220,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/Imbad0202/academic-research-skills",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 122,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/HKUDS/CLI-Anything",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/CloakHQ/CloakBrowser",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 85,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/tech-leads-club/agent-skills",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 211,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/BigBodyCobain/Shadowbroker",
+      "lastSync": null,
+      "digestedCount": 50,
+      "totalFiles": 745,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/plausible/analytics",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 271,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/trekhleb/javascript-algorithms",
+      "lastSync": null,
+      "digestedCount": 50,
+      "totalFiles": 359,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/twbs/bootstrap",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 108,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/zed-industries/zed",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1
+    },
+    {
+      "url": "https://github.com/emmett-framework/granian",
+      "lastSync": null,
+      "digestedCount": 25,
+      "totalFiles": 87,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/lanterndata/lantern",
+      "lastSync": null,
+      "digestedCount": 31,
+      "totalFiles": 89,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/microsoft/ai-agents-for-beginners",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 2,
+      "digestedCount": 12
+    },
+    {
+      "url": "https://github.com/oven-sh/bun",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 50,
+      "totalFiles": 9369
+    },
+    {
+      "url": "https://github.com/tensorflow/tensorflow",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 350,
+      "totalFiles": 9537
+    },
+    {
+      "url": "https://github.com/shadcn/ui",
+      "lastSync": null,
+      "digestedCount": 350,
+      "totalFiles": 3549,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/BuilderIO/mitosis",
+      "lastSync": null,
+      "digestedCount": 350,
+      "totalFiles": 749,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/dai-shi/waku",
+      "lastSync": null,
+      "digestedCount": 350,
+      "totalFiles": 744,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/tinyplex/tinybase",
+      "lastSync": null,
+      "digestedCount": 350,
+      "totalFiles": 532,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/hoppscotch/hoppscotch",
+      "lastSync": null,
+      "digestedCount": 350,
+      "totalFiles": 1192,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/drizzle-team/drizzle-orm",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 350,
+      "totalFiles": 946
+    },
+    {
+      "url": "https://github.com/marimo-team/marimo",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 2,
+      "digestedCount": 300,
+      "totalFiles": 3432
+    },
+    {
+      "url": "https://github.com/juspay/hyperswitch",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 350,
+      "totalFiles": 4697
+    },
+    {
+      "url": "https://github.com/lichess-org/lila",
+      "lastSync": null,
+      "isMonster": true,
+      "retryCount": 1,
+      "digestedCount": 350,
+      "totalFiles": 902
+    },
+    { "url": "https://github.com/bayandin/awesome-awesomeness", "lastSync": null },
+    { "url": "https://github.com/avelino/awesome-go", "lastSync": null },
+    { "url": "https://github.com/sorrycc/awesome-javascript", "lastSync": null },
+    { "url": "https://github.com/rust-unofficial/awesome-rust", "lastSync": null },
+    { "url": "https://github.com/ziadoz/awesome-php", "lastSync": null },
+    { "url": "https://github.com/enaqx/awesome-react", "lastSync": null },
+    { "url": "https://github.com/vuejs/awesome-vue", "lastSync": null },
+    { "url": "https://github.com/sindresorhus/awesome-nodejs", "lastSync": null },
+    { "url": "https://github.com/unicodeveloper/awesome-nextjs", "lastSync": null },
+    { "url": "https://github.com/josephmisiti/awesome-machine-learning", "lastSync": null },
+    { "url": "https://github.com/Hannibal046/Awesome-LLM", "lastSync": null },
+    { "url": "https://github.com/f/awesome-chatgpt-prompts", "lastSync": null },
+    { "url": "https://github.com/jivoi/awesome-osint", "lastSync": null },
+    { "url": "https://github.com/sbilly/awesome-security", "lastSync": null },
+    { "url": "https://github.com/Hack-with-Github/Awesome-Hacking", "lastSync": null },
+    { "url": "https://github.com/apsdehal/awesome-ctf", "lastSync": null },
+    { "url": "https://github.com/thehappydinoa/awesome-censys-queries", "lastSync": null },
+    { "url": "https://github.com/awesome-selfhosted/awesome-selfhosted", "lastSync": null },
+    { "url": "https://github.com/wmariuss/awesome-devops", "lastSync": null },
+    { "url": "https://github.com/mezod/awesome-indie", "lastSync": null },
+    { "url": "https://github.com/lukasz-madon/awesome-remote-job", "lastSync": null },
+    { "url": "https://github.com/KrishMunot/awesome-startup", "lastSync": null },
+    { "url": "https://github.com/gztchan/awesome-design", "lastSync": null },
+    { "url": "https://github.com/awesome-css-group/awesome-css", "lastSync": null },
+    { "url": "https://github.com/dicktracey909/awesome-adhd-tools", "lastSync": null },
+    { "url": "https://github.com/dicktracey909/awesome-construction-calculators", "lastSync": null },
+    { "url": "https://github.com/stax76/awesome-mpv", "lastSync": null },
+    { "url": "https://github.com/rothgar/awesome-tuis", "lastSync": null },
+    { "url": "https://github.com/toplap/awesome-livecoding", "lastSync": null },
+    { "url": "https://github.com/terremoth/awesome-hilarious-repos", "lastSync": null },
+    { "url": "https://github.com/thewellfrog/awesome-online-tarot-reading-sites", "lastSync": null },
+    { "url": "https://github.com/thewellfrog/awesome-angel-number-calculator", "lastSync": null },
+    { "url": "https://github.com/thewellfrog/awesome-spirit-animal-quiz", "lastSync": null },
+    { "url": "https://github.com/thewellfrog/awesome-twin-flame-calculator", "lastSync": null },
+    { "url": "https://github.com/thewellfrog/awesome-commercial-kitchen-uk", "lastSync": null },
+    { "url": "https://github.com/dicktracey909/awesome-face-shape-analysis", "lastSync": null },
+    { "url": "https://github.com/thewellfrog/awesome-relationship-psychology-quizzes", "lastSync": null },
+    { "url": "https://github.com/Codepoints/awesome-codepoints", "lastSync": null },
+    { "url": "https://github.com/h4cc/awesome-elixir", "lastSync": null },
+    { "url": "https://github.com/0PandaDEV/awesome-windows", "lastSync": null },
+    { "url": "https://github.com/awesome-foss/awesome-sysadmin", "lastSync": null },
+    { "url": "https://github.com/bloo-berries/Awesome-Endo-Adeno-Resources", "lastSync": null },
+    { "url": "https://github.com/AboutRSS/ALL-about-RSS", "lastSync": null },
+    { "url": "https://github.com/future-agi/traceAI", "lastSync": null },
+    { "url": "https://github.com/Premo-Cloud/apijack", "lastSync": null }
   ]
 }

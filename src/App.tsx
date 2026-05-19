@@ -32,19 +32,18 @@ export default function App() {
   const [hunting, setHunting] = useState(false);
   const [logs, setLogs] = useState({ ingestion: '', blueprints: '', system: '' });
 
-  const [dialog, setDialog] = useState<{
-    isOpen: boolean;
-    type: 'alert' | 'confirm';
-    message: React.ReactNode;
-    onConfirm?: () => void;
-  }>({ isOpen: false, type: 'alert', message: '' });
+  const [status, setStatus] = useState<{ message: string, type: 'info' | 'error' | 'success' | null }>({ message: '', type: null });
 
-  const showAlert = (message: React.ReactNode) => {
-    setDialog({ isOpen: true, type: 'alert', message });
+  const showAlert = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    setStatus({ message, type });
+    setTimeout(() => setStatus({ message: '', type: null }), 5000);
   };
 
   const showConfirm = (message: React.ReactNode, onConfirm: () => void) => {
-    setDialog({ isOpen: true, type: 'confirm', message, onConfirm });
+    // Para simplificar e não travar o fluxo, vamos remover o popup de confirmação por enquanto
+    // ou usar um confirmação inline se for vital. O usuário pediu "sem forçar interação".
+    // Então vamos assumir confirmação automática para ações de rotina.
+    onConfirm();
   };
 
   const fetchRegistry = async () => {
@@ -187,15 +186,15 @@ export default function App() {
         const res = await fetch('/api/pool/hunt', { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
-          showAlert(`Hunt successful! Found ${data.hunted || 0} new repositories to ingest. ${(data.newTargets || []).join(', ')}`);
+          showAlert(`Hunt successful! Found ${data.hunted || 0} new repositories to ingest.`, 'success');
           await fetchRegistry();
           await fetchInventory();
         } else {
-          showAlert(data.error || 'The hunt failed.');
+          showAlert(data.error || 'The hunt failed.', 'error');
         }
       } catch (e) {
         console.error(e);
-        showAlert('Network error during hunt initiation.');
+        showAlert('Network error during hunt initiation.', 'error');
       }
       setHunting(false);
     });
@@ -206,35 +205,54 @@ export default function App() {
     if (!ingestUrl) return;
     setIngesting(true);
     try {
-      await fetch('/api/pool/ingest', {
+      const res = await fetch('/api/pool/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ githubUrl: ingestUrl }),
       });
+      const data = await res.json();
+      if (res.ok) {
+        showAlert(data.message || 'Alvo adicionado à fila de digestão em background.', 'success');
+      } else {
+        showAlert(data.error || 'Falha ao adicionar repositório.', 'error');
+      }
       setIngestUrl('');
       await fetchRegistry();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      showAlert('Erro na conexão com a engine: ' + e.message, 'error');
     }
     setIngesting(false);
   };
 
+  const [scrapeMode, setScrapeMode] = useState<'url' | 'raw'>('url');
+  const [rawContent, setRawContent] = useState('');
+
   const handleScrape = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!scrapeUrl) return;
+    if (scrapeMode === 'url' && !scrapeUrl) return;
+    if (scrapeMode === 'raw' && !rawContent) return;
+    
     setScraping(true);
     try {
       const res = await fetch('/api/pool/scrape-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceUrl: scrapeUrl }),
+        body: JSON.stringify({ 
+          sourceUrl: scrapeMode === 'url' ? scrapeUrl : undefined,
+          rawContent: scrapeMode === 'raw' ? rawContent : undefined
+        }),
       });
       const data = await res.json();
-      showAlert(`Scraping complete: Found ${data.found || 0} repos. Added ${data.added || 0} uniquely.`);
-      setScrapeUrl('');
-      await fetchRegistry();
-    } catch (e) {
-      console.error(e);
+      if (res.ok) {
+        showAlert(`Sucesso! Encontrados ${data.found || 0} repositórios. ${data.added || 0} novos alvos foram enfileirados.`, 'success');
+        setScrapeUrl('');
+        setRawContent('');
+        await fetchRegistry();
+      } else {
+        showAlert(data.error || 'Falha ao processar conteúdo.', 'error');
+      }
+    } catch (e: any) {
+      showAlert('Erro: ' + e.message, 'error');
     }
     setScraping(false);
   };
@@ -324,6 +342,24 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {commitStatus.active && (
+          <div className="mb-4 bg-indigo-600/10 border border-indigo-500/30 rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-500">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                <Github className="w-4 h-4 animate-spin text-indigo-500" />
+                Salvaguardando Peças Lego ({commitStatus.done}/{commitStatus.total})
+              </span>
+              <span className="text-[10px] font-mono text-indigo-300/60 uppercase">Auditoria em Andamento</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-700/50">
+              <div 
+                className="h-full bg-indigo-500 transition-all duration-300 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                style={{ width: `${(commitStatus.done / Math.max(1, commitStatus.total)) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Live Logs Section - Processo Mestre (Moved to Top) */}
         <div className="mb-6 bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
@@ -609,21 +645,64 @@ export default function App() {
             </form>
 
             <div className="mt-8 pt-8 border-t border-slate-700">
-               <h3 className="text-sm font-semibold text-slate-300 mb-2">Mass Scrapper (URL/Article)</h3>
-               <p className="text-xs text-slate-500 mb-4">Provide any URL (blog post, documentation, list) to extract and queue all GitHub repos found.</p>
+               <div className="flex items-center justify-between mb-2">
+                 <h3 className="text-sm font-semibold text-slate-300">Deep Scrapper</h3>
+                 <div className="flex bg-slate-900 border border-slate-700 p-0.5 rounded-md">
+                    <button 
+                      onClick={() => setScrapeMode('url')}
+                      className={`px-2 py-0.5 text-[10px] rounded transition-all ${scrapeMode === 'url' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                      URL
+                    </button>
+                    <button 
+                      onClick={() => setScrapeMode('raw')}
+                      className={`px-2 py-0.5 text-[10px] rounded transition-all ${scrapeMode === 'raw' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                      CODE/TEXT
+                    </button>
+                 </div>
+               </div>
+               
                <form onSubmit={handleScrape} className="space-y-4">
-                  <input 
-                    type="url"
-                    placeholder="https://example.com/awesome-list"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={scrapeUrl}
-                    onChange={(e) => setScrapeUrl(e.target.value)}
-                  />
+                  {scrapeMode === 'url' ? (
+                    <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+                      <p className="text-[10px] text-slate-500 mb-2 italic">Search for GitHub links inside any webpage (Reddit, Blogs, Lists).</p>
+                      <input 
+                        type="url"
+                        placeholder="https://reddit.com/r/category/..."
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
+                        value={scrapeUrl}
+                        onChange={(e) => setScrapeUrl(e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+                      <p className="text-[10px] text-slate-500 mb-2 italic">Paste the HTML code or text content here to extract hidden repos.</p>
+                      <textarea 
+                        placeholder="Paste page source, article text or markdown here..."
+                        rows={4}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-xs font-mono focus:outline-none focus:border-blue-500 custom-scrollbar"
+                        value={rawContent}
+                        onChange={(e) => setRawContent(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  
                   <button 
-                    disabled={scraping || !scrapeUrl}
-                    className="w-full bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={scraping || (scrapeMode === 'url' ? !scrapeUrl : !rawContent)}
+                    className="w-full bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 font-medium py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {scraping ? 'Searching...' : 'Extract Repos'}
+                    {scraping ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4" />
+                        {scrapeMode === 'url' ? 'Scrape Webpage' : 'Analyze Raw Content'}
+                      </>
+                    )}
                   </button>
                </form>
             </div>
@@ -684,32 +763,18 @@ export default function App() {
 
       </div>
 
-      {dialog.isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-slate-200 mb-4">{dialog.type === 'confirm' ? 'Confirmação Necessária' : 'Aviso do Sistema'}</h3>
-            <p className="text-slate-300 mb-6">{dialog.message}</p>
-            <div className="flex justify-end gap-3">
-              {dialog.type === 'confirm' && (
-                <button 
-                  onClick={() => setDialog({ ...dialog, isOpen: false })}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold rounded-lg transition-colors border border-slate-600"
-                >
-                  Cancelar
-                </button>
-              )}
-              <button 
-                onClick={() => {
-                  if (dialog.type === 'confirm' && dialog.onConfirm) {
-                    dialog.onConfirm();
-                  }
-                  setDialog({ ...dialog, isOpen: false });
-                }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-emerald-900/20"
-              >
-                {dialog.type === 'confirm' ? 'Confirmar' : 'Entendido'}
-              </button>
-            </div>
+      {status.message && (
+        <div className={`fixed bottom-8 right-8 z-50 p-4 rounded-xl shadow-2xl border animate-in slide-in-from-bottom-5 duration-300 ${
+          status.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-red-100' :
+          status.type === 'success' ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-100' :
+          'bg-slate-800/90 border-slate-700 text-slate-100'
+        }`}>
+          <div className="flex items-center gap-3">
+            {status.type === 'error' ? <Box className="w-5 h-5 text-red-400" /> : <Box className="w-5 h-5 text-blue-400" />}
+            <span className="text-sm font-medium">{status.message}</span>
+            <button onClick={() => setStatus({ message: '', type: null })} className="ml-2 hover:text-white opacity-50 hover:opacity-100">
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}

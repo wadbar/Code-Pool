@@ -42,13 +42,18 @@ export class RepoIngester {
                 console.log(`[INGESTER] (Exec) git clone no rep: ${repoUrl}`);
                 try {
                     execSync(`git clone --depth 1 --single-branch ${repoUrl} ${tmpPath}`, {
-                        stdio: 'ignore', 
+                        stdio: 'pipe', 
                         timeout: timeout,
                         killSignal: 'SIGKILL'
                     });
                 } catch (cloneErr: any) {
-                    console.warn(`[INGESTER] Repo muito grande ou timeout (Monster) detectado para ${repoUrl}. Reenviando para o final da fila.`);
-                    return { status: "monster", reason: "clone_timeout" };
+                    const stderr = cloneErr.stderr?.toString() || '';
+                    console.warn(`[INGESTER] Erro no git clone para ${repoUrl}: ${cloneErr.message}. Stderr: ${stderr}`);
+                    
+                    if (cloneErr.code === 'ETIMEDOUT' || cloneErr.signal === 'SIGKILL' || stderr.toLowerCase().includes('timeout')) {
+                        return { status: "monster", reason: "clone_timeout" };
+                    }
+                    return { status: "failed", error: `Clone failed: ${stderr.substring(0, 200)}` };
                 }
 
                 // 3. Varredura e Filtro de Progresso (The Elite Scout)
@@ -105,8 +110,8 @@ export class RepoIngester {
 
                 // 5. Fatiamento Dinâmico (The Great Devourer)
                 const totalRelevant = goldenFiles.length;
-                const isHuge = totalRelevant > 800; // Only 800+ files is truly "Huge"
-                const sliceSize = isHuge ? 40 : 80; // Bigger slices
+                const isHuge = totalRelevant > 600; // Apenas 600+ arquivos é "Huge"
+                const sliceSize = isHuge ? 40 : 80; // Slices maiores para repos normais
                 const filesToProcess = remainingFiles.slice(0, sliceSize);
                 
                 if (filesToProcess.length === 0) {

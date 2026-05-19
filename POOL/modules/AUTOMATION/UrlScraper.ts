@@ -1,153 +1,228 @@
 import { UpdateManager } from './UpdateManager';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export class UrlScraper {
     /**
-     * Scarpes a given URL (webpage, article, markdown) for GitHub repository links 
+     * Scrapes a given URL or raw content for GitHub repository links 
      * and adds them to the ingestion pool.
      */
-    static async scrapeAndQueueRepos(sourceUrl: string) {
-        console.log(`[URL-SCRAPER] Buscando links de repositórios em: ${sourceUrl}`);
+    static async scrapeAndQueueRepos(sourceUrl?: string, rawContent?: string, depth = 0) {
+        if (!sourceUrl && !rawContent) {
+            return { status: "error", message: "Nenhuma URL ou conteúdo fornecido." };
+        }
+
+        // Evitar recursão infinita (Máximo 2 níveis: Lista -> Perfis -> Repos)
+        if (depth > 2) return { status: "success", found: 0, added: 0 };
+
+        console.log(`[URL-SCRAPER] [Depth:${depth}] Buscando links de repositórios em: ${sourceUrl || 'Conteúdo manual'}`);
         
         try {
-            // Se for um link de github direto, adiciona direto
-            if (sourceUrl.includes('github.com')) {
-                const match = sourceUrl.match(/https?:\/\/github\.com\/[^\s/"'#?]+/);
-                if (match) {
-                    const repoUrl = match[0];
-                    const manager = new UpdateManager();
-                    if (manager.addRepository(repoUrl)) {
-                        console.log(`[URL-SCRAPER] Repositório único adicionado via URL: ${repoUrl}`);
-                        return { status: "success", found: 1, url: repoUrl };
-                    }
-                    return { status: "success", found: 0, message: "Já estava na piscina." };
+            let text = rawContent || '';
+            
+            if (sourceUrl && !rawContent) {
+                // Otimizador de URL GitHub: troca blob por raw para facilitar parse (menos HTML, mais markdown/texto)
+                if (sourceUrl.includes('github.com/') && (sourceUrl.includes('/blob/') || sourceUrl.includes('/tree/'))) {
+                    sourceUrl = sourceUrl.replace('/blob/', '/raw/').replace('/tree/', '/raw/');
+                    console.log(`[URL-SCRAPER] Otimizando link GitHub -> Raw: ${sourceUrl}`);
                 }
-            }
 
-            const response = await fetch(sourceUrl);
-            if (!response.ok) {
-                 throw new Error(`HTTP ${response.status}`);
-            }
-            const text = await response.text();
-            
-            // Regex heurística para pegar repositórios github
-            const githubRegex = /https?:\/\/github\.com\/([a-zA-Z0-9_\-\.]+)\/([a-zA-Z0-9_\-\.]+)/g;
-            let matches = text.match(githubRegex) || [];
-            
-            // Failsafe: search for "username/repo" text patterns inside href or strong tags for blog posts like GeeksforGeeks
-            if (matches.length === 0) {
-                const textMatches = text.match(/>\s*([a-zA-Z0-9_\-\.]+)\/([a-zA-Z0-9_\-\.]+)\s*</g) || [];
-                const impliedUrls = textMatches.map(m => {
-                    const clean = m.replace(/[><\s]/g, '');
-                    // Ignora strings comuns que não são repositórios
-                    if (clean.includes('.') || clean.includes('118/0') || clean.toLowerCase() === 'dsa/placements' || clean.length < 5) return null;
-                    return `https://github.com/${clean}`;
-                }).filter(u => u !== null) as string[];
-                
-            // Extra failsafe: Search for headings OR bold text patterns that might imply famous repos
-            const headingMatches = text.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>|<b>(.*?)<\/b>|<strong>(.*?)<\/strong>|<span>(.*?)<\/span>/gi) || [];
-            const possibleNames = headingMatches.map(h => {
-                return h.replace(/<[^>]+>/g, '')
-                        .replace(/^[0-9]+[\.\-\)\s]+/, '') // Remove "1. ", "1)", etc
-                        .trim();
-            }).filter(name => name.length > 3 && name.length < 50 && !name.toLowerCase().includes('github') && !name.toLowerCase().includes('explore'));
-            
-            const customMapping: Record<string, string> = {
-                'freecodecamp': 'freeCodeCamp/freeCodeCamp',
-                'free programming books': 'EbookFoundation/free-programming-books',
-                'coding interview university': 'jwasham/coding-interview-university',
-                'developer roadmap': 'kamranahmedse/developer-roadmap',
-                'tensorflow': 'tensorflow/tensorflow',
-                'bootstrap': 'twbs/bootstrap',
-                'public apis': 'public-apis/public-apis',
-                'the algorithms - python': 'TheAlgorithms/Python',
-                'the algorithms python': 'TheAlgorithms/Python',
-                'react': 'facebook/react',
-                'vue': 'vuejs/vue',
-                'linux': 'torvalds/linux',
-                'javascript': 'trekhleb/javascript-algorithms',
-                'd3': 'd3/d3',
-                'system design primer': 'donnemartin/system-design-primer',
-                'awesome mackenzie': 'mackenziep/awesome-repositories'
-            };
-            
-            for (const name of possibleNames) {
-                const lowName = name.toLowerCase();
-                // Match exact mapping
-                if (customMapping[lowName]) {
-                    impliedUrls.push(`https://github.com/${customMapping[lowName]}`);
-                } else {
-                    // Try exact "user/repo" hidden in text
-                    const slashIdx = lowName.indexOf('/');
-                    if (slashIdx > 0 && slashIdx < lowName.length - 1 && !lowName.includes(' ')) {
-                        impliedUrls.push(`https://github.com/${lowName}`);
-                    }
-                    // Try to guess if it is a common library if the name is very specific (e.g., "Tencent-Hunyuan")
-                    if (lowName.startsWith('tencent') || lowName.startsWith('microsoft') || lowName.startsWith('google')) {
-                        // Heurística de busca provável ou apenas logar
-                    }
-                }
-            }
-                
-                if (impliedUrls.length > 0) {
-                    console.log(`[URL-SCRAPER] Heurística Profunda: Encontrou ${impliedUrls.length} potenciais repositórios a partir do texto/estruturas.`);
-                    matches.push(...impliedUrls);
-                }
-            }
-            
-            // Se não encontrou links explícitos, possivelmente estão embedados ou a página só menciona os nomes.
-            // Acionar o Instinto Predador (Gemini AI) para raspar profundamente o conteúdo.
-            if (matches.length === 0 && process.env.GEMINI_API_KEY) {
-                console.log(`[URL-SCRAPER] IA Heurística Ativada: Nenhum link óbvio detectado. Devorando texto bruto para extração de repositórios implícitos...`);
-                try {
-                    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-                    // Trim text to avoid huge context window explosions, first 50k chars is enough for most articles
-                    const promptText = text.substring(0, 50000); 
-                    const response = await ai.models.generateContent({
-                        model: 'gemini-2.5-flash',
-                        contents: `Extract all GitHub repository urls mentioned or implied in this HTML content.
-Return ONLY a valid JSON array of strings containing the FULL urls (e.g. ["https://github.com/facebook/react"]).
-Do not include any markdown formatting like \`\`\`json. Return just the raw JSON array.
-Content:
-${promptText}`
-                    });
+                // Se for um link de github direto
+                if (sourceUrl.includes('github.com')) {
+                    const cleanUrl = sourceUrl.split('?')[0].replace(/\/$/, '');
+                    const pathParts = cleanUrl.split('github.com/')[1]?.split('/');
                     
-                    const aiResponse = response.text || "[]";
-                    console.log(`[URL-SCRAPER] IA Heurística retornou: ${aiResponse.substring(0, 100)}...`);
-                    const aiParsed = JSON.parse(aiResponse);
-                    if (Array.isArray(aiParsed) && aiParsed.length > 0) {
-                        matches = aiParsed;
+                    if (pathParts) {
+                        // Caso 1: Repositório Direto (User/Repo)
+                        if (pathParts.length >= 2) {
+                            const user = pathParts[0];
+                            const repo = pathParts[1];
+                            const skip = ['explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 'security', 'pricing', 'blog', 'search'];
+                            
+                            // Se for um link de repo real (não uma página institucional)
+                            if (!skip.includes(user.toLowerCase())) {
+                                const repoUrl = `https://github.com/${user}/${repo}`;
+                                const manager = new UpdateManager();
+                                if (manager.addRepository(repoUrl)) {
+                                    console.log(`[URL-SCRAPER] Repositório único adicionado via URL: ${repoUrl}`);
+                                    return { status: "success", found: 1, added: 1, url: repoUrl };
+                                }
+                                return { status: "success", found: 1, added: 0, message: "Já estava na piscina." };
+                            }
+                        }
+                        
+                        // Caso 2: Perfil de Usuário/Org (apenas /user)
+                        if (pathParts.length === 1) {
+                            const user = pathParts[0];
+                            const skip = ['explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 'security', 'pricing', 'blog', 'search', 'pulls', 'issues'];
+                            if (!skip.includes(user.toLowerCase())) {
+                                // Redirecionamos para a aba de repositórios para o scraper buscar tudo
+                                sourceUrl = `https://github.com/${user}?tab=repositories&sort=updated`;
+                                console.log(`[URL-SCRAPER] Perfil GitHub detectado: ${user}. Redirecionando para aba de repositórios...`);
+                            }
+                        }
                     }
-                } catch (aiError: any) {
-                    console.error(`[URL-SCRAPER] Falha na extração de IA Heurística:`, aiError.message);
+                }
+
+                let finalUrl = sourceUrl;
+                // Reddit Adapter: Reddit blocks most simple HTML fetches, but allows .json with much more data
+                if (sourceUrl.includes('reddit.com/r/') && !sourceUrl.includes('.json')) {
+                    finalUrl = sourceUrl.split('?')[0].replace(/\/$/, '') + '.json';
+                    console.log(`[URL-SCRAPER] Reddit detectado. Redirecionando para endpoint JSON: ${finalUrl}`);
+                }
+
+                const response = await fetch(finalUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml,application/json;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'pt-BR,pt;q=0.9,en-US,en;q=0.8',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache',
+                        'Referer': 'https://www.google.com/'
+                    }
+                });
+
+                if (!response.ok) {
+                    console.error(`[URL-SCRAPER] HTTP Error ${response.status} fetching ${finalUrl}`);
+                    if (finalUrl !== sourceUrl) {
+                        return this.scrapeAndQueueRepos(sourceUrl, undefined, depth); 
+                    }
+                    throw new Error(`O servidor retornou erro ${response.status}. Sites como Reddit/Twitter/Github monitoram acessos automatizados. Se o erro persistir, tente usar a Ingestão Manual com o código-fonte da página.`);
+                }
+
+                const contentType = response.headers.get('content-type') || '';
+                
+                if (contentType.includes('application/json') || finalUrl.endsWith('.json')) {
+                    try {
+                        const jsonData = await response.json();
+                        text = JSON.stringify(jsonData);
+                        if (Array.isArray(jsonData)) {
+                            jsonData.forEach(item => {
+                                if (item.data && item.data.children) {
+                                    item.data.children.forEach((child: any) => {
+                                        if (child.data) {
+                                            text += ' ' + (child.data.selftext || '') + ' ' + (child.data.body || '') + ' ' + (child.data.title || '');
+                                        }
+                                    });
+                                }
+                                if (item.data && item.data.selftext) text += ' ' + item.data.selftext;
+                            });
+                        }
+                    } catch (e) {
+                        text = await response.text();
+                    }
+                } else {
+                    text = await response.text();
+                }
+            }
+            
+            // 1. Regex de Atributos
+            const attributeRegex = /(?:href|src|data-[a-z0-9\-]+|value|content|action|title|url|original-url)=["']([^"']*(?:github\.com|git\.io|gist\.github\.com|githubusercontent\.com)[^"']*)["']/gi;
+            let attributeMatches: string[] = [];
+            let attrMatch;
+            while ((attrMatch = attributeRegex.exec(text)) !== null) {
+                let rawUrl = attrMatch[1].trim();
+                if (rawUrl.includes('%3A%2F%2F')) {
+                    try {
+                        const decoded = decodeURIComponent(rawUrl);
+                        const githubPart = decoded.match(/https?:\/\/github\.com\/[a-zA-Z0-9_\-\.\/]+/gi);
+                        if (githubPart) rawUrl = githubPart[0];
+                    } catch(e) {}
+                }
+                let url = rawUrl;
+                if (url.startsWith('//')) url = 'https:' + url;
+                if (!url.startsWith('http') && !url.includes('://')) url = 'https://' + url.replace(/^\//, '');
+                url = url.split('?')[0].split('#')[0].replace(/[\.\,\)\"\'\]\s]+$/, '');
+                if (url.includes('github.com/') || url.includes('git.io/')) {
+                    attributeMatches.push(url);
                 }
             }
 
-            // Deduplica
-            const uniqueRepos = [...new Set(matches.map(url => url.replace(/\.git$/, '')))];
+            // 2. Regex de Texto Puro e Perfis
+            const profileRegex = /(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_\-\.]+)(?:\/)?(?:\s|$|"|'|>|\)|\])/gi;
+            const repoRegex = /(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_\-\.]+)\/([a-zA-Z0-9_\-\.]+)(?:\/[a-zA-Z0-9_\-\.]+)?/gi;
+            
+            let foundProfiles: string[] = [];
+            let textMatches: string[] = [];
+            
+            let rMatch;
+            while ((rMatch = repoRegex.exec(text)) !== null) {
+                const url = `https://github.com/${rMatch[1]}/${rMatch[2]}`;
+                textMatches.push(url);
+            }
+
+            let pMatch;
+            while ((pMatch = profileRegex.exec(text)) !== null) {
+                const user = pMatch[1];
+                const skip = ['explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 'security', 'pricing', 'blog', 'search', 'pulls', 'issues', 'privacy', 'terms'];
+                if (!skip.includes(user.toLowerCase())) {
+                    foundProfiles.push(user);
+                }
+            }
+            
+            let matches = [...new Set([...attributeMatches, ...textMatches])];
+            foundProfiles = [...new Set(foundProfiles)];
+
+            let recursiveFound = 0;
+            let recursiveAdded = 0;
+
+            // Se for Depth 0 (primeiro scrape) e encontrar muitos perfis, iterar sobre eles
+            if (depth === 0 && foundProfiles.length > 5 && matches.length < foundProfiles.length) {
+                console.log(`[URL-SCRAPER] Lista de usuários detectada (${foundProfiles.length}). Scraping iterativo iniciado...`);
+                // Limite de 20 usuários iniciais para não estourar rate limit imediatamente
+                const targetUsers = foundProfiles.slice(0, 20);
+                for (const user of targetUsers) {
+                    try {
+                        const recResult = await this.scrapeAndQueueRepos(`https://github.com/${user}?tab=repositories&sort=updated`, undefined, depth + 1);
+                        if (recResult.status === "success") {
+                            recursiveFound += (recResult.found || 0);
+                            recursiveAdded += (recResult.added || 0);
+                        }
+                        // Pequeno delay para evitar 429
+                        await new Promise(r => setTimeout(r, 200));
+                    } catch (e) {}
+                }
+            }
+
+            // 3. Sensor de Contexto (Pares usuario/repo soltos)
+            const pairMatches = text.match(/(?:>|"|'|\s|^)([a-zA-Z0-9_\-\.]+)\/([a-zA-Z0-9_\-\.\/]{3,50})(?:<|"|'|\s|$)/gi) || [];
+            const impliedUrls: string[] = [];
+            for (const m of pairMatches) {
+                const clean = m.replace(/[><"'\s\n]/g, '').replace(/\/$/, '');
+                const parts = clean.split('/');
+                if (parts.length < 2) continue;
+                const user = parts[0];
+                const repo = parts[1].split(/[#\?]/)[0].split('.')[0]; 
+                const noise = ['explore', 'trending', 'marketplace', 'features', 'topics', 'collections', 'events', 'settings', 'notifications', 'orgs', 'site', 'contact', 'about', 'security', 'pricing', 'blog', 'search', 'r', 'u'];
+                if (noise.includes(user.toLowerCase())) continue;
+                if (clean.length < 4) continue;
+                impliedUrls.push(`https://github.com/${user}/${repo}`);
+            }
+            matches.push(...impliedUrls);
+            
+            const uniqueRepos = [...new Set(matches.map(url => {
+                let clean = url.replace(/\.git$/, '').replace(/\/$/, '').replace(/[\.\,\)\"\'\]]+$/, '');
+                const parts = clean.split('github.com/')[1]?.split('/');
+                if (parts && parts.length >= 2) return `https://github.com/${parts[0]}/${parts[1]}`;
+                return '';
+            }).filter(u => u !== ''))];
             
             const manager = new UpdateManager();
             let addedCount = 0;
-            
             for (const repoUrl of uniqueRepos) {
-                // Remove trailing punctuation or whitespace grabbed by regex
-                const cleanUrl = repoUrl.replace(/[\.\,\)\"\'\]]+$/, '');
-                if (cleanUrl.startsWith('https://github.com/')) {
-                    const add = manager.addRepository(cleanUrl);
-                    if (add) addedCount++;
+                if (repoUrl.includes('/')) {
+                    if (manager.addRepository(repoUrl)) addedCount++;
                 }
             }
             
-            console.log(`[URL-SCRAPER] Encontrados ${uniqueRepos.length} repositorios na página. Adicionados à fila de ingestão: ${addedCount}`);
-            return {
-                status: "success",
-                found: uniqueRepos.length,
-                added: addedCount
+            return { 
+                status: "success", 
+                found: uniqueRepos.length + recursiveFound, 
+                added: addedCount + recursiveAdded 
             };
-
         } catch (err: any) {
-             console.error(`[URL-SCRAPER] Falha ao extrair links da URL ${sourceUrl}:`, err.message);
+             console.error(`[URL-SCRAPER] Erro no scrape:`, err.message);
              return { status: "error", message: err.message };
         }
     }
 }
+

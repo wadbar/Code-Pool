@@ -289,22 +289,46 @@ app.post('/api/pool/worker/commit', async (req, res) => {
     }
 
     try {
-        if (!fs.existsSync(path.join(rootPath, '.git'))) {
-            logSystem("[Git Setup] Repositório Git local não detectado. Inicializando...");
+        const gitDir = path.join(rootPath, '.git');
+    const initGitRepo = () => {
+        try {
+            if (fs.existsSync(gitDir)) {
+                logSystem("[Git Setup] Removendo repositório Git existente para reiniciar limpo...");
+                fs.rmSync(gitDir, { recursive: true, force: true });
+            }
+            logSystem("[Git Setup] Inicializando repositório Git local limpo...");
             execSync('git init', { cwd: rootPath });
             execSync('git config user.name "Lego Pool Bot"', { cwd: rootPath });
             execSync('git config user.email "bot@lego-pool.local"', { cwd: rootPath });
-            logSystem("[Git Setup] Ambiente Git local configurado com sucesso.");
+            logSystem("[Git Setup] Repositório Git configurado com sucesso.");
+        } catch (initErr: any) {
+            logSystem(`[Git Setup Error] Falha fatal ao configurar o Git: ${initErr.message}`);
         }
-    } catch (gitInitErr: any) {
-        logSystem(`[Git Setup Error] Falha ao inicializar o Git: ${gitInitErr.message}`);
+    };
+
+    if (!fs.existsSync(gitDir)) {
+        initGitRepo();
     }
 
+    let statusOutput = "";
     try {
-        let statusOutput = execSync('git status --porcelain=v1 .', { 
+        statusOutput = execSync('git status --porcelain=v1 .', { 
             cwd: rootPath,
             maxBuffer: 20 * 1024 * 1024 
         }).toString();
+    } catch (statusErr: any) {
+        logSystem(`[Git Setup] git status falhou (possível index/HEAD corrompido): ${statusErr.message}. Forçando auto-cura...`);
+        initGitRepo();
+        try {
+            statusOutput = execSync('git status --porcelain=v1 .', { 
+                cwd: rootPath,
+                maxBuffer: 20 * 1024 * 1024 
+            }).toString();
+        } catch (retryErr: any) {
+            logSystem(`[Git Setup Error] Falha persistiva após auto-cura do Git: ${retryErr.message}`);
+            return res.status(500).json({ error: 'Erro de Commit: ' + retryErr.message, details: retryErr.message });
+        }
+    }
         
         const files = statusOutput.split('\n')
             .filter(line => line.trim().length > 0)

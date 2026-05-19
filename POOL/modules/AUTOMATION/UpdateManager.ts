@@ -122,8 +122,18 @@ export class UpdateManager {
         console.log(`[UPDATE-MANAGER] Iniciando ciclo de sincronização global da Piscina...`);
         const registry = this.getRegistry();
         let updatedCount = 0;
+        
+        // Cópia para iterar sem cair em loop infinito ao empurrar itens para o fim
+        const reposToProcess = [...registry.repositories];
 
-        for (let i = 0; i < registry.repositories.length; i++) {
+        for (const currentRepo of reposToProcess) {
+            // Re-fetch registry index just in case
+            const registryArr = this.getRegistry().repositories;
+            let i = registryArr.findIndex(r => r.url === currentRepo.url);
+            if (i === -1) continue;
+
+            const repo = registryArr[i];
+
             // Check for pause/stop
             await this.waitIfPaused();
             const control = this.getControlStatus();
@@ -132,59 +142,69 @@ export class UpdateManager {
                 break;
             }
 
-            const repo = registry.repositories[i];
             console.log(`[UPDATE-MANAGER] Verificando: ${repo.url}`);
 
             if (force || !repo.lastSync) {
                 console.log(`[UPDATE-MANAGER] Atualização real do repositório: ${repo.url}. Extraindo blocos de código...`);
                 
+                // Se falhou 5 vezes, vamos parar de tentar essa presa e marcar lastSync com erro
+                if ((repo.retryCount || 0) >= 5) {
+                    console.log(`[UPDATE-MANAGER] Presa indigesta demais (${repo.url}). Abortando após 5 tentativas.`);
+                    repo.lastSync = new Date().toISOString();
+                    repo.status = "error";
+                    registryArr[i] = repo;
+                    this.saveRegistry({ repositories: registryArr });
+                    continue;
+                }
+
                 // Ingestão autônoma e real
                 const result = await RepoIngester.ingestFromGitHub(repo.url, repo.isMonster ? 180000 : 45000);
                 
                 if (result.status === "monster") {
-                    console.log(`[UPDATE-MANAGER] REPO MONSTRO DETECTADO: ${repo.url}. Escalando prioridade e movendo para o fim da fila.`);
+                    console.log(`[UPDATE-MANAGER] REPO MONSTRO DETECTADO: ${repo.url}. Escalando prioridade e adiando para o próximo ciclo.`);
                     repo.isMonster = true;
                     repo.retryCount = (repo.retryCount || 0) + 1;
                     
-                    registry.repositories.splice(i, 1);
-                    registry.repositories.push(repo);
-                    i--;
-                    this.saveRegistry(registry);
+                    // Joga pro final pra não bloquear, mas NÃO processar nesta mesma passada (o reposToProcess previne o loop)
+                    registryArr.splice(i, 1);
+                    registryArr.push(repo);
+                    this.saveRegistry({ repositories: registryArr });
                     continue;
                 }
 
                 if (result.status === "partial") {
-                    console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila para continuar.`);
+                    console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila para continuar no próximo ciclo.`);
                     
                     repo.digestedCount = (repo.digestedCount || 0) + (result.filesProcessed || 0);
                     repo.totalFiles = result.totalFiles;
                     repo.isMonster = true; // Se é parcial, tratamos como monstro/grande
                     
-                    // Move pro fim para não trancar a fila, mas NÃO marca lastSync final
-                    registry.repositories.splice(i, 1);
-                    registry.repositories.push(repo);
-                    i--;
-                    this.saveRegistry(registry);
+                    // Move pro fim para não trancar a fila e tenta de novo no próximo ciclo de sync
+                    registryArr.splice(i, 1);
+                    registryArr.push(repo);
+                    this.saveRegistry({ repositories: registryArr });
                     continue;
                 }
 
                 if (result.status === "success") {
                     repo.digestedCount = repo.totalFiles || result.totalFiles;
                     repo.lastSync = new Date().toISOString();
+                    repo.status = "synced";
+                    registryArr[i] = repo;
                 }
                 
                 updatedCount++;
-                this.saveRegistry(registry);
+                this.saveRegistry({ repositories: registryArr });
             } else {
                 console.log(`[UPDATE-MANAGER] Repositório já persistido no registro: ${repo.url}. (Use force=true para re-ingestão).`);
             }
         }
 
-        this.saveRegistry(registry);
-        console.log(`[UPDATE-MANAGER] Sincronização concluída. ${updatedCount} repositórios atualizados.`);
+        // Final save
+        console.log(`[UPDATE-MANAGER] Sincronização de ciclo concluída. ${updatedCount} repositórios atualizados.`);
         
         return {
-            totalChecked: registry.repositories.length,
+            totalChecked: reposToProcess.length,
             updated: updatedCount,
             status: "Synced"
         };

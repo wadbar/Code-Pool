@@ -51,6 +51,8 @@ app.get('/api/pool/inventory', (req, res) => {
 });
 
 // Code Pool Auditor API
+app.get('/api/check-gemini', (req, res) => res.json({ hasKey: !!process.env.GEMINI_API_KEY, len: (process.env.GEMINI_API_KEY || '').length }));
+
 app.get('/api/pool/status', (req, res) => {
   const poolPath = path.join(process.cwd(), 'POOL', 'modules');
   if (fs.existsSync(poolPath)) {
@@ -426,6 +428,15 @@ async function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[TERMINAL] Code Pool Environment running on http://localhost:${PORT}`);
     console.log(`[AUDIT] Consolidated resources ready for extraction.`);
+    
+    // Auto-start daemons
+    try {
+        const { execSync } = require('child_process');
+        console.log(`[SYS] Booting default daemons...`);
+        execSync('npx -y tsx start_daemons.mjs');
+    } catch (e) {
+        console.error('Failed to auto-start daemons', e);
+    }
   });
 }
 

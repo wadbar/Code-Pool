@@ -1,4 +1,5 @@
 import { UpdateManager } from './UpdateManager';
+import { GoogleGenAI } from '@google/genai';
 
 export class UrlScraper {
     /**
@@ -31,8 +32,52 @@ export class UrlScraper {
             
             // Regex heurística para pegar repositórios github
             const githubRegex = /https?:\/\/github\.com\/([a-zA-Z0-9_\-\.]+)\/([a-zA-Z0-9_\-\.]+)/g;
-            const matches = text.match(githubRegex) || [];
+            let matches = text.match(githubRegex) || [];
             
+            // Failsafe: search for "username/repo" text patterns inside href or strong tags for blog posts like GeeksforGeeks
+            if (matches.length === 0) {
+                const textMatches = text.match(/>\s*([a-zA-Z0-9_\-\.]+)\/([a-zA-Z0-9_\-\.]+)\s*</g) || [];
+                const impliedUrl = textMatches.map(m => {
+                    const clean = m.replace(/[><\s]/g, '');
+                    // Ignora strings comuns que não são repositórios
+                    if (clean.includes('.') || clean.includes('118/0') || clean.toLowerCase() === 'dsa/placements' || clean.length < 5) return null;
+                    return `https://github.com/${clean}`;
+                }).filter(u => u !== null) as string[];
+                
+                if (impliedUrl.length > 0) {
+                    console.log(`[URL-SCRAPER] Heurística Textual: Encontrou ${impliedUrl.length} potenciais repositórios "user/repo".`);
+                    matches.push(...impliedUrl);
+                }
+            }
+            
+            // Se não encontrou links explícitos, possivelmente estão embedados ou a página só menciona os nomes.
+            // Acionar o Instinto Predador (Gemini AI) para raspar profundamente o conteúdo.
+            if (matches.length === 0 && process.env.GEMINI_API_KEY) {
+                console.log(`[URL-SCRAPER] IA Heurística Ativada: Nenhum link óbvio detectado. Devorando texto bruto para extração de repositórios implícitos...`);
+                try {
+                    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+                    // Trim text to avoid huge context window explosions, first 50k chars is enough for most articles
+                    const promptText = text.substring(0, 50000); 
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-2.5-flash',
+                        contents: `Extract all GitHub repository urls mentioned or implied in this HTML content.
+Return ONLY a valid JSON array of strings containing the FULL urls (e.g. ["https://github.com/facebook/react"]).
+Do not include any markdown formatting like \`\`\`json. Return just the raw JSON array.
+Content:
+${promptText}`
+                    });
+                    
+                    const aiResponse = response.text || "[]";
+                    console.log(`[URL-SCRAPER] IA Heurística retornou: ${aiResponse.substring(0, 100)}...`);
+                    const aiParsed = JSON.parse(aiResponse);
+                    if (Array.isArray(aiParsed) && aiParsed.length > 0) {
+                        matches = aiParsed;
+                    }
+                } catch (aiError: any) {
+                    console.error(`[URL-SCRAPER] Falha na extração de IA Heurística:`, aiError.message);
+                }
+            }
+
             // Deduplica
             const uniqueRepos = [...new Set(matches.map(url => url.replace(/\.git$/, '')))];
             
@@ -40,8 +85,12 @@ export class UrlScraper {
             let addedCount = 0;
             
             for (const repoUrl of uniqueRepos) {
-                const add = manager.addRepository(repoUrl);
-                if (add) addedCount++;
+                // Remove trailing punctuation or whitespace grabbed by regex
+                const cleanUrl = repoUrl.replace(/[\.\,\)\"\'\]]+$/, '');
+                if (cleanUrl.startsWith('https://github.com/')) {
+                    const add = manager.addRepository(cleanUrl);
+                    if (add) addedCount++;
+                }
             }
             
             console.log(`[URL-SCRAPER] Encontrados ${uniqueRepos.length} repositorios na página. Adicionados à fila de ingestão: ${addedCount}`);

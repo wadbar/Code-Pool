@@ -12,10 +12,16 @@ import path from 'path';
     console.log(`[WORKER] Resuming processing of ${data.repositories.length} repos. Skipping already processed.`);
     
     const manager = new UpdateManager();
-    try {
-        await manager.syncAll(false);
-        console.log("[WORKER] Complete.");
-    } catch (err) {
-        console.error("[WORKER] Error during global ingestion cycle:", err);
+    
+    while (true) {
+        try {
+            await manager.syncAll(false);
+            // After one full cycle, we should wait some time before re-evaluating registry
+            // Wait 15 seconds to allow UI interactions/changes
+            await new Promise(r => setTimeout(r, 15000));
+        } catch (err) {
+            console.error("[WORKER] Error during global ingestion cycle:", err);
+            await new Promise(r => setTimeout(r, 15000));
+        }
     }
 })();

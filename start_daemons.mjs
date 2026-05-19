@@ -6,7 +6,8 @@ const errFile = fs.openSync('ingest.err', 'a');
 
 const p1 = spawn('npx', ['tsx', 'worker_ingest.ts'], {
     detached: true,
-    stdio: ['ignore', logFile, errFile]
+    stdio: ['ignore', logFile, errFile],
+    env: process.env
 });
 p1.unref();
 console.log(`[DAEMON] Ingestion worker started PID: ${p1.pid}`);
@@ -16,7 +17,8 @@ const errFile2 = fs.openSync('blueprints.err', 'a');
 
 const p2 = spawn('npx', ['tsx', 'worker_blueprints.ts'], {
     detached: true,
-    stdio: ['ignore', logFile2, errFile2]
+    stdio: ['ignore', logFile2, errFile2],
+    env: process.env
 });
 p2.unref();
 

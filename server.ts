@@ -163,29 +163,28 @@ app.post('/api/pool/ingest', express.json(), async (req, res) => {
   }
   
   updateManager.addRepository(githubUrl);
-  console.log(`[TERMINAL] Alvo adicionado à fila de digestão: ${githubUrl}`);
+  console.log(`[INGEST] Adicionando repositório à fila: ${githubUrl}`);
   
   res.json({ 
     status: 'Ingestion Queued',
     target: githubUrl,
-    message: 'Repositório adicionado à esteira de processamento. O Devourer o processará em background.'
+    message: 'Repositório enfileirado para processamento em background.'
   });
 });
 
-// Endpoint autônomo e definitivo para ingerir CADA UM dos repositórios
+// Endpoint autônomo para ingerir repositórios
 app.post('/api/pool/ingest-all', async (req, res) => {
-  console.log(`[TERMINAL] Comando MASTER de ingestão real recebido para TODOS os repositórios restantes.`);
+  console.log(`[INGEST] Comando de ingestão global recebido.`);
   
-  // Real Ingestion in background internally
   updateManager.syncAll(true).then(() => {
-     console.log(`[TERMINAL] Finalizada ingestão background global.`);
+     console.log(`[INGEST] Ingestão global background finalizada.`);
   }).catch(err => {
-     console.error(`[TERMINAL] Erro na ingestão background global:`, err);
+     console.error(`[INGEST] Erro na ingestão global:`, err);
   });
 
   res.json({ 
     status: 'Global Ingestion task started',
-    message: 'O ciclo reverso autônomo e definitivo foi ativado no servidor. Acompanhe os logs via terminal/server-side.'
+    message: 'Ciclo de processamento global iniciado. Acompanhe os logs via endpoint de log.'
   });
 });
 
@@ -261,17 +260,17 @@ app.post('/api/pool/sync', async (req, res) => {
 // Endpoint para Caçada Autônoma (Hungry Pool)
 app.post('/api/pool/hunt', async (req, res) => {
   try {
-      logSystem("Iniciando caçada autônoma por repositórios do GitHub (Hungry Pool)...");
+      logSystem("Iniciando busca automática de repositórios (GitHub)...");
       const result = await hungryPool.huntForCode();
-      logSystem(`Caçada concluída! Total de novos repositórios encontrados: ${result.hunted || 0}`);
+      logSystem(`Busca concluída. Total de novos repositórios encontrados: ${result.hunted || 0}`);
       res.json({
           status: 'Hunting completed',
           ...result,
-          message: 'A Piscina Faminta encontrou novos repositórios e os adicionou ao fluxo de digestão (ingestão).'
+          message: 'Novos repositórios encontrados e enfileirados para processamento.'
       });
   } catch (err: any) {
-      logSystem(`Erro durante a caçada: ${err.message}`);
-      res.status(500).json({ error: 'A caçada falhou.', details: err.message });
+      logSystem(`Erro durante a busca: ${err.message}`);
+      res.status(500).json({ error: 'Falha durante a busca.', details: err.message });
   }
 });
 

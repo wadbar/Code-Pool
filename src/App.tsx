@@ -297,6 +297,17 @@ export default function App() {
   };
 
   useEffect(() => {
+    const fetchData = () => {
+      if (document.hidden) return; // Skip polling if tab is hidden
+      fetchLogs();
+      fetchWorkerStatus();
+      fetchCommitStatus();
+      fetchBlueprints();
+      fetchRealScanData();
+      fetchRegistry();
+      fetchInventory();
+    };
+
     fetchRegistry();
     fetchInventory();
     fetchLogs();
@@ -305,16 +316,25 @@ export default function App() {
     fetchRealScanData();
     fetchGitConfig();
     
-    const interval = setInterval(() => {
-      fetchLogs();
-      fetchWorkerStatus();
-      fetchCommitStatus();
-      fetchBlueprints();
-      fetchRealScanData();
-      fetchRegistry();
-      fetchInventory();
-    }, 3000);
-    return () => clearInterval(interval);
+    // Initial data fetch
+    fetchData();
+
+    // Set up polling
+    const interval = setInterval(fetchData, 15000); 
+
+    // Handle visibility changes
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchData(); // Fetch immediately when tab becomes visible
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   const handleSync = async () => {
@@ -440,6 +460,9 @@ export default function App() {
     ? Math.round((totalDigestedFiles / totalExpectedFiles) * 100) 
     : (totalRepos > 0 ? Math.round((syncedRepos / totalRepos) * 100) : 0);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
+
   // Filtering actions
   const filteredRepos = repositories.filter(repo => 
     repo.url.toLowerCase().includes(filter.toLowerCase())
@@ -454,6 +477,9 @@ export default function App() {
       return timeB - timeA; 
     }
   });
+
+  const paginatedRepos = sortedRepos.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(sortedRepos.length / pageSize);
 
   const filteredInventory = inventory.map(inv => {
     if (inv.category.toLowerCase().includes(blockFilter.toLowerCase())) {
@@ -472,17 +498,17 @@ export default function App() {
           <div>
             <div className="flex items-center gap-3">
               <span className="p-2 bg-blue-600/10 text-blue-500 rounded-lg border border-blue-500/20">
-                <Database className="w-6 h-6 animate-pulse" />
+                <Database className="w-6 h-6" />
               </span>
               <div>
                 <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                  Lego Pool
+                  Gerenciador de Repositórios
                   <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-400/20 px-2 py-0.5 rounded-full font-mono font-normal">
-                    v1.0.4-live
+                    v1.0.4
                   </span>
                 </h1>
                 <p className="text-slate-400 text-xs mt-0.5 font-mono">
-                  Sincronização de Conhecimento & Decomposição Modular
+                  Auditoria e Indexação de Conhecimento
                 </p>
               </div>
             </div>
@@ -635,7 +661,7 @@ export default function App() {
               <div className="bg-slate-900 border border-slate-850 rounded-xl p-5 hover:border-slate-800 transition-colors flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <span className="text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Peças Lego Extraídas</span>
+                    <span className="text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Blocos Extraídos</span>
                     <div className="text-4xl font-extrabold text-emerald-400 tracking-tight">{totalBlocks}</div>
                   </div>
                   <span className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/10">
@@ -933,12 +959,12 @@ export default function App() {
                       <tr>
                         <td colSpan={4} className="py-8 text-center text-slate-500">Recuperando base de dados...</td>
                       </tr>
-                    ) : sortedRepos.length === 0 ? (
+                    ) : paginatedRepos.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="py-8 text-center text-slate-500">Nenhum repositório localizado.</td>
                       </tr>
                     ) : (
-                      sortedRepos.map((repo) => (
+                      paginatedRepos.map((repo) => (
                         <tr key={repo.url} className="hover:bg-slate-850/30 transition-colors">
                           <td className="py-3">
                             <div className="flex items-center gap-2">
@@ -951,9 +977,6 @@ export default function App() {
                               >
                                 {repo.url.replace('https://github.com/', '')}
                               </a>
-                              {repo.isMonster && (
-                                <span className="text-[7px] bg-red-500/15 text-red-400 border border-red-500/20 px-1 py-0.5 rounded font-extrabold uppercase tracking-tight">MONSTER</span>
-                              )}
                             </div>
                           </td>
                           <td className="py-3">
@@ -966,7 +989,7 @@ export default function App() {
                                   />
                                 </div>
                                 <div className="text-[8px] text-slate-500 text-center font-mono">
-                                  {repo.digestedCount}/{repo.totalFiles} deconst.
+                                  {repo.digestedCount}/{repo.totalFiles}
                                 </div>
                               </div>
                             ) : (
@@ -974,13 +997,13 @@ export default function App() {
                             )}
                           </td>
                           <td className="py-3 text-right text-slate-400 font-mono text-[10px]">
-                            {repo.lastSync ? new Date(repo.lastSync).toLocaleString() : 'Fila de espera'}
+                            {repo.lastSync ? new Date(repo.lastSync).toLocaleString() : 'Fila'}
                           </td>
                           <td className="py-3 text-right">
                             <button 
                               onClick={() => handleRemoveRepo(repo.url)}
                               className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all"
-                              title="Remover repositório da Pool"
+                              title="Remover repositório"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -991,6 +1014,31 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-slate-850">
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 bg-slate-950 border border-slate-850 rounded text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      Anterior
+                    </button>
+                    <button 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 bg-slate-950 border border-slate-850 rounded text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      Próximo
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right/Sidebar Column - Forms for adding or scraping repos */}

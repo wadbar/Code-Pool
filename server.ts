@@ -87,6 +87,91 @@ setInterval(async () => {
   }
 }, 60 * 60 * 1000);
 
+// Ciclo de Auditoria de Auto-Commit Gradual em Background (Aos poucos)
+setInterval(async () => {
+  if (commitProgress.active) return;
+  const rootPath = process.cwd();
+  const gitDir = path.join(rootPath, '.git');
+  if (!fs.existsSync(gitDir)) return;
+
+  try {
+    const statusOutput = execSync('git status --porcelain=v1 .', { 
+      cwd: rootPath,
+      maxBuffer: 10 * 1024 * 1024 
+    }).toString();
+
+    const files = statusOutput.split('\n')
+      .filter(line => line.trim().length > 0)
+      .map(line => {
+        let filePath = line.substring(3).trim();
+        if (filePath.startsWith('"') && filePath.endsWith('"')) {
+          filePath = filePath.substring(1, filePath.length - 1);
+        }
+        return filePath;
+      })
+      .filter(filePath => {
+        return !(
+          filePath.includes('.tmp/') || 
+          filePath.includes('node_modules/') ||
+          filePath.includes('dist/') ||
+          filePath.endsWith('.log') || 
+          filePath.endsWith('.err') ||
+          filePath.endsWith('worker-status.json') ||
+          filePath.includes('ingestion-progress.json')
+        );
+      });
+
+    if (files.length > 0) {
+      logSystem(`[Auto-Commit] Detectados ${files.length} novos blocos ou alterações. Salvaguardando automaticamente e gradualmente em background...`);
+      commitProgress = { total: files.length, done: 0, active: true };
+
+      setImmediate(async () => {
+        try {
+          for (let i = 0; i < files.length; i++) {
+            const filePath = files[i];
+            const escapedFile = `"${filePath.replace(/"/g, '\\"')}"`;
+            const fileName = filePath.split('/').pop() || 'bloco';
+            
+            let commitMsg = filePath.startsWith('POOL/modules/') || filePath.startsWith('POOL/blueprints/') 
+              ? `📦 [Lego-Auto] ${fileName}`
+              : `🛠️ [Infra-Auto] ${fileName}`;
+            
+            try {
+              execSync(`git add ${escapedFile}`, { cwd: rootPath });
+              execSync(`git commit -m "${commitMsg}"`, { cwd: rootPath });
+              logSystem(`[Auto-Commit] Código salvo: POOL/${fileName}`);
+              commitProgress.done++;
+              await new Promise(r => setTimeout(r, 150)); // Delay gradual (aos poucos) para impedir sobrecarga de CPU/IO
+            } catch (e: any) {
+              logSystem(`[Auto-Commit Error] Falha ao registrar ${filePath}: ${e.message}`);
+              commitProgress.done++;
+            }
+          }
+          logSystem(`[Auto-Commit] Concluído com sucesso. Todos os ${files.length} arquivos foram catalogados na piscina.`);
+          
+          // Auto-push se habilitado
+          try {
+            const gitConfigPath = path.join(rootPath, "POOL", "git-config.json");
+            if (fs.existsSync(gitConfigPath)) {
+              const config = JSON.parse(fs.readFileSync(gitConfigPath, "utf8"));
+              if (config.remoteUrl && config.autoPush) {
+                logSystem("[Git Backup] Sincronizando alterações cumulativas com a piscina remota...");
+                await executeGitPushInternal();
+              }
+            }
+          } catch (pushErr: any) {
+            logSystem(`[Git Backup Run Error] Auto-push de auto-commit falhou: ${pushErr.message}`);
+          }
+        } finally {
+          commitProgress.active = false;
+        }
+      });
+    }
+  } catch (err) {
+    // Falha silenciosa para evitar ruídos de terminal ocioso
+  }
+}, 15 * 1000); // Executa verificação de integridade a cada 15 segundos
+
 // Endpoint de Inventario de Blocos Extrapolados
 app.get('/api/pool/inventory', (req, res) => {
   const poolPath = path.join(process.cwd(), 'POOL', 'modules');

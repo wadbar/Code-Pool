@@ -359,13 +359,6 @@
       "status": "synced"
     },
     {
-      "url": "https://github.com/videolan/vlc",
-      "lastSync": null,
-      "digestedCount": 50,
-      "totalFiles": 1387,
-      "isMonster": true
-    },
-    {
       "url": "https://github.com/chromium/chromium",
       "lastSync": null,
       "isMonster": true,
@@ -874,6 +867,53 @@
       "lastSync": null,
       "isMonster": true,
       "retryCount": 1
+    },
+    {
+      "url": "https://github.com/videolan/vlc",
+      "lastSync": null,
+      "digestedCount": 90,
+      "totalFiles": 1387,
+      "isMonster": true
+    },
+    {
+      "url": "https://github.com/xitu/google-interview-university",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/donnemartin/coding-interview-university",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/P1xt/google-interview-university",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/Ilyushin/google-interview-university",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/flyotlin/coding-interview-university",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/djadmin/awesome-security",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/hslatman/awesome-security",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/lissy93/awesome-security",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/thecyberhex/awesome-security",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/decalage2/awesome-security",
+      "lastSync": null
     }
   ]
 }

@@ -384,16 +384,16 @@ app.post('/api/pool/worker/commit', async (req, res) => {
     const initGitRepo = () => {
         try {
             if (fs.existsSync(gitDir)) {
-                logSystem("[Git Setup] Repositório Git já existe. Verificando integridade...");
-                // Don't rm -rf. Try to repair if needed by just running git init again (safe on existing)
+                logSystem("[Git Setup] Repositório Git existente detectado. Removendo para re-inicialização limpa...");
+                fs.rmSync(gitDir, { recursive: true, force: true });
             }
-            logSystem("[Git Setup] Inicializando/Verificando repositório Git local...");
+            logSystem("[Git Setup] Inicializando repositório Git local limpo...");
             execSync('git init', { cwd: rootPath });
             execSync('git config user.name "Lego Pool Bot"', { cwd: rootPath });
             execSync('git config user.email "bot@lego-pool.local"', { cwd: rootPath });
             logSystem("[Git Setup] Repositório Git pronto.");
         } catch (initErr: any) {
-            logSystem(`[Git Setup Error] Falha ao configurar o Git: ${initErr.message}`);
+            logSystem(`[Git Setup Error] Falha fatal ao configurar o Git: ${initErr.message}`);
         }
     };
 

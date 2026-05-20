@@ -1,10 +1,10 @@
 {
-  "lastScanTime": "2026-05-19T23:58:19.076Z",
+  "lastScanTime": "2026-05-20T00:00:34.452Z",
   "totalRepos": 157,
   "totalBlocks": 20,
-  "totalBlueprints": 23,
-  "totalDigestedFiles": 7792,
-  "diskSizeKB": 84,
+  "totalBlueprints": 34,
+  "totalDigestedFiles": 7832,
+  "diskSizeKB": 85,
   "categoriesCount": {
     "AI": 1,
     "AUTH": 1,
@@ -18,6 +18,31 @@
     "VISION": 1
   },
   "events": [
+    {
+      "timestamp": "2026-05-20T00:00:29.453Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/xbmc/xbmc"
+    },
+    {
+      "timestamp": "2026-05-19T23:59:30.239Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/papercreeper"
+    },
+    {
+      "timestamp": "2026-05-19T23:59:05.244Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/wesbos/JavaScript30"
+    },
+    {
+      "timestamp": "2026-05-19T23:58:55.236Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/TheOdinProject/curriculum"
+    },
+    {
+      "timestamp": "2026-05-19T23:58:24.077Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/K/Dense/AI/scientific/agent/skills"
+    },
     {
       "timestamp": "2026-05-19T23:58:14.076Z",
       "type": "BLUEPRINT",

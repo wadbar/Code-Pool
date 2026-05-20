@@ -21,7 +21,7 @@ export function parseCookie(cookieHeader: string | undefined, name: string): str
 // Limitador de taxa global para prevenção de ataques de força bruta ou estouro de recursos
 export const kernelRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // Janela padrão de 15 minutos
-  max: 150, // Permite até 150 requisições por janela ip
+  max: 15000, // Permite até 15000 requisições por janela ip (aumentado para evitar falsos positivos no ambiente de desenvolvimento local)
   validate: { trustProxy: false }, // Evita as validações rígidas de proxy que geram ValidationError em certos ambientes
   message: { error: 'Excesso de requisições enviadas ao servidor. Por favor, tente novamente mais tarde.' }
 });

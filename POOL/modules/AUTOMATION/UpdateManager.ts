@@ -196,7 +196,7 @@ export class UpdateManager {
             console.log(`[UPDATE-MANAGER] Verificando: ${repo.url}`);
 
             if (force || !repo.lastSync) {
-                console.log(`[UPDATE-MANAGER] Atualização real do repositório: ${repo.url}. Extraindo blocos de código...`);
+                console.log(`[UPDATE-MANAGER] Atualizando repositório: ${repo.url}. Extraindo blocos de código...`);
                 
                 // Se falhou 5 vezes, vamos parar de tentar essa presa e marcar lastSync com erro
                 if ((repo.retryCount || 0) >= 5) {
@@ -208,7 +208,7 @@ export class UpdateManager {
                     continue;
                 }
 
-                // Ingestão autônoma e real
+                // Ingestão autônoma de código
                 const result = await RepoIngester.ingestFromGitHub(repo.url, repo.isMonster ? 180000 : 45000);
                 
                 if (result.status === "monster") {

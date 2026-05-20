@@ -65,7 +65,7 @@ export function createPoolRouter(
     return results;
   };
 
-  // Endpoint de Scanner Real: lê árvore e stats fisicamente
+  // Endpoint de Scanner de Sistema: lê árvore e estatísticas em disco
   router.get('/real-scan-data', async (req, res) => {
     try {
       const rootPool = path.join(process.cwd(), 'POOL');
@@ -130,7 +130,7 @@ export function createPoolRouter(
         events
       });
     } catch (e: any) {
-      logSystem(`[CRITICAL] Erro no endpoint físico /real-scan-data: ${e.message}`);
+      logSystem(`[CRITICAL] Erro no endpoint /real-scan-data: ${e.message}`);
       res.status(500).json({ error: 'Falha fatal ao ler dados do scanner de sistema.' });
     }
   });
@@ -374,7 +374,7 @@ export function createPoolRouter(
         }
       }
 
-      // Conclui o status final com base nas leituras reais
+      // Conclui o status final com base nas leituras obtidas
       const ingestStatus = controlStatus === 'paused' ? 'paused' : (ingestActive ? 'running' : 'error');
       const blueprintsStatus = controlStatus === 'paused' ? 'paused' : (blueprintsActive ? 'running' : 'error');
 
@@ -397,11 +397,11 @@ export function createPoolRouter(
     }
   });
 
-  // Endpoint para disparar auditoria de integridade fisica sob demanda (ScannerAgent)
+  // Endpoint para disparar auditoria de integridade sob demanda (ScannerAgent)
   router.post('/scanner/scan', async (req, res) => {
     try {
       logSystem(`[Scanner Trigger] Varredura de integridade sob demanda iniciada pelo usuário.`);
-      scannerAgent.addEvent('SERVER', `Auditoria de integridade física e estatísticas disparada sob demanda.`);
+      scannerAgent.addEvent('SERVER', `Auditoria de integridade e estatísticas disparada sob demanda.`);
       await scannerAgent.executeScan();
       
       const rootPool = path.join(process.cwd(), 'POOL');
@@ -415,7 +415,7 @@ export function createPoolRouter(
       
       res.json({
         status: 'success',
-        message: 'Auditoria de integridade do disco físico concluída com sucesso.',
+        message: 'Auditoria de integridade do disco concluída com sucesso.',
         data: updatedData
       });
     } catch (err: any) {

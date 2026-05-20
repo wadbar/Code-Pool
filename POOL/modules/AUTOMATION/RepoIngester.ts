@@ -145,7 +145,7 @@ export class RepoIngester {
 
             const extractedModules: any[] = [];
             try {
-                // 2. Clone real no SO com retentativas e tratamento robusto
+                // 2. Clone do repositório no sistema operacional com retentativas e tratamento robusto
                 try {
                     await this.cloneWithRetry(repoUrl, tmpPath, timeout);
                 } catch (cloneErr: any) {
@@ -414,7 +414,7 @@ export class RepoIngester {
     private static getBridge() {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
-            throw new Error("[INGESTER] GEMINI_API_KEY não configurada corretamente. Adicione sua chave real no painel do AI Studio.");
+            throw new Error("[INGESTER] GEMINI_API_KEY não configurada corretamente. Adicione sua chave de API no painel do AI Studio.");
         }
         return new GeminiBridge(apiKey);
     }

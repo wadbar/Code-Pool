@@ -437,7 +437,7 @@ export default function App() {
   const triggerManualScanner = async () => {
     setScannerLoading(true);
     try {
-      showAlert('Iniciando auditoria física e catalogação de metadados sob demanda...', 'info');
+      showAlert('Iniciando auditoria de integridade e catalogação de metadados sob demanda...', 'info');
       const data = await safeFetchJson('/api/pool/scanner/scan', { method: 'POST' });
       if (data.status === 'success') {
         showAlert(data.message || 'Auditoria concluída com sucesso! Todos os logs e blocos foram atualizados.', 'success');
@@ -445,7 +445,7 @@ export default function App() {
         fetchInventory();
         fetchBlueprints();
       } else {
-        showAlert('Falha na auditoria física: ' + (data.error || 'Erro desconhecido'), 'error');
+        showAlert('Falha na auditoria de integridade: ' + (data.error || 'Erro desconhecido'), 'error');
       }
     } catch (e: any) {
       showAlert('Erro ao acionar varredura do disco: ' + e.message, 'error');
@@ -964,9 +964,9 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Saúde dos Daemons de Background em Tempo Real */}
+              {/* Saúde dos Daemons de Background */}
               <div className="flex flex-wrap items-center gap-4 py-2 px-3 bg-black/25 rounded-md border dark:border-slate-850 border-slate-300">
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Telemetria Real-Time:</span>
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Telemetria:</span>
                 
                 {/* Daemon de Ingestão */}
                 <div className="flex items-center gap-2 text-xs">

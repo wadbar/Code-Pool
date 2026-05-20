@@ -142,8 +142,15 @@ setInterval(async () => {
               : `🛠️ [Infra-Auto] ${fileName}`;
             
             try {
+              const gitCommitEnv = {
+                ...process.env,
+                GIT_AUTHOR_NAME: 'Wadson Barcellos',
+                GIT_AUTHOR_EMAIL: 'wadsonbarcellos11@gmail.com',
+                GIT_COMMITTER_NAME: 'Wadson Barcellos',
+                GIT_COMMITTER_EMAIL: 'wadsonbarcellos11@gmail.com'
+              };
               execSync(`git add ${escapedFile}`, { cwd: rootPath });
-              execSync(`git commit -m "${commitMsg}"`, { cwd: rootPath });
+              execSync(`git commit -m "${commitMsg}"`, { cwd: rootPath, env: gitCommitEnv });
               logSystem(`[Auto-Commit] Código salvo: POOL/${fileName}`);
               commitProgress.done++;
               await new Promise(r => setTimeout(r, 150)); // Delay gradual (aos poucos) para impedir sobrecarga de CPU/IO
@@ -415,8 +422,15 @@ app.post('/api/pool/worker/commit', async (req, res) => {
                         : `🛠️ [Infra] ${fileName}`;
                     
                     try {
+                        const gitCommitEnv = {
+                            ...process.env,
+                            GIT_AUTHOR_NAME: 'Wadson Barcellos',
+                            GIT_AUTHOR_EMAIL: 'wadsonbarcellos11@gmail.com',
+                            GIT_COMMITTER_NAME: 'Wadson Barcellos',
+                            GIT_COMMITTER_EMAIL: 'wadsonbarcellos11@gmail.com'
+                        };
                         execSync(`git add ${escapedFile}`, { cwd: rootPath });
-                        execSync(`git commit -m "${commitMsg}"`, { cwd: rootPath });
+                        execSync(`git commit -m "${commitMsg}"`, { cwd: rootPath, env: gitCommitEnv });
                         logSystem(`[Git Commit] Código salvo com sucesso: ${filePath}`);
                         commitProgress.done++;
                         await new Promise(r => setTimeout(r, 20));

@@ -134,14 +134,14 @@ export class ScannerAgent {
     }
 
     /**
-     * Executa a varredura real completa do ambiente
+     * Executa a varredura completa do ambiente
      */
     public async executeScan() {
         if (this.isScanning) return;
         this.isScanning = true;
 
         const startTime = Date.now();
-        // console.log('[SCANNER-AGENT] Iniciando varredura real do sistema de arquivos...');
+        // console.log('[SCANNER-AGENT] Iniciando varredura completa do sistema de arquivos...');
 
         try {
             // 1. Carrega dados de repositórios do pool-registry.json

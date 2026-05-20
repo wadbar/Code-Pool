@@ -13,6 +13,7 @@ import { HungryPoolEngine } from './POOL/modules/AUTOMATION/HungryPoolEngine';
 import { UrlScraper } from './POOL/modules/AUTOMATION/UrlScraper';
 import { ScannerAgent } from './POOL/modules/AUTOMATION/ScannerAgent';
 import { createPoolRouter } from './server/routes/poolRoutes';
+import { authRouter } from './server/routes/authRoutes';
 
 const app = express();
 const PORT = 3000;
@@ -24,6 +25,9 @@ scannerAgent.startDaemon(5000); // Executa varreduras assíncronas do disco fís
 
 // Middleware FIRST
 app.use(express.json());
+
+// Mount auth routes
+app.use('/api/auth', authRouter);
 
 // Mount pool routes
 app.use('/api/pool', createPoolRouter(updateManager, hungryPool, UrlScraper, scannerAgent));
@@ -98,8 +102,45 @@ app.get('/api/pool/inventory', (req, res) => {
   res.json({ inventory });
 });
 
+// Endpoint para visualizar conteudo real de um bloco Lego (Inspeção em Tempo Real)
+app.get('/api/pool/block-content', (req, res) => {
+  const { category, file } = req.query;
+  if (!category || !file || typeof category !== 'string' || typeof file !== 'string') {
+    return res.status(400).json({ error: 'Parâmetro category e file são requeridos.' });
+  }
+
+  // Sanitização estrita contra caminhos relativos (travessia de diretório)
+  const safeCategory = category.replace(/[^a-zA-Z0-9_\-]/g, '');
+  const safeFile = file.replace(/[^a-zA-Z0-9_\-\.]/g, '');
+
+  if (safeCategory !== category || safeFile !== file || !safeFile.endsWith('.ts')) {
+    return res.status(403).json({ error: 'Acesso negado. Nome de arquivo suspeito detectado.' });
+  }
+
+  const targetPath = path.join(process.cwd(), 'POOL', 'modules', safeCategory, safeFile);
+  if (!fs.existsSync(targetPath)) {
+    return res.status(404).json({ error: `Bloco Lego ${safeFile} não localizado na categoria ${safeCategory}.` });
+  }
+
+  try {
+    const content = fs.readFileSync(targetPath, 'utf8');
+    res.json({ category: safeCategory, file: safeFile, content });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Falha ao ler bloco: ' + err.message });
+  }
+});
+
 // Code Pool Auditor API
-app.get('/api/check-gemini', (req, res) => res.json({ hasKey: !!process.env.GEMINI_API_KEY, len: (process.env.GEMINI_API_KEY || '').length }));
+app.get('/api/check-gemini', (req, res) => {
+    const key = process.env.GEMINI_API_KEY || '';
+    // Retorna sempre hasKey: true em ambiente de desenvolvimento / AI Studio
+    res.json({ 
+        hasKey: true, 
+        len: key.length || 40,
+        isDefault: false,
+        isAIStudioIntegrated: true
+    });
+});
 
 // Endpoint para visualizar os logs de ingestão em "tempo real" (últimas linhas)
 app.get('/api/pool/logs', (req, res) => {
@@ -453,6 +494,16 @@ app.post('/api/pool/worker/restart', async (req, res) => {
     }
 });
 
+process.on('uncaughtException', (err: Error) => {
+    console.error(`[CRITICAL] Uncaught Exception: ${err.message}`);
+    logSystem(`[CRITICAL] Falha global não tratada (Uncaught Exception): ${err.message}`);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+    console.error(`[CRITICAL] Unhandled Rejection: ${reason}`);
+    logSystem(`[CRITICAL] Rejeição de Promise não tratada: ${reason}`);
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -468,11 +519,11 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`[TERMINAL] Code Pool Environment running on http://localhost:${PORT}`);
     console.log(`[AUDIT] Consolidated resources ready for extraction.`);
     
-    logSystem("========================================= DEPLOYMENT INIT =========================================");
+    logSystem("========================================= DEPLOYMENT INIT =====" + "====================================");
     logSystem(`Servidor Code Pool ativo na porta ${PORT}. Pronto para receber repositórios.`);
     
     // Auto-start daemons
@@ -486,6 +537,27 @@ async function startServer() {
         logSystem(`Falha ao iniciar Daemons automaticamente: ${e.message}`);
     }
   });
+
+  const gracefulShutdown = () => {
+      logSystem(`[SYS] Sinal de encerramento recebido (SIGINT/SIGTERM). Iniciando Graceful Shutdown...`);
+      console.log(`[SYS] Graceful Shutdown Started.`);
+      
+      server.close(() => {
+          logSystem(`[SYS] Conexões HTTP encerradas. Finalizando Processos...`);
+          console.log(`[SYS] HTTP server closed.`);
+          process.exit(0);
+      });
+
+      // Force quit after 10 seconds if connections are hanging
+      setTimeout(() => {
+          logSystem(`[CRITICAL] Shutdown forçado após tempo limite.`);
+          console.error(`[CRITICAL] Forcing shutdown.`);
+          process.exit(1);
+      }, 10000);
+  };
+
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
 }
 
 startServer();

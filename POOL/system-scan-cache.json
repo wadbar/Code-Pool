@@ -1,12 +1,12 @@
 {
-  "lastScanTime": "2026-05-20T00:19:18.513Z",
-  "totalRepos": 167,
-  "totalBlocks": 20,
+  "lastScanTime": "2026-05-20T12:00:11.837Z",
+  "totalRepos": 177,
+  "totalBlocks": 21,
   "totalBlueprints": 11,
   "totalDigestedFiles": 7832,
-  "diskSizeKB": 84,
+  "diskSizeKB": 93,
   "categoriesCount": {
-    "AI": 1,
+    "AI": 2,
     "AUTH": 1,
     "AUTOMATION": 6,
     "DATA": 1,
@@ -18,6 +18,11 @@
     "VISION": 1
   },
   "events": [
+    {
+      "timestamp": "2026-05-20T11:56:45.477Z",
+      "type": "LEGO",
+      "message": "Novo bloco Lego detectado no disco: SystemPrompt.ts"
+    },
     {
       "timestamp": "2026-05-20T00:01:23.006Z",
       "type": "BLUEPRINT",

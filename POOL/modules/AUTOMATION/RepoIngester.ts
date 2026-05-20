@@ -66,31 +66,47 @@ export class RepoIngester {
 
     /**
      * Executa git clone com retentativa robusta sob falhas de rede ou timeout.
+     * Otimizado para repositórios grandes focando em clones shallow.
      */
     private static async cloneWithRetry(repoUrl: string, destPath: string, timeout: number, retries = 3): Promise<void> {
         let lastError: any = null;
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
                 console.log(`[INGESTER] Tentativa de Clone ${attempt}/${retries} para ${repoUrl}...`);
-                const activeTimeout = Math.floor(timeout * (attempt === 1 ? 1 : attempt === 2 ? 1.5 : 2));
                 
-                // Strategy variation: use full clone on last attempt
-                const isFinalAttempt = attempt === retries;
-                const cloneCmd = isFinalAttempt ? `git clone ${repoUrl} ${destPath}` : `git clone --depth 1 --single-branch ${repoUrl} ${destPath}`;
+                // Timeout mais agressivo para repositórios grandes
+                const activeTimeout = Math.floor(timeout * (attempt + 1));
+                
+                // Robust git configuration for large and slow network transfers
+                const gitConfig = '-c http.postBuffer=1073741824 -c http.lowSpeedLimit=1 -c http.lowSpeedTime=120 -c core.compression=0';
+                
+                // Sempre usar shallow clone (depth 1) para eficiência
+                const cloneCmd = `git ${gitConfig} clone --depth 1 --single-branch --no-tags ${repoUrl} ${destPath}`;
                 
                 execSync(cloneCmd, {
                     stdio: 'pipe',
                     timeout: activeTimeout,
                     killSignal: 'SIGKILL'
                 });
+                
                 console.log(`[INGESTER] Clone concluído com sucesso na tentativa ${attempt}!`);
                 return;
             } catch (err: any) {
                 lastError = err;
                 const stderr = err.stderr?.toString() || '';
                 console.warn(`[INGESTER] Falha no Clone (tentativa ${attempt}/${retries}): ${err.message}. Stderr: ${stderr}`);
+                
+                // Limpeza garantida caso o clone tenha criado diretórios parciais
+                if (fs.existsSync(destPath)) {
+                    try {
+                        fs.rmSync(destPath, { recursive: true, force: true });
+                    } catch (cleanupErr) {
+                        console.error(`[INGESTER] Erro ao limpar diretório parcial: ${cleanupErr}`);
+                    }
+                }
+                
                 if (attempt < retries) {
-                    const waitTime = 3000 * attempt;
+                    const waitTime = 10000 * Math.pow(2, attempt - 1); // Exponential backoff: 10s, 20s, 40s...
                     console.log(`[INGESTER] Aguardando ${waitTime}ms antes de retentar...`);
                     await this.sleep(waitTime);
                 }
@@ -367,9 +383,9 @@ export class RepoIngester {
     private static getAI() {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            console.warn("[INGESTER] GEMINI_API_KEY não encontrada no ambiente. Isso pode causar falhas 400.");
+            throw new Error("[INGESTER] GEMINI_API_KEY não encontrada no ambiente. A aplicação necessita desta chave para operar.");
         }
-        return new GoogleGenerativeAI(apiKey || 'fake-key');
+        return new GoogleGenerativeAI(apiKey);
     }
 
     private static async generateRepoBlueprint(repoUrl: string, files: string[], tmpPath: string): Promise<string> {

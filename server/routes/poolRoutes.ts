@@ -161,5 +161,26 @@ export function createPoolRouter(
     return res.json(result);
   });
 
+  // Endpoint para limpar arquivos de log
+  router.post('/logs/clear', (req, res) => {
+      const logFiles = ['ingest.log', 'ingest.err', 'blueprints.log', 'blueprints.err', 'system.log'];
+      const deleted: string[] = [];
+      const errors: string[] = [];
+
+      for (const file of logFiles) {
+          const filePath = path.join(process.cwd(), file);
+          if (fs.existsSync(filePath)) {
+              try {
+                  fs.unlinkSync(filePath);
+                  deleted.push(file);
+              } catch (err: any) {
+                  errors.push(`${file}: ${err.message}`);
+              }
+          }
+      }
+      logSystem(`Logs clear requested. Deleted: ${deleted.join(', ')}. Errors: ${errors.join(', ')}`);
+      res.json({ status: 'success', deleted, errors });
+  });
+
   return router;
 }

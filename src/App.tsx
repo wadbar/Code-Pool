@@ -652,30 +652,26 @@ export default function App() {
   }).filter(inv => inv.blocks.length > 0 || inv.category.toLowerCase().includes(blockFilter.toLowerCase()));
 
   return (
-    <div className="min-h-screen dark:bg-slate-950 bg-slate-50 dark:text-slate-100 text-slate-900 p-6 md:p-8 font-sans">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen dark:bg-slate-950 bg-slate-50 dark:text-slate-100 text-slate-900 font-sans selection:bg-blue-500/20">
+      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
         
         {/* Superior Branding & Main Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between border-b dark:border-slate-800 border-slate-300 pb-6 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between border-b dark:border-slate-800 border-slate-200 pb-8 gap-4">
           <div>
-            <div className="flex items-center gap-3">
-              <span className="p-2 bg-blue-600/10 text-blue-500 rounded-lg border border-blue-500/20">
-                <Database className="w-6 h-6" />
-              </span>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-600 dark:bg-blue-600/20 text-white dark:text-blue-400 rounded-3xl shadow-sm">
+                <Database className="w-8 h-8" />
+              </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight dark:text-white text-black flex items-center gap-2">
-                  Gerenciador de Repositórios
-                  <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-400/20 px-2 py-0.5 rounded-full font-mono font-normal">
-                    v1.0.4
-                  </span>
+                <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 dark:text-white flex items-center gap-3">
+                  Code Pool Audit
                 </h1>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <p className="dark:text-slate-400 text-slate-600 text-xs font-mono">
-                    Auditoria e Indexação de Conhecimento
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">
+                    Blueprint & Module Auditor
                   </p>
-                  <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-md font-mono font-bold flex items-center gap-1.5 animate-pulse">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    IA Studio Native Engine Ativo
+                  <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full font-mono font-bold">
+                    v1.0.4
                   </span>
                 </div>
               </div>
@@ -827,116 +823,95 @@ export default function App() {
           <div className="space-y-6 animate-in fade-in duration-300">
             
             {/* Bento Grid layout with real quantifiable numbers */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               
               {/* Card 1: Repositories */}
-              <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 hover:dark:border-slate-800 border-slate-300 transition-colors flex flex-col justify-between">
+              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <span className="dark:text-slate-400 text-slate-600 font-medium text-xs font-mono uppercase tracking-wider">Watchlist</span>
-                    <div className="text-4xl font-extrabold dark:text-white text-black tracking-tight">{totalRepos}</div>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Watchlist</span>
+                    <div className="text-4xl font-extrabold text-slate-950 dark:text-white tracking-tight">{totalRepos}</div>
                   </div>
-                  <span className="p-2 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/10">
-                    <Github className="w-5 h-5" />
+                  <span className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
+                    <Github className="w-6 h-6" />
                   </span>
                 </div>
-                <div className="mt-6 space-y-2 border-t dark:border-slate-850 border-slate-300 pt-4">
-                  <div className="flex justify-between text-xs dark:text-slate-400 text-slate-600">
+                <div className="mt-6 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                     <span>Sincronizados:</span>
-                    <span className="font-bold dark:text-slate-200 text-slate-800">{syncedRepos} de {totalRepos}</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-200">{syncedRepos} de {totalRepos}</span>
                   </div>
-                  <div className="flex justify-between text-xs dark:text-slate-400 text-slate-600">
+                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                     <span>Fila Ingestão:</span>
-                    <span className="font-bold text-amber-400">{pendingRepos} aguardando</span>
+                    <span className="font-bold text-amber-600 dark:text-amber-500">{pendingRepos} pendentes</span>
                   </div>
-                  <div className="space-y-1.5 pt-1">
-                    <div className="h-1.5 w-full dark:bg-slate-950 bg-slate-50 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500" style={{ width: `${globalSyncPercentage}%` }} />
+                  <div className="space-y-1.5">
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-950 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-600 dark:bg-blue-500 rounded-full" style={{ width: `${globalSyncPercentage}%` }} />
                     </div>
-                    <div className="text-[10px] text-right font-mono text-slate-500">{globalSyncPercentage}% sincronizados</div>
                   </div>
                 </div>
               </div>
 
               {/* Card 2: Lego Blocks */}
-              <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 hover:dark:border-slate-800 border-slate-300 transition-colors flex flex-col justify-between">
+              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <span className="dark:text-slate-400 text-slate-600 font-medium text-xs font-mono uppercase tracking-wider">Blocos Extraídos</span>
-                    <div className="text-4xl font-extrabold text-emerald-400 tracking-tight">{totalBlocks}</div>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Blocos Extraídos</span>
+                    <div className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight">{totalBlocks}</div>
                   </div>
-                  <span className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/10">
-                    <Box className="w-5 h-5" />
+                  <span className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+                    <Box className="w-6 h-6" />
                   </span>
                 </div>
-                <div className="mt-6 space-y-2 border-t dark:border-slate-850 border-slate-300 pt-4">
-                  <div className="flex justify-between text-xs dark:text-slate-400 text-slate-600">
-                    <span>Divisão Física:</span>
-                    <span className="font-bold dark:text-slate-200 text-slate-800">{inventory.length} diretórios/clusters</span>
+                <div className="mt-6 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span>Clusters:</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-200">{inventory.length} diretórios</span>
                   </div>
-                  <div className="flex justify-between text-xs dark:text-slate-400 text-slate-600">
-                    <span>Média por diretório:</span>
-                    <span className="font-bold dark:text-slate-200 text-slate-800">
+                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span>Média por dir:</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-200">
                       {inventory.length > 0 ? (totalBlocks / inventory.length).toFixed(1) : 0} pç
                     </span>
-                  </div>
-                  <div className="flex items-center gap-1 flex-wrap pt-2">
-                    {inventory.map(inv => (
-                      <span key={inv.category} className="text-[8px] font-mono select-none px-2 py-0.5 rounded dark:bg-slate-950 bg-slate-50 dark:text-slate-400 text-slate-600 hover:text-emerald-400 hover:dark:bg-slate-800 bg-slate-200 transition-colors">
-                        {inv.category.substring(0,4)}:{inv.blocks.length}
-                      </span>
-                    ))}
                   </div>
                 </div>
               </div>
 
               {/* Card 3: Blueprints */}
-              <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 hover:dark:border-slate-800 border-slate-300 transition-colors flex flex-col justify-between">
+              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <span className="dark:text-slate-400 text-slate-600 font-medium text-xs font-mono uppercase tracking-wider">Blueprints Gerados</span>
-                    <div className="text-4xl font-extrabold text-indigo-400 tracking-tight">{totalBlueprints}</div>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Blueprints</span>
+                    <div className="text-4xl font-extrabold text-indigo-600 dark:text-indigo-400 tracking-tight">{totalBlueprints}</div>
                   </div>
-                  <span className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/10">
-                    <FileText className="w-5 h-5" />
+                  <span className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                    <FileText className="w-6 h-6" />
                   </span>
                 </div>
-                <div className="mt-6 space-y-2 border-t dark:border-slate-850 border-slate-300 pt-4 text-xs dark:text-slate-400 text-slate-600">
-                  <p className="leading-normal">
-                    Cada blueprint contém um mapeamento arquitetural estruturado por IA de todo o ecossistema.
-                  </p>
-                  <div className="dark:bg-slate-950 bg-slate-50 p-2 rounded text-[10px] font-mono text-slate-500 border border-slate-900 flex justify-between mt-1">
-                    <span>Destino:</span>
-                    <span className="text-indigo-400">POOL/blueprints/</span>
-                  </div>
+                <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-4 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <p>Mapeamento arquitetural estruturado por IA de todo o ecossistema.</p>
                 </div>
               </div>
 
               {/* Card 4: Files Ingested */}
-              <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 hover:dark:border-slate-800 border-slate-300 transition-colors flex flex-col justify-between">
+              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <span className="dark:text-slate-400 text-slate-600 font-medium text-xs font-mono uppercase tracking-wider">Arquivos Decompostos</span>
-                    <div className="text-4xl font-extrabold text-purple-400 tracking-tight">{totalDigestedFiles}</div>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Arquivos</span>
+                    <div className="text-4xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight">{totalDigestedFiles}</div>
                   </div>
-                  <span className="p-2 bg-purple-500/10 text-purple-400 rounded-lg border border-purple-500/10">
-                    <Cpu className="w-5 h-5" />
+                  <span className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl">
+                    <Cpu className="w-6 h-6" />
                   </span>
                 </div>
-                <div className="mt-6 space-y-2 border-t dark:border-slate-850 border-slate-300 pt-4">
-                  <div className="flex justify-between text-xs dark:text-slate-400 text-slate-600">
-                    <span>Em Alvos Robustos:</span>
-                    <span className="font-bold dark:text-slate-200 text-slate-800">{monsterRepos} monster targets</span>
+                <div className="mt-6 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                  <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span>Erros:</span>
+                    <span className="font-bold text-red-600 dark:text-red-400">{errorRepos} repos</span>
                   </div>
-                  <div className="flex justify-between text-xs dark:text-slate-400 text-slate-600">
-                    <span>Erros / Retentados:</span>
-                    <span className="font-bold text-red-400">{errorRepos}</span>
-                  </div>
-                  <div className="space-y-1.5 pt-1">
-                    <div className="h-1.5 w-full dark:bg-slate-950 bg-slate-50 rounded-full overflow-hidden">
-                      <div className="h-full bg-purple-500 animate-pulse" style={{ width: `${globalFilesPercentage}%` }} />
-                    </div>
-                    <div className="text-[10px] text-right font-mono text-slate-500">{globalFilesPercentage}% arquivos de meta globais</div>
+                  <div className="h-2 w-full bg-slate-100 dark:bg-slate-950 rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-600 dark:bg-purple-500 rounded-full" style={{ width: `${globalFilesPercentage}%` }} />
                   </div>
                 </div>
               </div>

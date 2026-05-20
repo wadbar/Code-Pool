@@ -73,6 +73,22 @@ export class GeminiBridge {
     }
 
     /**
+     * Geração simples de texto a partir de um prompt.
+     */
+    async generateCompletion(prompt: string, modelName: string = "gemini-3.5-flash"): Promise<string> {
+        try {
+            const response = await this.ai.models.generateContent({
+                model: modelName,
+                contents: prompt,
+            });
+            return response.text || "";
+        } catch (error: any) {
+            console.error(`[GeminiBridge] Erro ao gerar completion com modelo ${modelName}:`, error);
+            throw new Error(`Falha Gemini API na geração de completion: ${error.message}`);
+        }
+    }
+
+    /**
      * Geração sofisticada de módulos TypeScript.
      */
     async generateModule(description: string) {

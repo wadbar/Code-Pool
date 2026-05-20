@@ -421,10 +421,17 @@ export class RepoIngester {
 
     private static async generateRepoBlueprint(repoUrl: string, files: string[], tmpPath: string): Promise<string> {
         const cacheKey = `blueprint:${repoUrl}`;
+        const errorCacheKey = `blueprint:error:${repoUrl}`;
         const cached = this.getCache(cacheKey);
         if (cached) {
             console.log(`[INGESTER] Usando Blueprint em cache para: ${repoUrl}`);
             return cached;
+        }
+
+        const cachedError = this.getCache(errorCacheKey);
+        if (cachedError) {
+             console.log(`[INGESTER] Retornando Blueprint em cache com erro para: ${repoUrl}`);
+             return cachedError;
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
@@ -533,7 +540,9 @@ Responda SOMENTE o documento em formato Markdown sem blocos de código extras.`;
             return text;
         } catch (err: any) {
             console.error(`[INGESTER] Falha no Blueprint:`, err.message);
-            return "Erro ao extrair Blueprint.";
+            const errorMsg = `Erro ao extrair Blueprint: ${err.message}`;
+            this.setCache(errorCacheKey, errorMsg);
+            return errorMsg;
         }
     }
 

@@ -56,7 +56,8 @@ export class UpdateManager {
             'solutions', 'resources', 'sponsors', 'apps', 'image', 'text', 'application', 
             'rank_only', 'countries', 'css', 'javascript', 'html', 'json', 'png', 'jpeg', 
             'gif', 'svg', 'assets', 'styles', 'scripts', 'dist', 'node_modules', 'public', 
-            'build', 'temp', 'tmp'
+            'build', 'temp', 'tmp',
+            'organizations', 'business', 'enterprise', 'features', 'github', 'login', 'signup'
         ];
         
         if (skipUsers.includes(user)) return false;
@@ -69,7 +70,7 @@ export class UpdateManager {
         
         if (skipRepos.includes(repo)) return false;
         
-        if (repo.includes('test-error') || repo === 'error') {
+        if (repo.includes('test-error') || repo === 'error' || repo.startsWith('website')) {
             return false;
         }
         
@@ -127,10 +128,14 @@ export class UpdateManager {
     }
 
     /**
-     * Lista todos os repositórios monitorados
+     * Lista todos os repositórios monitorados, opcionalmente filtrados por URL
      */
-    listWatched() {
-        return this.getRegistry().repositories;
+    listWatched(filter?: string) {
+        const repos = this.getRegistry().repositories;
+        if (filter) {
+            return repos.filter(repo => repo.url.includes(filter));
+        }
+        return repos;
     }
 
     public static getControlStatus(): { status: 'running' | 'paused' | 'stop_after_current' } {

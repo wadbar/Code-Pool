@@ -28,4 +28,28 @@ export class SSHCommander {
             });
         });
     }
+
+    async uploadFile(localPath: string, remotePath: string) {
+        return new Promise<void>((resolve, reject) => {
+            this.conn.sftp((err, sftp) => {
+                if (err) return reject(err);
+                sftp.fastPut(localPath, remotePath, (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                });
+            });
+        });
+    }
+
+    async downloadFile(remotePath: string, localPath: string) {
+        return new Promise<void>((resolve, reject) => {
+            this.conn.sftp((err, sftp) => {
+                if (err) return reject(err);
+                sftp.fastGet(remotePath, localPath, (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                });
+            });
+        });
+    }
 }

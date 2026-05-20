@@ -32,6 +32,23 @@ export class HungryPoolEngine {
     }
 
     /**
+     * Caça todos os repositórios de um usuário e adiciona ao Registro.
+     */
+    async devourUser(username: string) {
+        console.log(`[HUNGRY-POOL] 🦈 Devorando repositórios do usuário: ${username}...`);
+        const userRepos = await this.spider.discoverUserRepos(username, 50);
+        
+        let accepted = 0;
+        for (const targetUrl of userRepos) {
+            const added = this.updateManager.addRepository(targetUrl);
+            if (added) accepted++;
+        }
+
+        console.log(`[HUNGRY-POOL] 🦈 Devoração concluída para ${username}! ${accepted} novos alvos integrados.`);
+        return { devoured: accepted, userRepos };
+    }
+
+    /**
      * Ciclo de Expansão Autônoma (Hunting)
      * Olha para a base atual e busca ativamente por variantes, forks e bibliotecas similares
      * para extração modular.

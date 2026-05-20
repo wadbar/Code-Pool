@@ -1,65 +1,97 @@
 // Bloco Unificado: GitHubSpider
-// Finalidade: Explorar a API do GitHub buscando forks, projetos similares (por tópicos/linguagens) e tendências, alimentando a fome da piscina.
+// Finalidade: Explorar a API do GitHub com robustez industrial (rate-limit handling, typing, retry logic).
+import axios, { AxiosInstance, AxiosError } from 'axios';
+
+export interface GitHubRepo {
+    id: number;
+    html_url: string;
+    stargazers_count: number;
+}
 
 export class GitHubSpider {
-    private personalAccessToken?: string;
+    private client: AxiosInstance;
 
     constructor(token?: string) {
-        this.personalAccessToken = token;
+        this.client = axios.create({
+            baseURL: 'https://api.github.com',
+            headers: {
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'LegoPool-IndustrialSpider',
+                ...(token ? { 'Authorization': `token ${token}` } : {})
+            }
+        });
+
+        // Interceptor para Rate Limiting
+        this.client.interceptors.response.use(
+            (response) => {
+                const remaining = response.headers['x-ratelimit-remaining'];
+                if (remaining && parseInt(remaining) < 10) {
+                    console.warn(`[SPIDER] ATENÇÃO: Rate limit baixo no GitHub: ${remaining} requisições restantes.`);
+                }
+                return response;
+            },
+            async (error: AxiosError) => {
+                if (error.response?.status === 403 && error.response.headers['x-ratelimit-remaining'] === '0') {
+                    const resetTime = parseInt(error.response.headers['x-ratelimit-reset'] || '0') * 1000;
+                    const delay = Math.max(resetTime - Date.now(), 0) + 1000;
+                    console.error(`[SPIDER] Rate limit atingido. Aguardando até ${new Date(resetTime).toLocaleTimeString()} (${delay}ms)...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return this.client.request(error.config!);
+                }
+                return Promise.reject(error);
+            }
+        );
     }
 
     /**
-     * Busca os forks mais ativos de um repositório alvo.
+     * Busca os forks mais ativos de um repositório alvo com tratamento de erros robusto.
      */
     async discoverForks(repoSlug: string, maxResults: number = 5): Promise<string[]> {
         console.log(`[SPIDER] Vasculhando forks de github.com/${repoSlug}...`);
         
         try {
-            const response = await fetch(`https://api.github.com/repos/${repoSlug}/forks?sort=stargazers&per_page=${maxResults}`, {
-                headers: {
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'LegoPool-Spider'
-                }
+            const { data } = await this.client.get<GitHubRepo[]>(`/repos/${repoSlug}/forks`, {
+                params: { sort: 'stargazers', per_page: maxResults }
             });
+            return data.map(fork => fork.html_url);
+        } catch (err: any) {
+            console.error(`[SPIDER] Erro crítico ao buscar forks ${repoSlug}:`, err.message);
+            throw new Error(`Falha na busca de forks: ${err.message}`);
+        }
+    }
 
-            if (!response.ok) {
-                console.warn(`[SPIDER] Falha ao acessar API do GitHub: ${response.status}`);
-                return [];
-            }
-
-            const data = await response.json() as any[];
-            return data.map((fork: any) => fork.html_url);
-        } catch (err) {
-            console.error(`[SPIDER] Erro ao buscar forks:`, err);
+    /**
+     * Busca projetos relacionados com tipagem estrita de resposta.
+     */
+    async discoverRelatedByTopics(topics: string[], maxResults: number = 3): Promise<string[]> {
+        if (topics.length === 0) return [];
+        console.log(`[SPIDER] Bisbilhotando repositórios com tópicos: [${topics.join(', ')}]...`);
+        
+        try {
+            const query = topics.map(t => `topic:${t}`).join(' ');
+            const { data } = await this.client.get<{items: GitHubRepo[]}>(`/search/repositories`, {
+                params: { q: query, sort: 'stars', order: 'desc', per_page: maxResults }
+            });
+            return (data.items || []).map(repo => repo.html_url);
+        } catch (err: any) {
+            console.error(`[SPIDER] Erro crítico na busca por tópicos:`, err.message);
             return [];
         }
     }
 
     /**
-     * Busca projetos relacionados baseados nas tags e stack técnica (topics).
+     * Busca repositórios de um usuário específico.
      */
-    async discoverRelatedByTopics(topics: string[], maxResults: number = 3): Promise<string[]> {
-        if (topics.length === 0) return [];
-        console.log(`[SPIDER] Bisbilhotando repositórios com os tópicos: [${topics.join(', ')}]...`);
+    async discoverUserRepos(username: string, maxResults: number = 30): Promise<string[]> {
+        console.log(`[SPIDER] Listando repositórios do usuário: ${username}...`);
         
         try {
-            const query = topics.map(t => `topic:${t}`).join(' ');
-            const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=${maxResults}`, {
-                headers: {
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'LegoPool-Spider'
-                }
+            const { data } = await this.client.get<GitHubRepo[]>(`/users/${username}/repos`, {
+                params: { type: 'all', sort: 'updated', per_page: maxResults }
             });
-
-            if (!response.ok) {
-                console.warn(`[SPIDER] Falha na busca por tópicos: ${response.status}`);
-                return [];
-            }
-
-            const data = await response.json() as any;
-            return (data.items || []).map((repo: any) => repo.html_url);
-        } catch (err) {
-            console.error(`[SPIDER] Erro na busca por tópicos:`, err);
+            return data.map(repo => repo.html_url);
+        } catch (err: any) {
+            console.error(`[SPIDER] Erro crítico ao buscar repos do usuário ${username}:`, err.message);
             return [];
         }
     }

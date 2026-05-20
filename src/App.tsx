@@ -69,6 +69,7 @@ export default function App() {
   const [inventory, setInventory] = useState<InventoryCategory[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [globalLoading, setGlobalLoading] = useState(false); // New global loading state
   const [user, setUser] = useState<User | null>(null);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   
@@ -435,6 +436,7 @@ export default function App() {
   };
 
   const triggerManualScanner = async () => {
+    setGlobalLoading(true);
     setScannerLoading(true);
     try {
       showAlert('Iniciando auditoria de integridade e catalogação de metadados sob demanda...', 'info');
@@ -451,6 +453,7 @@ export default function App() {
       showAlert('Erro ao acionar varredura do disco: ' + e.message, 'error');
     } finally {
       setScannerLoading(false);
+      setGlobalLoading(false);
     }
   };
 
@@ -500,6 +503,7 @@ export default function App() {
   }, []);
 
   const handleSync = async () => {
+    setGlobalLoading(true);
     setSyncing(true);
     try {
       await fetch('/api/pool/sync', { method: 'POST' });
@@ -510,11 +514,14 @@ export default function App() {
     } catch (e) {
       console.error(e);
       showAlert('Houve um erro durante a sincronização.', 'error');
+    } finally {
+      setSyncing(false);
+      setGlobalLoading(false);
     }
-    setSyncing(false);
   };
 
   const handleHunt = async () => {
+    setGlobalLoading(true);
     setHunting(true);
     try {
       const data = await safeFetchJson('/api/pool/hunt', { method: 'POST' });
@@ -524,13 +531,16 @@ export default function App() {
       await fetchBlueprints();
     } catch (e: any) {
       showAlert('A caçada falhou: ' + e.message, 'error');
+    } finally {
+      setHunting(false);
+      setGlobalLoading(false);
     }
-    setHunting(false);
   };
 
   const handleIngest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ingestUrl) return;
+    setGlobalLoading(true);
     setIngesting(true);
     try {
       const data = await safeFetchJson('/api/pool/ingest', {
@@ -543,8 +553,10 @@ export default function App() {
       await fetchRegistry();
     } catch (e: any) {
       showAlert('Falha na ingestão: ' + e.message, 'error');
+    } finally {
+      setIngesting(false);
+      setGlobalLoading(false);
     }
-    setIngesting(false);
   };
 
   const [scrapeMode, setScrapeMode] = useState<'url' | 'raw'>('url');
@@ -555,6 +567,7 @@ export default function App() {
     if (scrapeMode === 'url' && !scrapeUrl) return;
     if (scrapeMode === 'raw' && !rawContent) return;
     
+    setGlobalLoading(true);
     setScraping(true);
     try {
       const data = await safeFetchJson('/api/pool/scrape-url', {
@@ -571,8 +584,10 @@ export default function App() {
       await fetchRegistry();
     } catch (e: any) {
       showAlert('Erro no Scraper: ' + e.message, 'error');
+    } finally {
+      setScraping(false);
+      setGlobalLoading(false);
     }
-    setScraping(false);
   };
 
   // Live log analysis helpers
@@ -653,6 +668,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen dark:bg-slate-950 bg-slate-50 dark:text-slate-100 text-slate-900 font-sans selection:bg-blue-500/20">
+      {globalLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
         
         {/* Superior Branding & Main Header */}

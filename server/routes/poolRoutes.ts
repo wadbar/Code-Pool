@@ -2,6 +2,7 @@ import express, { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { execSync } from 'child_process';
 import { logSystem } from '../utils/logger';
 import { getCache, setCache, logUserActivity, getActivityLogs, invalidateCache } from '../utils/redisCache';
 
@@ -323,6 +324,104 @@ export function createPoolRouter(
       }
       logSystem(`Logs clear requested. Deleted: ${deleted.join(', ')}. Errors: ${errors.join(', ')}`);
       res.json({ status: 'success', deleted, errors });
+  });
+
+  // Endpoint de Status dos Daemons de Background (Ingestao e Blueprints)
+  router.get('/daemons/status', (req, res) => {
+    try {
+      const controlPath = path.join(process.cwd(), 'POOL', 'worker-status.json');
+      let controlStatus = 'running';
+      if (fs.existsSync(controlPath)) {
+        try {
+          controlStatus = JSON.parse(fs.readFileSync(controlPath, 'utf8')).status || 'running';
+        } catch (e) {}
+      }
+
+      let ingestActive = false;
+      let blueprintsActive = false;
+
+      // Executa ps aux para checar se estão rodando de fato (somente sob Linux no contêiner)
+      try {
+        ingestActive = execSync("ps aux | grep 'worker_ingest' | grep -v grep || true").toString().trim().length > 0;
+      } catch (e) {}
+      try {
+        blueprintsActive = execSync("ps aux | grep 'worker_blueprints' | grep -v grep || true").toString().trim().length > 0;
+      } catch (e) {}
+
+      // Checa se há arquivos .err gravados com erro recente
+      let ingestError = "";
+      let blueprintsError = "";
+      
+      const ingestErrPath = path.join(process.cwd(), 'ingest.err');
+      if (fs.existsSync(ingestErrPath)) {
+        const stats = fs.statSync(ingestErrPath);
+        if (stats.size > 0) {
+          const content = fs.readFileSync(ingestErrPath, 'utf8').trim();
+          if (content.length > 0) {
+            ingestError = content.split('\n').slice(-3).join('\n');
+          }
+        }
+      }
+
+      const blueprintsErrPath = path.join(process.cwd(), 'blueprints.err');
+      if (fs.existsSync(blueprintsErrPath)) {
+        const stats = fs.statSync(blueprintsErrPath);
+        if (stats.size > 0) {
+          const content = fs.readFileSync(blueprintsErrPath, 'utf8').trim();
+          if (content.length > 0) {
+            blueprintsError = content.split('\n').slice(-3).join('\n');
+          }
+        }
+      }
+
+      // Conclui o status final com base nas leituras reais
+      const ingestStatus = controlStatus === 'paused' ? 'paused' : (ingestActive ? 'running' : 'error');
+      const blueprintsStatus = controlStatus === 'paused' ? 'paused' : (blueprintsActive ? 'running' : 'error');
+
+      res.json({
+        controlStatus,
+        ingest: {
+          status: ingestStatus,
+          active: ingestActive,
+          error: ingestError || null
+        },
+        blueprints: {
+          status: blueprintsStatus,
+          active: blueprintsActive,
+          error: blueprintsError || null
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao monitorar status dos daemons: ' + err.message });
+    }
+  });
+
+  // Endpoint para disparar auditoria de integridade fisica sob demanda (ScannerAgent)
+  router.post('/scanner/scan', async (req, res) => {
+    try {
+      logSystem(`[Scanner Trigger] Varredura de integridade sob demanda iniciada pelo usuário.`);
+      scannerAgent.addEvent('SERVER', `Auditoria de integridade física e estatísticas disparada sob demanda.`);
+      await scannerAgent.executeScan();
+      
+      const rootPool = path.join(process.cwd(), 'POOL');
+      const cachePath = path.join(rootPool, 'system-scan-cache.json');
+      let updatedData = {};
+      if (fs.existsSync(cachePath)) {
+        try {
+          updatedData = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+        } catch (e) {}
+      }
+      
+      res.json({
+        status: 'success',
+        message: 'Auditoria de integridade do disco físico concluída com sucesso.',
+        data: updatedData
+      });
+    } catch (err: any) {
+      logSystem(`[Scanner Trigger Error] Erro ao executar varredura de integridade: ${err.message}`);
+      res.status(500).json({ error: 'Falha ao processar scanner de sistema: ' + err.message });
+    }
   });
 
   return router;

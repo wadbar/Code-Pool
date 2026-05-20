@@ -180,6 +180,15 @@ export default function App() {
   const [hunting, setHunting] = useState(false);
   
   const [logs, setLogs] = useState({ ingestion: '', blueprints: '', system: '' });
+  const [daemonStatus, setDaemonStatus] = useState<{
+    controlStatus: string;
+    ingest: { status: string; active: boolean; error: string | null };
+    blueprints: { status: string; active: boolean; error: string | null };
+    timestamp: string;
+  } | null>(null);
+  const [activeMainTerminalLog, setActiveMainTerminalLog] = useState<'ingestion' | 'blueprints' | 'system'>('ingestion');
+  const [mainTerminalSearch, setMainTerminalSearch] = useState('');
+  const [scannerLoading, setScannerLoading] = useState(false);
   const [status, setStatus] = useState<{ message: string, type: 'info' | 'error' | 'success' | null }>({ message: '', type: null });
 
   const showAlert = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
@@ -416,6 +425,35 @@ export default function App() {
     }
   };
 
+  const fetchDaemonsStatus = async () => {
+    try {
+      const data = await safeFetchJson('/api/pool/daemons/status');
+      setDaemonStatus(data);
+    } catch (e: any) {
+      console.warn(`[Background Poll Info] Failed to fetch daemons status: ${e.message}`);
+    }
+  };
+
+  const triggerManualScanner = async () => {
+    setScannerLoading(true);
+    try {
+      showAlert('Iniciando auditoria física e catalogação de metadados sob demanda...', 'info');
+      const data = await safeFetchJson('/api/pool/scanner/scan', { method: 'POST' });
+      if (data.status === 'success') {
+        showAlert(data.message || 'Auditoria concluída com sucesso! Todos os logs e blocos foram atualizados.', 'success');
+        fetchRealScanData();
+        fetchInventory();
+        fetchBlueprints();
+      } else {
+        showAlert('Falha na auditoria física: ' + (data.error || 'Erro desconhecido'), 'error');
+      }
+    } catch (e: any) {
+      showAlert('Erro ao acionar varredura do disco: ' + e.message, 'error');
+    } finally {
+      setScannerLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchData = () => {
       if (document.hidden) return; // Skip polling if tab is hidden
@@ -424,6 +462,7 @@ export default function App() {
       fetchCommitStatus();
       fetchBlueprints();
       fetchRealScanData();
+      fetchDaemonsStatus();
       fetchRegistry();
       fetchInventory();
       checkGeminiKey();
@@ -435,6 +474,7 @@ export default function App() {
     fetchWorkerStatus();
     fetchBlueprints();
     fetchRealScanData();
+    fetchDaemonsStatus();
     fetchGitConfig();
     checkGeminiKey();
     
@@ -903,9 +943,9 @@ export default function App() {
             </div>
 
             {/* Controle de Daemons Integrado */}
-            <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+            <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs font-extrabold dark:text-slate-400 text-slate-600 uppercase tracking-widest font-mono">Controle dos Daemons:</span>
+                <span className="text-xs font-extrabold dark:text-slate-400 text-slate-600 uppercase tracking-widest font-mono">Controle Geral:</span>
                 <div className="flex bg-black/40 p-1 rounded-lg border dark:border-slate-850 border-slate-300 gap-1">
                   <button 
                     onClick={() => handleControl(workerStatus === 'paused' ? 'running' : 'paused')}
@@ -924,34 +964,179 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex dark:bg-slate-950 bg-slate-50/60 p-1 py-0.5 rounded border dark:border-slate-850 border-slate-300 text-xs font-semibold items-center gap-2">
-                <span className="text-slate-500 uppercase tracking-wider text-[9px] font-mono">Estado Atual:</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                  workerStatus === 'running' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                  workerStatus === 'paused' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
-                  'bg-red-500/10 text-red-400 border border-red-500/20'
-                }`}>
-                  {workerStatus.replace(/_/g, ' ')}
-                </span>
+              {/* Saúde dos Daemons de Background em Tempo Real */}
+              <div className="flex flex-wrap items-center gap-4 py-2 px-3 bg-black/25 rounded-md border dark:border-slate-850 border-slate-300">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Telemetria Real-Time:</span>
+                
+                {/* Daemon de Ingestão */}
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-400">📥 Ingestão:</span>
+                  <div className="flex items-center gap-1">
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      !daemonStatus ? 'bg-slate-400 animate-pulse' :
+                      daemonStatus.ingest.status === 'running' ? 'bg-emerald-500 animate-pulse' :
+                      daemonStatus.ingest.status === 'paused' ? 'bg-amber-400' : 'bg-red-500'
+                    }`} />
+                    <span className={`font-bold text-[10px] uppercase font-mono ${
+                      !daemonStatus ? 'text-slate-400' :
+                      daemonStatus.ingest.status === 'running' ? 'text-emerald-400' :
+                      daemonStatus.ingest.status === 'paused' ? 'text-amber-400' : 'text-red-400'
+                    }`}>
+                      {daemonStatus ? daemonStatus.ingest.status : 'verificando...'}
+                    </span>
+                  </div>
+                  {daemonStatus?.ingest.error && (
+                    <span className="text-[9px] text-red-500 underline cursor-help max-w-[120px] truncate ml-0.5" title={daemonStatus.ingest.error}>
+                      (ver erro)
+                    </span>
+                  )}
+                </div>
+
+                {/* Daemon de Blueprints */}
+                <div className="flex items-center gap-2 text-xs border-l dark:border-slate-850 border-slate-300 pl-4">
+                  <span className="text-slate-400">🏗️ Blueprints:</span>
+                  <div className="flex items-center gap-1">
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      !daemonStatus ? 'bg-slate-400 animate-pulse' :
+                      daemonStatus.blueprints.status === 'running' ? 'bg-blue-500 animate-pulse' :
+                      daemonStatus.blueprints.status === 'paused' ? 'bg-amber-400' : 'bg-red-500'
+                    }`} />
+                    <span className={`font-bold text-[10px] uppercase font-mono ${
+                      !daemonStatus ? 'text-slate-400' :
+                      daemonStatus.blueprints.status === 'running' ? 'text-blue-400' :
+                      daemonStatus.blueprints.status === 'paused' ? 'text-amber-400' : 'text-red-400'
+                    }`}>
+                      {daemonStatus ? daemonStatus.blueprints.status : 'verificando...'}
+                    </span>
+                  </div>
+                  {daemonStatus?.blueprints.error && (
+                    <span className="text-[9px] text-red-500 underline cursor-help max-w-[120px] truncate ml-0.5" title={daemonStatus.blueprints.error}>
+                      (ver erro)
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Botão de Auditoria do ScannerAgent sob demanda */}
+              <button
+                onClick={triggerManualScanner}
+                disabled={scannerLoading}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
+                  scannerLoading 
+                    ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed' 
+                    : 'bg-indigo-600/10 hover:bg-indigo-650 hover:dark:bg-indigo-600 text-indigo-400 hover:text-white border-indigo-500/20 shadow-md hover:shadow-indigo-500/10'
+                }`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${scannerLoading ? 'animate-spin' : ''}`} />
+                {scannerLoading ? 'Auditando...' : 'Scanner Auditor'}
+              </button>
             </div>
 
             {/* Devourer Ingestion Engaged Feed & Control Terminal */}
-            <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 relative overflow-hidden space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold dark:text-slate-400 text-slate-600 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Devourer Ingestion Engaged Feed
-                  {activeRepo && (
-                    <span className="ml-2 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 rounded text-[9px] font-bold">
-                      ACTIVE: {activeRepo} {sliceProgress && `[${sliceProgress.current}/${sliceProgress.total} BATCH]`}
-                    </span>
-                  )}
-                </span>
-                <span className="text-[10px] font-mono text-slate-500 uppercase">Daemon Processo Mestre</span>
+            <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 relative overflow-hidden space-y-4 shadow-xl">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b dark:border-slate-850 border-slate-300 pb-4">
+                <div className="flex items-center gap-3">
+                  <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
+                    activeMainTerminalLog === 'ingestion' ? 'bg-emerald-500' :
+                    activeMainTerminalLog === 'blueprints' ? 'bg-blue-500' : 'bg-amber-500'
+                  }`} />
+                  <div>
+                    <h4 className="text-xs font-bold dark:text-slate-300 text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                      Terminal Principal Multifuncional
+                      {activeRepo && activeMainTerminalLog === 'ingestion' && (
+                        <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 rounded text-[9px] font-bold animate-pulse">
+                          ACTIVE: {activeRepo} {sliceProgress && `[${sliceProgress.current}/${sliceProgress.total} BATCH]`}
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-[10px] text-slate-500 font-mono">Visualizador Único de Auditoria e Logs em Runtime</p>
+                  </div>
+                </div>
+
+                {/* Filtro de Busca unificado no Terminal Principal */}
+                <div className="relative max-w-xs w-full">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Filtrar todas as linhas do terminal..."
+                    className="w-full bg-black/45 dark:border-slate-850 border border-slate-300 rounded-lg pl-8 pr-3 py-1.5 text-[11px] text-slate-300 focus:outline-none focus:border-indigo-500 transition-all font-mono"
+                    value={mainTerminalSearch}
+                    onChange={(e) => setMainTerminalSearch(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="bg-black/60 p-4 rounded-lg font-mono text-[11px] h-[450px] overflow-y-auto whitespace-pre-wrap select-text custom-scrollbar text-emerald-400/90 border border-slate-950">
-                {logs.ingestion || "Waiting for stream from master ingestor..."}
+
+              {/* Seleção de Log (Abas de Filtro) no Terminal Principal */}
+              <div className="flex flex-wrap gap-1.5 p-1 bg-black/30 rounded-lg border dark:border-slate-850 border-slate-300 self-start w-fit">
+                <button
+                  onClick={() => setActiveMainTerminalLog('ingestion')}
+                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                    activeMainTerminalLog === 'ingestion'
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  📥 Ingestão de Código
+                </button>
+                <button
+                  onClick={() => setActiveMainTerminalLog('blueprints')}
+                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                    activeMainTerminalLog === 'blueprints'
+                      ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  🏗️ Blueprint Engine
+                </button>
+                <button
+                  onClick={() => setActiveMainTerminalLog('system')}
+                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                    activeMainTerminalLog === 'system'
+                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  ⚙️ Eventos de Sistema
+                </button>
+              </div>
+
+              {/* Feed de Terminal */}
+              <div className="bg-black/75 p-4 rounded-lg font-mono text-[10.5px] h-[450px] overflow-y-auto whitespace-pre-wrap select-text custom-scrollbar border border-slate-950 shadow-inner relative">
+                {(() => {
+                  let rawLog = "";
+                  let fallbackMsg = "";
+                  let textColorClass = "text-emerald-400/95";
+
+                  if (activeMainTerminalLog === 'ingestion') {
+                    rawLog = logs.ingestion;
+                    fallbackMsg = "Processo mestre ocioso. Aguardando novos alvos...";
+                    textColorClass = "text-emerald-400/90";
+                  } else if (activeMainTerminalLog === 'blueprints') {
+                    rawLog = logs.blueprints;
+                    fallbackMsg = "Trabalhador de blueprints ocioso...";
+                    textColorClass = "text-blue-400/90";
+                  } else {
+                    rawLog = logs.system;
+                    fallbackMsg = "Aguardando inicialização do servidor...";
+                    textColorClass = "text-amber-400/95";
+                  }
+
+                  const lines = (rawLog || fallbackMsg).split('\n');
+
+                  if (!mainTerminalSearch) {
+                    return <span className={textColorClass}>{rawLog || fallbackMsg}</span>;
+                  }
+
+                  const filteredLines = lines.filter(line => 
+                    line.toLowerCase().includes(mainTerminalSearch.toLowerCase())
+                  );
+
+                  if (filteredLines.length === 0) {
+                    return <span className="text-slate-500 italic">--- Nenhum registro encontrado para "{mainTerminalSearch}" ---</span>;
+                  }
+
+                  return <span className={textColorClass}>{filteredLines.join('\n')}</span>;
+                })()}
               </div>
 
               <div className="pt-4 flex flex-wrap gap-3 border-t dark:border-slate-850 border-slate-300 mt-4">

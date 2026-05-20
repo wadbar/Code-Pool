@@ -6,11 +6,13 @@ import os from 'os';
 import { execSync } from 'child_process';
 import { createServer as createViteServer } from 'vite';
 
+import { logSystem } from './server/utils/logger';
 import { UpdateManager } from './POOL/modules/AUTOMATION/UpdateManager';
 import { RepoIngester } from './POOL/modules/AUTOMATION/RepoIngester';
 import { HungryPoolEngine } from './POOL/modules/AUTOMATION/HungryPoolEngine';
 import { UrlScraper } from './POOL/modules/AUTOMATION/UrlScraper';
 import { ScannerAgent } from './POOL/modules/AUTOMATION/ScannerAgent';
+import { createPoolRouter } from './server/routes/poolRoutes';
 
 const app = express();
 const PORT = 3000;
@@ -20,14 +22,8 @@ const hungryPool = new HungryPoolEngine(updateManager);
 const scannerAgent = new ScannerAgent();
 scannerAgent.startDaemon(5000); // Executa varreduras assíncronas do disco físico a cada 5 segundos
 
-export function logSystem(msg: string) {
-  const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  try {
-    fs.appendFileSync(path.join(process.cwd(), 'system.log'), `[${timestamp}] ${msg}\n`);
-  } catch (err) {
-    console.error('Failed to write to system.log', err);
-  }
-}
+// Mount pool routes
+app.use('/api/pool', createPoolRouter(updateManager, hungryPool, UrlScraper, scannerAgent));
 
 let lastDaemonCheckTime = 0;
 
@@ -101,191 +97,6 @@ app.get('/api/pool/inventory', (req, res) => {
 
 // Code Pool Auditor API
 app.get('/api/check-gemini', (req, res) => res.json({ hasKey: !!process.env.GEMINI_API_KEY, len: (process.env.GEMINI_API_KEY || '').length }));
-
-// Novo endpoint do Agente de Varredura de Eventos em Tempo Real do Disco e Logs (Wadbar Direct Scan)
-app.get('/api/pool/real-scan-data', (req, res) => {
-  checkAndResurrectDaemons();
-
-  const cachePath = path.join(process.cwd(), 'POOL', 'system-scan-cache.json');
-  if (!fs.existsSync(cachePath)) {
-    return res.json({ 
-      lastScanTime: new Date().toISOString(),
-      totalRepos: updateManager.listWatched().length,
-      totalBlocks: 0,
-      totalBlueprints: 0,
-      totalDigestedFiles: 0,
-      diskSizeKB: 0,
-      categoriesCount: {},
-      events: [{ timestamp: new Date().toISOString(), type: 'SERVER', message: 'Mecanismo de auditoria em carregamento inicial...' }]
-    });
-  }
-  try {
-    const data = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    res.json(data);
-  } catch (e: any) {
-    res.status(500).json({ error: 'Falha ao ler cache do scanner', details: e.message });
-  }
-});
-
-app.get('/api/pool/status', (req, res) => {
-  const poolPath = path.join(process.cwd(), 'POOL', 'modules');
-  if (fs.existsSync(poolPath)) {
-    const modules = fs.readdirSync(poolPath).filter(f => fs.statSync(path.join(poolPath, f)).isDirectory());
-    res.json({
-      status: 'Ready',
-      architectural_modules: modules,
-      message: 'Terminal de Auditoria Wadbar (Lego Pool) Ativo.'
-    });
-  } else {
-    res.status(404).json({ error: 'Pool modules directory not found' });
-  }
-});
-
-// List files within a specific capability module
-app.get('/api/pool/modules/:category', (req, res) => {
-  const { category } = req.params;
-  const catPath = path.join(process.cwd(), 'POOL', 'modules', category);
-  
-  if (fs.existsSync(catPath)) {
-    const files = fs.readdirSync(catPath)
-      .filter(f => f.endsWith('.ts'))
-      .map(f => `/POOL/modules/${category}/${f}`);
-    res.json({ category, available_blocks: files });
-  } else {
-    res.status(404).json({ error: 'Category not found' });
-  }
-});
-
-// Endpoint de Ingestão Automatizada
-app.post('/api/pool/ingest', express.json(), async (req, res) => {
-  const { githubUrl } = req.body;
-  if (!githubUrl) {
-    return res.status(400).json({ error: 'Forneça a githubUrl' });
-  }
-  
-  updateManager.addRepository(githubUrl);
-  console.log(`[INGEST] Adicionando repositório à fila: ${githubUrl}`);
-  
-  res.json({ 
-    status: 'Ingestion Queued',
-    target: githubUrl,
-    message: 'Repositório enfileirado para processamento em background.'
-  });
-});
-
-// Endpoint autônomo para ingerir repositórios
-app.post('/api/pool/ingest-all', async (req, res) => {
-  console.log(`[INGEST] Comando de ingestão global recebido.`);
-  
-  updateManager.syncAll(true).then(() => {
-     console.log(`[INGEST] Ingestão global background finalizada.`);
-  }).catch(err => {
-     console.error(`[INGEST] Erro na ingestão global:`, err);
-  });
-
-  res.json({ 
-    status: 'Global Ingestion task started',
-    message: 'Ciclo de processamento global iniciado. Acompanhe os logs via endpoint de log.'
-  });
-});
-
-// Endpoint de Registro de Repositório Watchlist
-app.get('/api/pool/registry', (req, res) => {
-  res.json({
-      watched: updateManager.listWatched(),
-      total: updateManager.listWatched().length
-  });
-});
-
-// Endpoint para contar blueprints reais na pasta POOL/blueprints
-app.get('/api/pool/blueprints', (req, res) => {
-  const blueprintsPath = path.join(process.cwd(), 'POOL', 'blueprints');
-  if (!fs.existsSync(blueprintsPath)) {
-    return res.json({ count: 0, blueprints: [] });
-  }
-  try {
-    const files = fs.readdirSync(blueprintsPath).filter(f => f.endsWith('.md'));
-    res.json({
-      count: files.length,
-      blueprints: files.map(f => ({
-        name: f.replace('.md', '').replaceAll('___', '://').replaceAll('_', '/'),
-        filename: f
-      }))
-    });
-  } catch (err: any) {
-    res.json({ count: 0, blueprints: [] });
-  }
-});
-
-app.post('/api/pool/registry/remove', express.json(), (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'URL is required' });
-  
-  const removed = updateManager.removeRepository(url);
-  if (removed) {
-    scannerAgent.addEvent('WATCHLIST', `URL removida: ${url}`);
-    scannerAgent.executeScan();
-    res.json({ status: 'Removed', url });
-  } else {
-    res.status(404).json({ error: 'Repository not found in registry' });
-  }
-});
-
-app.post('/api/pool/registry/add', express.json(), (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'URL is required' });
-  
-  const added = updateManager.addRepository(url);
-  if (added) {
-    scannerAgent.addEvent('WATCHLIST', `Nova URL adicionada à Watchlist: ${url}`);
-  } else {
-    scannerAgent.addEvent('WATCHLIST', `Tentativa de registrar URL duplicada/inválida: ${url}`);
-  }
-  scannerAgent.executeScan();
-  res.json({ status: 'success', message: 'Repositório enfileirado para digestão.' });
-});
-
-// Endpoint para Sync Manual da Pool
-app.post('/api/pool/sync', async (req, res) => {
-  try {
-      logSystem("Iniciando sincronização (sync) manual de todos os repositórios...");
-      const result = await updateManager.syncAll();
-      logSystem(`Sincronização manual concluída! Repositórios novos adicionados e processamento enfileirado.`);
-      res.json(result);
-  } catch (err: any) {
-      logSystem(`Falha na sincronização manual: ${err.message}`);
-      res.status(500).json({ error: 'Falha na sincronização global', details: err.message });
-  }
-});
-
-// Endpoint para Caçada Autônoma (Hungry Pool)
-app.post('/api/pool/hunt', async (req, res) => {
-  try {
-      logSystem("Iniciando busca automática de repositórios (GitHub)...");
-      const result = await hungryPool.huntForCode();
-      logSystem(`Busca concluída. Total de novos repositórios encontrados: ${result.hunted || 0}`);
-      res.json({
-          status: 'Hunting completed',
-          ...result,
-          message: 'Novos repositórios encontrados e enfileirados para processamento.'
-      });
-  } catch (err: any) {
-      logSystem(`Erro durante a busca: ${err.message}`);
-      res.status(500).json({ error: 'Falha durante a busca.', details: err.message });
-  }
-});
-
-// Endpoint para extrair links de github de uma URL ou lista de artigos/documentos e encher a esteira (fila de digestão)
-app.post('/api/pool/scrape-url', express.json(), async (req, res) => {
-  const { sourceUrl, rawContent } = req.body;
-  if (!sourceUrl && !rawContent) return res.status(400).json({ error: 'Forneça a sourceUrl ou rawContent para raspar.' });
-
-  const result = await UrlScraper.scrapeAndQueueRepos(sourceUrl, rawContent);
-  if (result.status === "error") {
-      return res.status(500).json(result);
-  }
-  return res.json(result);
-});
 
 // Endpoint para visualizar os logs de ingestão em "tempo real" (últimas linhas)
 app.get('/api/pool/logs', (req, res) => {

@@ -15,6 +15,23 @@ export class HungryPoolEngine {
     }
 
     /**
+     * Busca tópicos específicos no ecossistema GitHub e adiciona ao Registro.
+     */
+    async searchForTopics(topics: string[]) {
+        console.log(`[HUNGRY-POOL] 🦈 Caçada por tópico: [${topics.join(', ')}]...`);
+        const newTargets = await this.spider.discoverRelatedByTopics(topics, 10);
+        
+        let accepted = 0;
+        for (const targetUrl of newTargets) {
+            const added = this.updateManager.addRepository(targetUrl);
+            if (added) accepted++;
+        }
+
+        console.log(`[HUNGRY-POOL] 🦈 Caçada por tópico concluída! ${accepted} novos alvos encontrados.`);
+        return { hunted: accepted, newTargets };
+    }
+
+    /**
      * Ciclo de Expansão Autônoma (Hunting)
      * Olha para a base atual e busca ativamente por variantes, forks e bibliotecas similares
      * para extração modular.

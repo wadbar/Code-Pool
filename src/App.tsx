@@ -20,7 +20,10 @@ import {
   Moon,
   Sun,
   Terminal, 
-  HelpCircle 
+  HelpCircle,
+  Clock,
+  Globe,
+  GitCommit
 } from 'lucide-react';
 
 
@@ -115,7 +118,7 @@ export default function App() {
   const [realScanData, setRealScanData] = useState<RealScanData | null>(null);
   
   // Custom states requested by user
-  const [activeTab, setActiveTab] = useState<'overview' | 'repos' | 'legos' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'repos' | 'legos' | 'activity' | 'logs'>('overview');
   const [blueprintInfo, setBlueprintInfo] = useState<{ count: number; blueprints: any[] }>({ count: 0, blueprints: [] });
   
   // High fidelity block inspector state definitions
@@ -1435,6 +1438,113 @@ export default function App() {
                     )}
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3.5: Activity Logs */}
+        {activeTab === 'activity' && (
+          <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-6 space-y-6 animate-in fade-in duration-300">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b dark:border-slate-850 border-slate-300 pb-4">
+              <div>
+                <h3 className="text-lg font-bold dark:text-white text-black flex items-center gap-2">
+                  <Activity className="text-blue-500 w-5 h-5 animate-pulse" />
+                  Registro de Atividades do Ecossistema
+                </h3>
+                <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
+                  Ações de ingestão, mutações de código, salvaguarda e indexação registradas pelo servidor
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchActivity}
+                  className="flex items-center gap-1.5 px-3 py-1.5 dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 rounded-lg text-xs font-semibold dark:text-slate-300 text-slate-700 hover:dark:bg-slate-800 hover:bg-slate-200 transition-all active:scale-[0.985]"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                  Atualizar Atividades
+                </button>
+              </div>
+            </div>
+
+            <div className="relative border-l-2 dark:border-slate-800 border-slate-300 pl-6 ml-3 space-y-6">
+              {activityLogs.length === 0 ? (
+                <div className="text-center text-slate-500 py-12 border border-dashed dark:border-slate-850 border-slate-300 rounded-xl dark:bg-slate-950 bg-slate-50/40 -ml-6">
+                  Nenhuma atividade registrada no momento. Atividades virtuosas surgirão automaticamente conforme interage com os repositórios.
+                </div>
+              ) : (
+                activityLogs.map((log, index) => {
+                  const dateStr = new Date(log.timestamp).toLocaleString();
+                  let icon = <Activity className="w-4 h-4 text-blue-400" />;
+                  let actionLabel = log.action;
+                  let bgBadge = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+
+                  if (log.action === 'ingest_repository') {
+                    icon = <Cpu className="w-4 h-4 text-emerald-400" />;
+                    actionLabel = "Ingestão de Repositório";
+                    bgBadge = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                  } else if (log.action === 'global_ingest_started') {
+                    icon = <Globe className="w-4 h-4 text-purple-400" />;
+                    actionLabel = "Ingestão Global Iniciada";
+                    bgBadge = "bg-purple-500/10 text-purple-400 border-purple-500/20";
+                  } else if (log.action?.includes('commit')) {
+                    icon = <GitCommit className="w-4 h-4 text-indigo-400" />;
+                    actionLabel = "Commit de Salvaguarda";
+                    bgBadge = "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+                  } else if (log.action === 'database_sync' || log.action === 'sync') {
+                    icon = <RefreshCw className="w-4 h-4 text-sky-400" />;
+                    actionLabel = "Sincronização do Banco";
+                    bgBadge = "bg-sky-500/10 text-sky-400 border-sky-500/20";
+                  }
+
+                  return (
+                    <div key={index} className="relative group animate-in slide-in-from-left-2 duration-150">
+                      {/* Timeline Dot */}
+                      <span className="absolute -left-[31px] top-1.5 flex items-center justify-center w-5 h-5 rounded-full dark:bg-slate-900 bg-slate-100 border-2 dark:border-slate-800 border-slate-300 group-hover:border-blue-500 transition-colors">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                      </span>
+
+                      <div className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 rounded-xl p-4 hover:dark:border-slate-800 hover:border-slate-400 transition-colors space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b dark:border-slate-850 border-slate-300/60 pb-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <span className="p-1.5 dark:bg-slate-900 bg-slate-100/80 rounded-lg">
+                              {icon}
+                            </span>
+                            <div>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${bgBadge}`}>
+                                {actionLabel}
+                              </span>
+                              <span className="text-xs dark:text-slate-400 text-slate-500 font-mono ml-2.5">
+                                por {log.userId || "Sistema"}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] dark:text-slate-500 text-slate-600 font-mono flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {dateStr}
+                          </span>
+                        </div>
+
+                        {log.details && Object.keys(log.details).length > 0 && (
+                          <div className="dark:bg-slate-900 bg-slate-100 p-3 rounded-lg border dark:border-slate-850 border-slate-300 space-y-1.5 text-xs">
+                            <span className="text-[9px] uppercase tracking-wider dark:text-slate-500 text-slate-600 font-bold block mb-1 font-mono">Detalhes da Transação:</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                              {Object.entries(log.details).map(([key, val]) => (
+                                <div key={key} className="flex flex-col md:flex-row md:items-center justify-between gap-1 border-b dark:border-slate-850/40 border-slate-200/50 py-1">
+                                  <span className="font-mono dark:text-slate-400 text-slate-500 capitalize">{key}:</span>
+                                  <span className="font-mono dark:text-slate-200 text-slate-700 font-semibold truncate max-w-[240px]">
+                                    {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

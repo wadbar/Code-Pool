@@ -9,14 +9,14 @@
  * - `os` (Node.js os): Usado para acessar diretórios temporários padronizados do sistema operacional (os.tmpdir()).
  * - `crypto` (Node.js crypto): Usado para gerar hashes de conteúdo de arquivos de modo a otimizar o cache de requisições de IA.
  * - `execSync` (child_process): Execução de subprocessos sincronizados no sistema operacional, especializado em clonar repositórios do Git.
- * - `GoogleGenerativeAI` (@google/generative-ai): Biblioteca oficial de integração do modelo Gemini do Google para análise e classificação inteligente de código.
+ * - `GeminiBridge` (../AI/GeminiBridge): Motor unificado para classificação sofisticada e robusta de código e modelagem de prompts de IA.
  */
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import { execSync } from 'child_process';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GeminiBridge } from '../AI/GeminiBridge';
 import { POOL_SYSTEM_PROMPT } from '../AI/SystemPrompt';
 
 export class RepoIngester {
@@ -115,6 +115,7 @@ export class RepoIngester {
         }
         throw lastError;
     }
+
     /**
      * Ingestão autônoma de um repositório
      */
@@ -205,7 +206,7 @@ export class RepoIngester {
                 const blueprintExists = fs.existsSync(path.join(process.cwd(), 'POOL', 'blueprints', `${safeRepoName}.md`));
                 if (!blueprintExists) {
                     console.log(`[INGESTER] Gerando Blueprint Global...`);
-                    const appBlueprint = await this.generateRepoBlueprint(repoUrl, allFiles, tmpPath);
+                    const appBlueprint = await this.generateRepoBlueprint(repoUrl, goldenFiles, tmpPath);
                     this.saveBlueprint(repoUrl, appBlueprint);
                 }
 
@@ -219,41 +220,70 @@ export class RepoIngester {
                      return { status: "success", reason: "all_files_processed" };
                 }
 
-                console.log(`[INGESTER] Digerindo fatia de ${filesToProcess.length} arquivos...`);
+                console.log(`[INGESTER] Digerindo fatia de ${filesToProcess.length} arquivos com tolerância e retentativas...`);
 
                 for (let i = 0; i < filesToProcess.length; i++) {
                     const filePath = filesToProcess[i];
                     const relativePath = filePath.replace(tmpPath, '');
                     
-                    try {
-                        const code = fs.readFileSync(filePath, 'utf-8');
-                        if (code.trim().length === 0 || code.length > 30000) {
-                            digestedFiles.push(relativePath); 
-                            continue; 
-                        }
+                    let fileSuccess = false;
+                    const fileRetries = 3;
+                    let lastFileError = "";
 
-                        console.log(`[INGESTER] [${i + 1}/${filesToProcess.length}] Decompondo: ${path.basename(filePath)}`);
-                        
-                        // --- PAUSE CHECK ---
-                        const { UpdateManager } = await import('./UpdateManager');
-                        await UpdateManager.waitIfPaused();
-                        const control = UpdateManager.getControlStatus();
-                        if (control.status === 'stop_after_current') {
-                            console.warn(`[INGESTER] Abortando processamento de arquivos por comando de STOP.`);
-                            return { status: "partial", reason: "aborted_by_stop", filesProcessed: i };
-                        }
-                        // ------------------------------------
+                    for (let attempt = 1; attempt <= fileRetries; attempt++) {
+                        try {
+                            const code = fs.readFileSync(filePath, 'utf-8');
+                            if (code.trim().length === 0 || code.length > 30000) {
+                                fileSuccess = true;
+                                break; 
+                            }
 
-                        const aiResult = await this.decomposeWithAI(code, path.basename(filePath));
-                        
-                        if (aiResult && aiResult.category && aiResult.block_id && aiResult.code) {
-                            const isNewWinner = await this.evaluateAndDeduplicate(aiResult.category, aiResult.block_id, aiResult.code, repoUrl, filePath);
-                            if (isNewWinner) extractedModules.push({ category: aiResult.category, name: aiResult.block_id });
-                        } else {
-                            console.warn(`[INGESTER] Falha na extração de ${path.basename(filePath)}: AI retornou nulo ou incompleto.`);
+                            console.log(`[INGESTER] [${i + 1}/${filesToProcess.length}] [Tentativa ${attempt}/${fileRetries}] Decompondo: ${path.basename(filePath)}`);
+                            
+                            // --- PAUSE CHECK ---
+                            const { UpdateManager } = await import('./UpdateManager');
+                            await UpdateManager.waitIfPaused();
+                            const control = UpdateManager.getControlStatus();
+                            if (control.status === 'stop_after_current') {
+                                console.warn(`[INGESTER] Abortando processamento de arquivos por comando de STOP.`);
+                                return { status: "partial", reason: "aborted_by_stop", filesProcessed: i };
+                            }
+                            // ------------------------------------
+
+                            const aiResult = await this.decomposeWithAI(code, path.basename(filePath));
+                            if (aiResult && aiResult.category && aiResult.block_id && aiResult.code) {
+                                const isNewWinner = await this.evaluateAndDeduplicate(aiResult.category, aiResult.block_id, aiResult.code, repoUrl, filePath);
+                                if (isNewWinner) {
+                                    extractedModules.push({ category: aiResult.category, name: aiResult.block_id });
+                                }
+                                fileSuccess = true;
+                                break; // Sucesso para o arquivo corrente!
+                            } else {
+                                throw new Error("A IA retornou um formato de decomposição nulo ou inválido.");
+                            }
+                        } catch (fileErr: any) {
+                            lastFileError = fileErr.message || "Erro desconhecido";
+                            console.warn(`[INGESTER] Falha ao processar arquivo ${path.basename(filePath)} (Tentativa ${attempt}/${fileRetries}): ${lastFileError}`);
+                            if (attempt < fileRetries) {
+                                await this.sleep(2000 * attempt); // Delay incremental (backoff)
+                            }
                         }
-                    } catch (fileErr: any) {
-                        console.error(`[INGESTER] Erro ao processar arquivo individual ${filePath}: ${fileErr.message}`);
+                    }
+
+                    if (!fileSuccess) {
+                        console.error(`[INGESTER] ERRO DEFINITIVO no processamento do arquivo ${relativePath} após ${fileRetries} tentativas: ${lastFileError}`);
+                        
+                        // Registra o erro de processamento individual em um log de auditoria ao invés de derrubar o pipeline
+                        const errsLogPath = path.join(process.cwd(), 'POOL', 'ingestion-errors.json');
+                        let errsLog: Record<string, string[]> = {};
+                        if (fs.existsSync(errsLogPath)) {
+                            try { errsLog = JSON.parse(fs.readFileSync(errsLogPath, 'utf8')); } catch (e) {}
+                        }
+                        if (!errsLog[repoUrl]) errsLog[repoUrl] = [];
+                        errsLog[repoUrl].push(`${relativePath}: ${lastFileError}`);
+                        try {
+                            fs.writeFileSync(errsLogPath, JSON.stringify(errsLog, null, 2));
+                        } catch (e) {}
                     }
                     
                     digestedFiles.push(relativePath);
@@ -314,7 +344,7 @@ export class RepoIngester {
 
         console.log(`[INGESTER] Encontrados ${missingBlueprints.length} repositórios sem blueprint. Iniciando geração paralela...`);
 
-        // Process in small batches to avoid hitting API limits
+        // Processa em lote pequeno para gerenciar limites de API
         const batchSize = 3;
         for (let i = 0; i < missingBlueprints.length; i += batchSize) {
             const batch = missingBlueprints.slice(i, i + batchSize);
@@ -381,12 +411,12 @@ export class RepoIngester {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    private static getAI() {
+    private static getBridge() {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
             throw new Error("[INGESTER] GEMINI_API_KEY não configurada corretamente. Adicione sua chave real no painel do AI Studio.");
         }
-        return new GoogleGenerativeAI(apiKey);
+        return new GeminiBridge(apiKey);
     }
 
     private static async generateRepoBlueprint(repoUrl: string, files: string[], tmpPath: string): Promise<string> {
@@ -469,8 +499,7 @@ Baseado na análise de código estático do ecossistema AI Studio integrado, o p
         }
 
         try {
-            const genAI = this.getAI();
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const bridge = this.getBridge();
             
             const tree = files.map(f => f.slice(tmpPath.length)).slice(0, 200).join('\n');
             const readmeContent = this.findREADME(tmpPath) || "Nenhum README encontrado.";
@@ -495,10 +524,8 @@ ${tree}
 
 Responda SOMENTE o documento em formato Markdown sem blocos de código extras.`;
             
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
+            const text = await bridge.prompt(prompt, 'gemini-3.5-flash');
             await this.sleep(3000);
-            const text = response.text() || "Blueprint falhou.";
             
             if (text && text !== "Blueprint falhou.") {
                 this.setCache(cacheKey, text);
@@ -584,31 +611,29 @@ Responda SOMENTE o documento em formato Markdown sem blocos de código extras.`;
         }
 
         try {
-            const genAI = this.getAI();
-            const model = genAI.getGenerativeModel({ 
-                model: 'gemini-1.5-flash',
-                generationConfig: {
-                    responseMimeType: 'application/json',
-                }
-            });
+            const bridge = this.getBridge();
             
-            const prompt = `${POOL_SYSTEM_PROMPT}\n\nAtue como um arquiteto modular sênior. Analise o arquivo ${filename}. 
-Extraia a principal lógica (componente, função ou classe) e adapte-a para ser independente e modular em TypeScript.
-A categoria deve ser estritamente uma destas baseadas nos módulos existentes e recomendados: [AUTH, DB, GEOMETRY, MEDIA, NETWORKING, SECURITY, AUTOMATION, UI, UTILS, ALGORITHM, AI, ML, AUDITOR, DATA, PROCEDURAL, SEARCH, VISION, VALIDATION].
-IMPORTANTE: block_id deve ser snake_case descrevendo a funcionalidade.
-Responda APENAS JSON:
+            const prompt = `${POOL_SYSTEM_PROMPT}\n\nAtue como um arquiteto modular sênior de sistemas de alto desempenho. 
+Analise detalhadamente o arquivo ${filename} para classificação sofisticada de código e extração de blocos lógicos autônomos. 
+Como parte da análise rigorosa:
+1. Examine a finalidade do código, imports, dependências e padrões estáticos de programação.
+2. Extraia a melhor lógica modular (função, componente React ou classe TypeScript), assecurando que o código seja limpo, autossuficiente e livre de frameworks externos desnecessários ou simulacros (mocks).
+3. Classifique o recurso especificamente em uma das seguintes categorias canônicas baseadas nos módulos existentes do ecossistema: [AUTH, DB, GEOMETRY, MEDIA, NETWORKING, SECURITY, AUTOMATION, UI, UTILS, ALGORITHM, AI, ML, AUDITOR, DATA, PROCEDURAL, SEARCH, VISION, VALIDATION].
+4. IMPORTANTE: Defina o "block_id" de forma determinística utilizando snake_case extremamente descritiva da funcionalidade analisada.
+
+Responda APENAS um objeto JSON estruturado contendo a classificação sofisticada:
 {
   "category": "string",
   "block_id": "string",
-  "code": "string (typescript code)"
+  "code": "string (código typescript completo e funcional pronto para produção)"
 }
 
-Source:
+Source Code:
 ${source}
 `;
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            const text = await bridge.prompt(prompt, 'gemini-3.5-flash', {
+                responseMimeType: 'application/json'
+            });
             
             await this.sleep(3000); 
 
@@ -624,17 +649,19 @@ ${source}
                     }
                     return parsed;
                 } catch (jsonErr) {
-                    console.error(`[INGESTER] Erro JSON:`, cleanText.substring(0, 50));
+                    console.error(`[INGESTER] Erro ao parsear JSON sofisticado da IA:`, cleanText.substring(0, 100));
                     return null;
                 }
             }
             return null;
         } catch (err: any) {
              const msg = err.message || '';
-             console.error(`[INGESTER] Decompose Error (${filename}):`, msg);
+             console.error(`[INGESTER] Erro no Decompose de ${filename} (Tentativa ${attempt}):`, msg);
 
-             if (msg.includes('429') && attempt <= 2) {
-                 await this.sleep(10000);
+             if ((msg.includes('429') || msg.includes('rate limit')) && attempt <= 3) {
+                 const waitTime = attempt * 12000;
+                 console.warn(`[INGESTER] Rate limit atingido. Aguardando ${waitTime}ms para retentativa...`);
+                 await this.sleep(waitTime);
                  return this.decomposeWithAI(source, filename, attempt + 1);
              }
              return null;
@@ -654,7 +681,7 @@ ${source}
             return true;
         } else {
             const existingCode = fs.readFileSync(destPath, 'utf8');
-            if (existingCode.length > 10000 || newCode.length > 10000) return false; // Too big to merge with LLM simply
+            if (existingCode.length > 10000 || newCode.length > 10000) return false; // Muito grande para LLM simples
 
             const apiKey = process.env.GEMINI_API_KEY;
             const isFallback = !apiKey || apiKey === 'MY_GEMINI_API_KEY';
@@ -676,11 +703,10 @@ ${source}
             }
 
             try {
-                const genAI = this.getAI();
-                const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const bridge = this.getBridge();
                 
-                const prompt = `${POOL_SYSTEM_PROMPT}\n\nMescle ou decida qual o melhor código TypeScript para o recurso "${blockId}". 
-Mantenha exports claros. Retorne apenas o código TS puro.
+                const prompt = `${POOL_SYSTEM_PROMPT}\n\nMescle inteligentemente ou decida qual o melhor código TypeScript para o recurso de alta performance "${blockId}". 
+Mantenha exports claros, tipos consistentes e trate erros adequadamente. Retorne apenas o código TS puro sem explicações ou delimitadores.
 
 EXISTING:
 ${existingCode.substring(0, 4000)}
@@ -688,19 +714,17 @@ ${existingCode.substring(0, 4000)}
 NEW:
 ${newCode.substring(0, 4000)}`;
 
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
+                let merged = await bridge.prompt(prompt, 'gemini-3.5-flash');
                 await this.sleep(3000);
 
-                let merged = response.text() || '';
                 merged = merged.replace(/^```typescript/, '').replace(/^```ts/, '').replace(/```$/, '').trim();
 
                 const header = `// [BLOCOS UNIFICADOS - RECURSO: ${blockId} - MERGED]\n// Audit: ${repoUrl}\n\n`;
                 fs.writeFileSync(destPath, header + merged);
-                console.log(`[INGESTER] MERGE CONCLUÍDO: ${blockId}`);
+                console.log(`[INGESTER] MERGE CONCLUÍDO COM SUCESSO: ${blockId}`);
                 return true;
             } catch (err: any) {
-                console.error(`[INGESTER] Merge failed for ${blockId}:`, err.message);
+                console.error(`[INGESTER] Falha no Merge de ${blockId}:`, err.message);
                 return false;
             }
         }

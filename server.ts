@@ -14,8 +14,10 @@ import { UrlScraper } from './POOL/modules/AUTOMATION/UrlScraper';
 import { ScannerAgent } from './POOL/modules/AUTOMATION/ScannerAgent';
 import { createPoolRouter } from './server/routes/poolRoutes';
 import { authRouter } from './server/routes/authRoutes';
+import { kernelRateLimiter, AuthShield } from './POOL/modules/AUTH/AuthShield';
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = 3000;
 const updateManager = new UpdateManager();
 const hungryPool = new HungryPoolEngine(updateManager);
@@ -25,6 +27,9 @@ scannerAgent.startDaemon(5000); // Executa varreduras assíncronas do disco fís
 
 // Middleware FIRST
 app.use(express.json());
+
+// Aplicar rate limiting amplo nas rotas de API pública e administrativa
+app.use('/api', kernelRateLimiter);
 
 // Mount auth routes
 app.use('/api/auth', authRouter);

@@ -1,1 +1,1 @@
-export { AuthShield, kernelRateLimiter } from './AuthShield';
+export { AuthShield, kernelRateLimiter, parseCookie } from './AuthShield';

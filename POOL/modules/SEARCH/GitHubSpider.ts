@@ -43,6 +43,21 @@ export class GitHubSpider {
         );
     }
 
+    private async fetchWithRetry<T>(url: string, params?: any, retries: number = 3): Promise<T> {
+        try {
+            const { data } = await this.client.get<T>(url, { params });
+            return data;
+        } catch (err: any) {
+            if (retries > 0 && err.response?.status >= 500) {
+                const delay = Math.pow(2, 3 - retries) * 1000;
+                console.warn(`[SPIDER] Erro ${err.response.status} ao acessar ${url}. Tentando em ${delay}ms... (${retries} tentativas restantes)`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.fetchWithRetry<T>(url, params, retries - 1);
+            }
+            throw err;
+        }
+    }
+
     /**
      * Busca os forks mais ativos de um repositório alvo com tratamento de erros robusto.
      */
@@ -50,9 +65,7 @@ export class GitHubSpider {
         console.log(`[SPIDER] Vasculhando forks de github.com/${repoSlug}...`);
         
         try {
-            const { data } = await this.client.get<GitHubRepo[]>(`/repos/${repoSlug}/forks`, {
-                params: { sort: 'stargazers', per_page: maxResults }
-            });
+            const data = await this.fetchWithRetry<GitHubRepo[]>(`/repos/${repoSlug}/forks`, { sort: 'stargazers', per_page: maxResults });
             return data.map(fork => fork.html_url);
         } catch (err: any) {
             console.error(`[SPIDER] Erro crítico ao buscar forks ${repoSlug}:`, err.message);
@@ -69,9 +82,7 @@ export class GitHubSpider {
         
         try {
             const query = topics.map(t => `topic:${t}`).join(' ');
-            const { data } = await this.client.get<{items: GitHubRepo[]}>(`/search/repositories`, {
-                params: { q: query, sort: 'stars', order: 'desc', per_page: maxResults }
-            });
+            const data = await this.fetchWithRetry<{items: GitHubRepo[]}>(`/search/repositories`, { q: query, sort: 'stars', order: 'desc', per_page: maxResults });
             return (data.items || []).map(repo => repo.html_url);
         } catch (err: any) {
             console.error(`[SPIDER] Erro crítico na busca por tópicos:`, err.message);
@@ -86,9 +97,7 @@ export class GitHubSpider {
         console.log(`[SPIDER] Listando repositórios do usuário: ${username}...`);
         
         try {
-            const { data } = await this.client.get<GitHubRepo[]>(`/users/${username}/repos`, {
-                params: { type: 'all', sort: 'updated', per_page: maxResults }
-            });
+            const data = await this.fetchWithRetry<GitHubRepo[]>(`/users/${username}/repos`, { type: 'all', sort: 'updated', per_page: maxResults });
             return data.map(repo => repo.html_url);
         } catch (err: any) {
             console.error(`[SPIDER] Erro crítico ao buscar repos do usuário ${username}:`, err.message);

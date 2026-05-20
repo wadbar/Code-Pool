@@ -1,85 +1,111 @@
 // Bloco Unificado: Auth-Shield
-// Finalidade: Segurança, JWT e Proteção de API
+// Finalidade: Segurança, JWT, Proteção de API e Gestão de Sessão
+// Ambiente Alvo: Node.js / Express 
 
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
 
-// Auxiliar manual para extração de Cookies específicos de cabeçalhos brutos de requisição HTTP
+// 1. Injeção Estrita na Interface nativa do Express (Elimina o uso de "any")
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: number | string;
+        login: string;
+        avatar_url?: string;
+        isGuest?: boolean;
+        [key: string]: any;
+      };
+    }
+  }
+}
+
+// Auxiliar manual para extração de Cookies de cabeçalhos brutos
 export function parseCookie(cookieHeader: string | undefined, name: string): string | null {
   if (!cookieHeader) return null;
   const cookies = cookieHeader.split(';');
-  for (let c of cookies) {
+  for (const c of cookies) {
     const parts = c.trim().split('=');
     const k = parts[0];
-    const v = parts.slice(1).join('='); // Suporta valores que contenham "="
-    if (k === name) return v;
+    if (k === name) {
+      return parts.slice(1).join('='); 
+    }
   }
   return null;
 }
 
-// Limitador de taxa global para prevenção de ataques de força bruta ou estouro de recursos
+// Limitador de taxa global blindado
 export const kernelRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // Janela padrão de 15 minutos
-  max: 15000, // Permite até 15000 requisições por janela ip (aumentado para evitar falsos positivos no ambiente de desenvolvimento local)
-  validate: { trustProxy: false }, // Evita as validações rígidas de proxy que geram ValidationError em certos ambientes
-  message: { error: 'Excesso de requisições enviadas ao servidor. Por favor, tente novamente mais tarde.' }
+  windowMs: 15 * 60 * 1000, 
+  max: 150, 
+  // Em produção atrás de Nginx/Cloudflare, altere para true ou gerencie no app.set('trust proxy', 1)
+  validate: { trustProxy: false }, 
+  message: { error: 'Excesso de requisições. Conexão limitada para proteção do servidor.' }
 });
 
 export class AuthShield {
-    static generateToken(payload: any, secret: string) {
-        return jwt.sign(payload, secret, { expiresIn: '7d' });
+    /**
+     * Valida e retorna o Secret JWT em tempo de execução.
+     * Garante o padrão "Fail-Fast" caso a infraestrutura não injete a variável de ambiente.
+     */
+    private static getSecret(): string {
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error('[CRITICAL] JWT_SECRET não definido no ambiente de execução.');
+        }
+        return secret;
     }
 
-    static verifyToken(token: string, secret: string) {
-        return jwt.verify(token, secret);
+    static generateToken(payload: string | object | Buffer, options: SignOptions = { expiresIn: '7d' }): string {
+        return jwt.sign(payload, this.getSecret(), options);
+    }
+
+    static verifyToken(token: string): any {
+        return jwt.verify(token, this.getSecret());
     }
 
     /**
-     * Middleware unificado express para validação opcional/não-bloqueante de token de sessão JWT.
-     * Se um token for fornecido, ele é verificado e o usuário é identificado.
-     * Se nenhum token for fornecido, o acesso é concedido como Guest/Desenvolvedor Local automaticamente,
-     * garantindo que nenhuma funcionalidade do ecossistema open-source seja bloqueada.
+     * Middleware não-bloqueante para validação JWT.
+     * Permite fluxo contínuo como Guest se o token for ausente ou inválido.
      */
-    static authenticate(req: Request, res: Response, next: NextFunction) {
-        const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
-        
-        // Tenta coletar do Cookie de sessão primeiramente (método preferido)
+    static authenticate(req: Request, res: Response, next: NextFunction): void {
         let token = parseCookie(req.headers.cookie, 'token');
         
-        // Trata alternativa de fallback via cabeçalho Authorization Bearer
-        if (!token && req.headers.authorization) {
-            const parts = req.headers.authorization.split(' ');
-            if (parts.length === 2 && parts[0] === 'Bearer') {
-                token = parts[1];
-            }
+        // Fallback para cabeçalho Authorization Bearer
+        if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1];
         }
         
-        // Se não houver token, permite acesso irrestrito como Desenvolvedor Guest
+        // Sem token: Atribuição imediata de Guest
         if (!token) {
-            (req as any).user = {
-                id: 1337,
-                login: 'Guest',
-                avatar_url: 'https://avatars.githubusercontent.com/u/10137?v=4',
-                isGuest: true
-            };
+            req.user = AuthShield.getGuestIdentity();
             return next();
         }
         
         try {
-            const decoded = AuthShield.verifyToken(token, JWT_SECRET);
-            (req as any).user = decoded; // Popula payload sintonizado pro Express
-            next();
-        } catch (err: any) {
-            console.warn('[AuthShield] Token expirado ou inválido de sessão. Continuando como Guest:', err.message);
-            // Em caso de token expirado ou inválido, limpamos o cookie corrompido e permitimos prosseguir como Guest
-            (req as any).user = {
-                id: 1337,
-                login: 'Guest',
-                avatar_url: 'https://avatars.githubusercontent.com/u/10137?v=4',
-                isGuest: true
-            };
-            next();
+            const decoded = AuthShield.verifyToken(token);
+            req.user = decoded;
+            return next();
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown Error';
+            console.warn(`[AuthShield] Token de sessão rejeitado/expirado (${errorMessage}). Executando purga e operando como Guest.`);
+            
+            // Purga real do cookie corrompido no cliente
+            res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+            
+            req.user = AuthShield.getGuestIdentity();
+            return next();
         }
+    }
+
+    // Isola o gerador de identidade Guest para manter a modularidade e evitar repetição
+    private static getGuestIdentity() {
+        return {
+            id: 1337,
+            login: 'Guest',
+            avatar_url: 'https://avatars.githubusercontent.com/u/10137?v=4',
+            isGuest: true
+        };
     }
 }

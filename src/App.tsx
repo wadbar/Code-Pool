@@ -899,6 +899,40 @@ export default function App() {
               </div>
             </div>
 
+            {/* Controle de Daemons Integrado */}
+            <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-extrabold dark:text-slate-400 text-slate-600 uppercase tracking-widest font-mono">Controle dos Daemons:</span>
+                <div className="flex bg-black/40 p-1 rounded-lg border dark:border-slate-850 border-slate-300 gap-1">
+                  <button 
+                    onClick={() => handleControl(workerStatus === 'paused' ? 'running' : 'paused')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${workerStatus === 'paused' ? 'bg-emerald-600 hover:bg-emerald-500 dark:text-white text-black shadow-md' : 'dark:bg-slate-900/80 hover:dark:bg-slate-800 bg-slate-200 hover:bg-slate-300 dark:text-slate-300 text-slate-700'}`}
+                  >
+                    {workerStatus === 'paused' ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                    {workerStatus === 'paused' ? 'Resume Workers' : 'Pause Workers'}
+                  </button>
+                  <button 
+                    onClick={() => handleControl('stop_after_current')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${workerStatus === 'stop_after_current' ? 'bg-amber-600 dark:text-white text-black shadow-md' : 'dark:bg-slate-900/80 hover:dark:bg-slate-800 bg-slate-200 hover:bg-slate-300 dark:text-slate-300 text-slate-700'}`}
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                    Terminar Execução Atual
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex dark:bg-slate-950 bg-slate-50/60 p-1 py-0.5 rounded border dark:border-slate-850 border-slate-300 text-xs font-semibold items-center gap-2">
+                <span className="text-slate-500 uppercase tracking-wider text-[9px] font-mono">Estado Atual:</span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                  workerStatus === 'running' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                  workerStatus === 'paused' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
+                  'bg-red-500/10 text-red-400 border border-red-500/20'
+                }`}>
+                  {workerStatus.replace(/_/g, ' ')}
+                </span>
+              </div>
+            </div>
+
             {/* Devourer Ingestion Engaged Feed & Control Terminal */}
             <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 relative overflow-hidden space-y-4">
               <div className="flex items-center justify-between">

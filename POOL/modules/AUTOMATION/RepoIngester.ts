@@ -113,9 +113,9 @@ export class RepoIngester {
             }
             const digestedFiles = progress[repoUrl] || [];
 
-            // 1. Setup workspace isolado EXTERNO à raiz do projeto (Evita conflitos com o Vite)
+            // 1. Setup workspace isolado DENTRO da raiz do projeto (Escritível e seguro)
             const safeName = repoUrl.replace(/[^a-zA-Z0-9]/g, '_');
-            const tmpBase = path.join(os.tmpdir(), 'lego-pool-tmp');
+            const tmpBase = path.join(process.cwd(), 'POOL', '.tmp');
             if (!fs.existsSync(tmpBase)) fs.mkdirSync(tmpBase, { recursive: true });
             
             const tmpPath = path.join(tmpBase, safeName);
@@ -287,38 +287,56 @@ export class RepoIngester {
             return;
         }
 
-        for (const repo of data.repositories) {
+        const missingBlueprints = data.repositories.filter((repo: any) => {
             const safeName = repo.url.replace(/[^a-zA-Z0-9]/g, '_');
             const bpsPath = path.join(process.cwd(), 'POOL', 'blueprints', `${safeName}.md`);
-            if (fs.existsSync(bpsPath)) continue;
+            return !fs.existsSync(bpsPath);
+        });
 
-            console.log(`[INGESTER] Gerando Blueprint retroativo para: ${repo.url}`);
-            const tmpPath = path.join(os.tmpdir(), 'lego-pool-tmp', safeName);
-            
-            try {
-                if (!fs.existsSync(path.dirname(tmpPath))) fs.mkdirSync(path.dirname(tmpPath), { recursive: true });
+        if (missingBlueprints.length === 0) return;
 
-                try {
-                    await this.cloneWithRetry(repo.url, tmpPath, 60000);
-                } catch (e: any) {
-                    console.warn(`[INGESTER] Falha/Timeout no clone retroativo para ${repo.url} após retentativas.`);
-                    continue;
-                }
-                const files = this.scanDirForSourceCode(tmpPath);
-                if (files.length > 0) {
-                    const appBlueprint = await this.generateRepoBlueprint(repo.url, files, tmpPath);
-                    this.saveBlueprint(repo.url, appBlueprint);
-                    console.log(`[INGESTER] Blueprint retroativo gerado.`);
-                }
-            } catch (error: any) {
-                console.error(`[INGESTER] Erro ao gerar blueprint retroativo para ${repo.url}:`, error.message);
-            } finally {
-                try {
-                    if (fs.existsSync(tmpPath)) fs.rmSync(tmpPath, { recursive: true, force: true });
-                } catch (rmErr) {}
-            }
+        console.log(`[INGESTER] Encontrados ${missingBlueprints.length} repositórios sem blueprint. Iniciando geração paralela...`);
+
+        // Process in small batches to avoid hitting API limits
+        const batchSize = 3;
+        for (let i = 0; i < missingBlueprints.length; i += batchSize) {
+            const batch = missingBlueprints.slice(i, i + batchSize);
+            await Promise.allSettled(batch.map((repo: any) => this.generateAndSaveBlueprint(repo.url)));
         }
+
         console.log(`[INGESTER] Finalizada varredura de blueprints retroativos.`);
+    }
+
+    private static async generateAndSaveBlueprint(repoUrl: string) {
+        const safeName = repoUrl.replace(/[^a-zA-Z0-9]/g, '_');
+        console.log(`[INGESTER] Gerando Blueprint para: ${repoUrl}`);
+        const tmpBase = path.join(process.cwd(), 'POOL', '.tmp');
+        const tmpPath = path.join(tmpBase, safeName);
+        
+        try {
+            if (!fs.existsSync(tmpBase)) fs.mkdirSync(tmpBase, { recursive: true });
+            if (fs.existsSync(tmpPath)) fs.rmSync(tmpPath, { recursive: true, force: true });
+            fs.mkdirSync(tmpPath, { recursive: true });
+
+            try {
+                await this.cloneWithRetry(repoUrl, tmpPath, 60000);
+            } catch (e: any) {
+                console.warn(`[INGESTER] Falha/Timeout no clone para ${repoUrl}.`);
+                return;
+            }
+            const files = this.scanDirForSourceCode(tmpPath);
+            if (files.length > 0) {
+                const appBlueprint = await this.generateRepoBlueprint(repoUrl, files, tmpPath);
+                this.saveBlueprint(repoUrl, appBlueprint);
+                console.log(`[INGESTER] Blueprint gerado.`);
+            }
+        } catch (error: any) {
+            console.error(`[INGESTER] Erro ao gerar blueprint para ${repoUrl}:`, error.message);
+        } finally {
+            try {
+                if (fs.existsSync(tmpPath)) fs.rmSync(tmpPath, { recursive: true, force: true });
+            } catch (rmErr) {}
+        }
     }
 
     private static scanDirForSourceCode(dir: string, fileList: string[] = []): string[] {

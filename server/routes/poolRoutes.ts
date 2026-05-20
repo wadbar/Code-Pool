@@ -31,7 +31,7 @@ export function createPoolRouter(
   router.get('/check-gemini', (req, res) => res.json({ hasKey: !!process.env.GEMINI_API_KEY, len: (process.env.GEMINI_API_KEY || '').length }));
 
   // Endpoint de Ingestão Automatizada
-  router.post('/ingest', express.json(), async (req, res) => {
+  router.post('/ingest', async (req, res) => {
     const { githubUrl } = req.body;
     if (!githubUrl) {
       return res.status(400).json({ error: 'Forneça a githubUrl' });
@@ -71,7 +71,7 @@ export function createPoolRouter(
     });
   });
 
-  router.post('/registry/remove', express.json(), (req, res) => {
+  router.post('/registry/remove', (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
     
@@ -85,7 +85,7 @@ export function createPoolRouter(
     }
   });
 
-  router.post('/registry/add', express.json(), (req, res) => {
+  router.post('/registry/add', (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
     
@@ -99,17 +99,30 @@ export function createPoolRouter(
     res.json({ status: 'success', message: 'Repositório enfileirado para digestão.' });
   });
 
+  let isSyncing = false;
+
   // Endpoint para Sync Manual da Pool
   router.post('/sync', async (req, res) => {
-    try {
-        logSystem("Iniciando sincronização (sync) manual de todos os repositórios...");
-        const result = await updateManager.syncAll();
-        logSystem(`Sincronização manual concluída! Repositórios novos adicionados e processamento enfileirado.`);
-        res.json(result);
-    } catch (err: any) {
-        logSystem(`Falha na sincronização manual: ${err.message}`);
-        res.status(500).json({ error: 'Falha na sincronização global', details: err.message });
+    if (isSyncing) {
+        return res.status(200).json({ status: 'already_syncing', message: 'Uma sincronização já está em andamento.' });
     }
+    
+    isSyncing = true;
+    logSystem("Iniciando sincronização (sync) manual de todos os repositórios em background...");
+    
+    updateManager.syncAll().then(result => {
+        isSyncing = false;
+        logSystem(`Sincronização manual concluída! ${result.updated} repositórios atualizados.`);
+    }).catch((err: any) => {
+        isSyncing = false;
+        logSystem(`Falha na sincronização manual: ${err.message}`);
+    });
+
+    res.status(202).json({ status: 'sync_started', message: 'Sincronização iniciada em background.' });
+  });
+
+  router.get('/sync/status', (req, res) => {
+    res.json({ isSyncing });
   });
 
   // Endpoint para Caçada Autônoma (Hungry Pool)
@@ -137,7 +150,7 @@ export function createPoolRouter(
   });
 
   // Endpoint para extrair links de github de uma URL ou lista de artigos/documentos e encher a esteira (fila de digestão)
-  router.post('/scrape-url', express.json(), async (req, res) => {
+  router.post('/scrape-url', async (req, res) => {
     const { sourceUrl, rawContent } = req.body;
     if (!sourceUrl && !rawContent) return res.status(400).json({ error: 'Forneça a sourceUrl ou rawContent para raspar.' });
 

@@ -914,6 +914,46 @@
     {
       "url": "https://github.com/jadijadi/developer-roadmap",
       "lastSync": null
+    },
+    {
+      "url": "https://github.com/explosion/spaCy",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/Lightning-AI/pytorch-lightning",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/AMAI-GmbH/AI-Expert-Roadmap",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/plotly/dash",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/sinaptik-ai/pandas-ai",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/recommenders-team/recommenders",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/dair-ai/ML-YouTube-Courses",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/treeverse/dvc",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/visenger/awesome-mlops",
+      "lastSync": null
+    },
+    {
+      "url": "https://github.com/microsoft/RD-Agent",
+      "lastSync": null
     }
   ]
 }

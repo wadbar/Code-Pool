@@ -1,10 +1,10 @@
 {
-  "lastScanTime": "2026-05-20T00:02:38.011Z",
-  "totalRepos": 157,
+  "lastScanTime": "2026-05-20T00:19:18.513Z",
+  "totalRepos": 167,
   "totalBlocks": 20,
-  "totalBlueprints": 37,
+  "totalBlueprints": 11,
   "totalDigestedFiles": 7832,
-  "diskSizeKB": 86,
+  "diskSizeKB": 84,
   "categoriesCount": {
     "AI": 1,
     "AUTH": 1,

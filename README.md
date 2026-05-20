@@ -1,23 +1,25 @@
-# Wadbar Code Pool & Blueprint Auditor
+# Gerenciador de Repositórios (Lego Pool Engine)
 
-Este é um ambiente de armazenamento e auditoria projetado para o ecossistema @wadbar.
+Uma plataforma robusta para ingestão, rastreamento, auditoria e indexação de conhecimento de repositórios open-source.
 
-## Objetivo
-- **Sincronização**: Centralizar múltiplos repositórios GitHub em um único monorepo.
-- **Auditoria**: Analisar e documentar o tech stack de cada projeto.
-- **Decomposição Modular**: Separar o código em blocos reutilizáveis (blueprints).
-- **Sem Interface**: Ambiente focado em terminal e logs de engenharia.
+## Recursos
+- **Ingestão Automatizada**: Clona e monitora repositórios GitHub.
+- **Hungry Pool Engine**: Busca autônoma por repositórios relacionados e forks.
+- **Modularidade**: Decomposição de código em blocos procedimentais.
+- **Docker-ready**: Dockerfile configurado para produção.
+- **Segurança**: Integração com Git para backup remoto.
 
-## Estrutura da Piscina (/POOL)
-Cada repositório é mapeado em:
-- `blueprint.md`: Mapa de arquitetura e módulos.
-- `package.json`: Dependências específicas.
-- `/src`: Blocos de código reais indexados para reuso.
+## Stack
+- Vite + React + TailwindCSS
+- Express Backend (Node.js)
+- TypeScript
 
-## Como usar
-1.  Consulte `/POOL/BLUEPRINTS.md` para ver o índice.
-2.  Acesse as pastas individuais para auditar o código.
-3.  Use o terminal (API) em `/api/pool/status` para verificar a saúde do Pool.
+## Como começar
+1. Instale dependências: `npm install`
+2. Configure `.env`: (`cp .env.example .env`) e adicione seu `GEMINI_API_KEY`.
+3. Inicie em modo de desenvolvimento: `npm run dev`
 
----
-*Ambiente gerado via AI Studio Build - Foco em Engenharia Pura.*
+## Estrutura
+- `/POOL/modules`: Módulos de arquitetura (IA, Auth, Proc, etc).
+- `/server/routes`: Rotas da API.
+- `/server/utils`: Utilitários (Logging).

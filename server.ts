@@ -22,6 +22,9 @@ const hungryPool = new HungryPoolEngine(updateManager);
 const scannerAgent = new ScannerAgent();
 scannerAgent.startDaemon(5000); // Executa varreduras assíncronas do disco físico a cada 5 segundos
 
+// Middleware FIRST
+app.use(express.json());
+
 // Mount pool routes
 app.use('/api/pool', createPoolRouter(updateManager, hungryPool, UrlScraper, scannerAgent));
 

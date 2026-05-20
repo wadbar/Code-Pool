@@ -1,0 +1,8 @@
+{
+  "name": "node-domexception",
+  "version": "1.0.1",
+  "description": "Native clean implementation of DOMException for modern Node without deprecation warnings",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "MIT"
+}

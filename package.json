@@ -49,5 +49,11 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
+  },
+  "overrides": {
+    "node-domexception": "file:./packages/node-domexception-native"
+  },
+  "resolutions": {
+    "node-domexception": "file:./packages/node-domexception-native"
   }
 }

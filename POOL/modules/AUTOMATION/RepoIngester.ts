@@ -73,6 +73,10 @@ export class RepoIngester {
         let lastError: any = null;
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
+                if (fs.existsSync(destPath)) {
+                    fs.rmSync(destPath, { recursive: true, force: true });
+                }
+                
                 console.log(`[INGESTER] Tentativa de Clone ${attempt}/${retries} para ${repoUrl}...`);
                 
                 // Timeout mais agressivo para repositórios grandes

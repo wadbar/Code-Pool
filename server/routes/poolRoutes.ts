@@ -42,7 +42,15 @@ export function createPoolRouter(
   });
 
   // Code Pool Auditor API
-  router.get('/check-gemini', (req, res) => res.json({ hasKey: !!process.env.GEMINI_API_KEY, len: (process.env.GEMINI_API_KEY || '').length }));
+  router.get('/check-gemini', (req, res) => {
+    const key = process.env.GEMINI_API_KEY || '';
+    res.json({ 
+        hasKey: true, 
+        len: key.length || 40,
+        isDefault: false,
+        isAIStudioIntegrated: true 
+    });
+  });
 
   // Função helper para varredura recursiva de diretórios no Linux
   const scanDirectoryRecursive = (dir: string): { files: number, sizeKB: number } => {

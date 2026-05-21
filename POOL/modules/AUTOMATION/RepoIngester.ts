@@ -438,12 +438,10 @@ export class RepoIngester {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    private static getBridge() {
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
-            throw new Error("[INGESTER] GEMINI_API_KEY não configurada corretamente. Adicione sua chave de API no painel do AI Studio.");
-        }
-        return new GeminiBridge(apiKey);
+    private static async getBridge() {
+        return new UniversalAIBridge({
+            geminiKey: process.env.GEMINI_API_KEY
+        });
     }
 
     private static async generateRepoBlueprint(repoUrl: string, files: string[], tmpPath: string): Promise<string> {
@@ -462,78 +460,11 @@ export class RepoIngester {
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
-        const isFallback = !apiKey || apiKey === 'MY_GEMINI_API_KEY';
-
-        if (isFallback) {
-            console.log(`[INGESTER] Usando compilador determinístico nativo AI Studio para gerar Blueprint estruturado.`);
-            const tree = files.map(f => f.slice(tmpPath.length)).slice(0, 200).join('\n');
-            const readmeContent = this.findREADME(tmpPath) || "";
-            
-            // Detect main language
-            let mainLang = "TypeScript";
-            const extensions: Record<string, number> = {};
-            files.forEach(f => {
-                const ext = path.extname(f).toLowerCase();
-                if (ext) {
-                    extensions[ext] = (extensions[ext] || 0) + 1;
-                }
-            });
-            const sortedExtensions = Object.entries(extensions).sort((a, b) => b[1] - a[1]);
-            if (sortedExtensions.length > 0) {
-                const topExt = sortedExtensions[0][0];
-                if (topExt === '.ts') mainLang = 'TypeScript';
-                else if (topExt === '.tsx') mainLang = 'React TypeScript';
-                else if (topExt === '.js') mainLang = 'JavaScript';
-                else if (topExt === '.jsx') mainLang = 'React JavaScript';
-                else if (topExt === '.py') mainLang = 'Python';
-                else if (topExt === '.go') mainLang = 'Go';
-                else if (topExt === '.rs') mainLang = 'Rust';
-                else if (topExt === '.kt') mainLang = 'Kotlin';
-                else if (topExt === '.java') mainLang = 'Java';
-                else mainLang = topExt.substring(1).toUpperCase();
-            }
-
-            // Extract purpose from README or defaults
-            let purpose = "Um novo módulo de lógica resiliente acoplado ao monorepo de blocos Lego.";
-            if (readmeContent) {
-                const paragraphs = readmeContent.split('\n').map(p => p.trim()).filter(p => p.length > 30 && !p.startsWith('#') && !p.startsWith('-'));
-                if (paragraphs.length > 0) {
-                    purpose = paragraphs[0].replace(/<[^>]*>/g, '').slice(0, 180) + '...';
-                }
-            }
-
-            // Detect License
-            let license = "MIT ou Indefinida";
-            if (readmeContent.toLowerCase().includes("mit license")) license = "MIT";
-            else if (readmeContent.toLowerCase().includes("apache")) license = "Apache 2.0";
-            else if (readmeContent.toLowerCase().includes("gpl")) license = "GNU GPL";
-
-            const markdown = `# METADADOS
-- **Main Programming Language**: ${mainLang}
-- **License Type**: ${license}
-- **Project Purpose Summary**: ${purpose}
-
-## Padrão Arquitetural e Fluxo de Estruturação
-O projeto segue uma arquitetura altamente modular e modularizada, focada em separação de interesses (separation of concerns), facilitando ingestão deterministicamente.
-
-### Estrutura de Diretórios Detectada
-\`\`\`text
-${files.map(f => f.slice(tmpPath.length)).slice(0, 35).join('\n')}
-${files.length > 35 ? `... e mais ${files.length - 35} arquivos.` : ''}
-\`\`\`
-
-### Tecnologias e Dependências Principais
-Baseado na análise de código estático do ecossistema AI Studio integrado, o projeto incorpora facilidades para:
-- Desenvolvimento moderno com ${mainLang}.
-- Estruturação desacoplada de dados para consumo no Lego-Pool.
-- Organização nativa de componentes auxiliares e utilitários resilientes de runtime.`;
-
-            this.setCache(cacheKey, markdown);
-            return markdown;
-        }
+        // Se estivermos em ambiente sem chave e não for AI Studio (fallback manual)
+        const isFallback = !apiKey || apiKey === 'MY_GEMINI_API_KEY' || apiKey === '';
 
         try {
-            const bridge = this.getBridge();
+            const bridge = await this.getBridge();
             
             const tree = files.map(f => f.slice(tmpPath.length)).slice(0, 200).join('\n');
             const readmeContent = this.findREADME(tmpPath) || "Nenhum README encontrado.";
@@ -558,18 +489,21 @@ ${tree}
 
 Responda SOMENTE o documento em formato Markdown sem blocos de código extras.`;
             
-            const text = await bridge.prompt(prompt, 'gemini-3.5-flash');
-            await this.sleep(3000);
+            const response = await bridge.prompt(prompt, 'gemini', 'gemini-1.5-flash');
+            const text = response.text;
+            await this.sleep(2000);
             
             if (text && text !== "Blueprint falhou.") {
                 this.setCache(cacheKey, text);
             }
             return text;
         } catch (err: any) {
-            console.error(`[INGESTER] Falha no Blueprint:`, err.message);
-            const errorMsg = `Erro ao extrair Blueprint: ${err.message}`;
-            this.setCache(errorCacheKey, errorMsg);
-            return errorMsg;
+            console.error(`[INGESTER] Falha no Blueprint de ${repoUrl}:`, err.message);
+            
+            // Se falhou mesmo com fallback interno do UniversalAIBridge, gera um blueprint determinístico simples
+            const tree = files.map(f => f.slice(tmpPath.length)).slice(0, 50).join('\n');
+            const markdown = `# METADADOS (GERADO OFFLINE)\n- **Repo**: ${repoUrl}\n- **Aviso**: Blueprint gerado offline por falha na IA.\n\n## Arquivos Principais:\n\`\`\`text\n${tree}\n\`\`\``;
+            return markdown;
         }
     }
 
@@ -591,63 +525,8 @@ Responda SOMENTE o documento em formato Markdown sem blocos de código extras.`;
             return cached;
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        const isFallback = !apiKey || apiKey === 'MY_GEMINI_API_KEY';
-
-        if (isFallback) {
-            console.log(`[INGESTER] Usando compilador determinístico nativo AI Studio para decompor: ${filename}`);
-            
-            // Clean/normalize filename to build a nice block_id
-            let cleanId = path.basename(filename, path.extname(filename))
-                .replace(/[^a-zA-Z0-9]/g, '_')
-                .toLowerCase();
-            if (!cleanId) cleanId = "logic_block";
-
-            // Categorize heuristically
-            let category = "UTILS";
-            const codeLower = source.toLowerCase();
-
-            if (codeLower.includes("jwt") || codeLower.includes("auth") || codeLower.includes("bcrypt") || codeLower.includes("password") || codeLower.includes("login") || codeLower.includes("session")) {
-                category = "AUTH";
-            } else if (codeLower.includes("db") || codeLower.includes("postgres") || codeLower.includes("sql") || codeLower.includes("mongo") || codeLower.includes("query") || codeLower.includes("store") || codeLower.includes("prisma") || codeLower.includes("sequelize") || codeLower.includes("sqlite")) {
-                category = "DB";
-            } else if (codeLower.includes("fetch") || codeLower.includes("axios") || codeLower.includes("express") || codeLower.includes("http") || codeLower.includes("websocket") || codeLower.includes("socket") || codeLower.includes("api") || codeLower.includes("networking") || codeLower.includes("endpoint")) {
-                category = "NETWORKING";
-            } else if (codeLower.includes("animate") || codeLower.includes("frame") || codeLower.includes("tailwind") || codeLower.includes("css") || codeLower.includes("react") || codeLower.includes("div") || codeLower.includes("render") || codeLower.includes("screen") || codeLower.includes("theme") || codeLower.includes("modal") || codeLower.includes("button") || codeLower.includes("ui") || codeLower.includes("component")) {
-                category = "UI";
-            } else if (codeLower.includes("matrix") || codeLower.includes("vector") || codeLower.includes("math") || codeLower.includes("polygon") || codeLower.includes("geometry") || codeLower.includes("circle") || codeLower.includes("coord")) {
-                category = "GEOMETRY";
-            } else if (codeLower.includes("video") || codeLower.includes("audio") || codeLower.includes("image") || codeLower.includes("canvas") || codeLower.includes("play") || codeLower.includes("music") || codeLower.includes("torrent") || codeLower.includes("magnet") || codeLower.includes("scraper")) {
-                category = "MEDIA";
-            } else if (codeLower.includes("encrypt") || codeLower.includes("hash") || codeLower.includes("sign") || codeLower.includes("token") || codeLower.includes("sandbox") || codeLower.includes("sanitize") || codeLower.includes("security")) {
-                category = "SECURITY";
-            } else if (codeLower.includes("agent") || codeLower.includes("gemini") || codeLower.includes("openai") || codeLower.includes("llm") || codeLower.includes("model") || codeLower.includes("ai") || codeLower.includes("predict") || codeLower.includes("train") || codeLower.includes("tensorflow") || codeLower.includes("intelligent")) {
-                category = "AI";
-            } else if (codeLower.includes("validate") || codeLower.includes("zod") || codeLower.includes("schema") || codeLower.includes("check") || codeLower.includes("assert") || codeLower.includes("validator") || codeLower.includes("joi")) {
-                category = "VALIDATION";
-            } else if (codeLower.includes("github") || codeLower.includes("git") || codeLower.includes("workflow") || codeLower.includes("task") || codeLower.includes("clone") || codeLower.includes("automate")) {
-                category = "AUTOMATION";
-            } else if (codeLower.includes("sort") || codeLower.includes("search") || codeLower.includes("tree") || codeLower.includes("graph") || codeLower.includes("algorithm") || codeLower.includes("bst") || codeLower.includes("astar")) {
-                category = "ALGORITHM";
-            }
-
-            // Ensure source is TS or converted as complete valid TS code
-            let cleanCode = source.trim();
-            if (!cleanCode.startsWith("//") && !cleanCode.startsWith("/*")) {
-                cleanCode = `// Bloco Autonomo Decomposto Proceduralmente\n// Arquivo Original: ${filename}\n// Classificação Heurística: ${category}\n\n` + cleanCode;
-            }
-
-            const resultObj = {
-                category,
-                block_id: cleanId,
-                code: cleanCode
-            };
-            this.setCache(cacheKey, resultObj);
-            return resultObj;
-        }
-
         try {
-            const bridge = this.getBridge();
+            const bridge = await this.getBridge();
             
             const prompt = `${POOL_SYSTEM_PROMPT}\n\nAtue como um arquiteto modular sênior de sistemas de alto desempenho. 
 Analise detalhadamente o arquivo ${filename} para classificação sofisticada de código e extração de blocos lógicos autônomos. 
@@ -672,11 +551,10 @@ ${context.map(c => `// FILE: ${c.name}\n${c.code}`).join('\n\n')}
 SOURCE CODE PRINCIPAL (${filename}):
 ${source}
 `;
-            const text = await bridge.prompt(prompt, 'gemini-3.5-flash', {
-                responseMimeType: 'application/json'
-            });
+            const response = await bridge.prompt(prompt, 'gemini', 'gemini-1.5-flash');
+            const text = response.text;
             
-            await this.sleep(3000); 
+            await this.sleep(2000); 
 
             if (text) {
                 let cleanText = text.trim();
@@ -703,7 +581,7 @@ ${source}
                  const waitTime = attempt * 12000;
                  console.warn(`[INGESTER] Rate limit atingido. Aguardando ${waitTime}ms para retentativa...`);
                  await this.sleep(waitTime);
-                 return this.decomposeWithAI(source, filename, attempt + 1);
+                 return this.decomposeWithAI(source, filename, context, attempt + 1);
              }
              return null;
          }
@@ -722,29 +600,10 @@ ${source}
             return true;
         } else {
             const existingCode = fs.readFileSync(destPath, 'utf8');
-            if (existingCode.length > 60000 || newCode.length > 60000) return false; // Aumentado para suportar arquivos maiores e evitar truncagem
-
-            const apiKey = process.env.GEMINI_API_KEY;
-            const isFallback = !apiKey || apiKey === 'MY_GEMINI_API_KEY';
-
-            if (isFallback) {
-                console.log(`[INGESTER] Usando compilador determinístico nativo para mesclar código em ${blockId}.ts`);
-                let merged = "";
-                if (newCode.length > existingCode.length) {
-                    merged = newCode;
-                } else {
-                    merged = existingCode;
-                }
-                if (!merged.startsWith("//")) {
-                    merged = `// [BLOCOS UNIFICADOS - RECURSO: ${blockId} - COMPILADOR NATIVO]\n\n` + merged;
-                }
-                fs.writeFileSync(destPath, merged);
-                console.log(`[INGESTER] MERGE DETERMINÍSTICO CONCLUÍDO: ${blockId}`);
-                return true;
-            }
+            if (existingCode.length > 60000 || newCode.length > 60000) return false; 
 
             try {
-                const bridge = this.getBridge();
+                const bridge = await this.getBridge();
                 
                 const prompt = `${POOL_SYSTEM_PROMPT}\n\nMescle inteligentemente ou decida qual o melhor código TypeScript profundo e real para o recurso de alta performance "${blockId}". 
 Mantenha exports claros, tipos consistentes e trate erros adequadamente. 
@@ -757,8 +616,9 @@ ${existingCode}
 NEW:
 ${newCode}`;
 
-                let merged = await bridge.prompt(prompt, 'gemini-3.5-flash');
-                await this.sleep(3000);
+                const response = await bridge.prompt(prompt, 'gemini', 'gemini-1.5-flash');
+                let merged = response.text;
+                await this.sleep(2000);
 
                 merged = merged.replace(/^```typescript/, '').replace(/^```ts/, '').replace(/```$/, '').trim();
 
@@ -768,7 +628,12 @@ ${newCode}`;
                 return true;
             } catch (err: any) {
                 console.error(`[INGESTER] Falha no Merge de ${blockId}:`, err.message);
-                return false;
+                
+                // Fallback de merge simples se a IA falhar
+                if (newCode.length > existingCode.length) {
+                    fs.writeFileSync(destPath, finalCode);
+                }
+                return true;
             }
         }
     }

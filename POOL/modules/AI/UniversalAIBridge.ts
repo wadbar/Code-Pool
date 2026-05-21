@@ -87,8 +87,13 @@ export class UniversalAIBridge {
     }
 
     private async callGemini(prompt: string, model: string, system: string): Promise<AIResponse> {
-        if (!this.config.geminiKey) throw new Error("GEMINI_API_KEY não configurada.");
-        const genAI = new GoogleGenAI(this.config.geminiKey);
+        const apiKey = this.config.geminiKey || process.env.GEMINI_API_KEY;
+        
+        if (!apiKey) {
+            console.warn("[UniversalAIBridge] Nenhuma GEMINI_API_KEY detectada. A requisição poderá falhar.");
+        }
+
+        const genAI = new GoogleGenAI(apiKey || "NO_KEY_PROVIDED");
         const aiModel = genAI.getGenerativeModel({ model, systemInstruction: system });
         const result = await aiModel.generateContent(prompt);
         const response = await result.response;

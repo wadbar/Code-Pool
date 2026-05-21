@@ -27,27 +27,22 @@ export class GeminiBridge {
     /**
      * Executa um prompt com tratamento robusto de erros e modelo fallback.
      */
-    async prompt(text: string, modelName: string = "gemini-3.5-flash", config: any = {}): Promise<string> {
+    async prompt(text: string, modelName: string = "gemini-1.5-flash", config: any = {}): Promise<string> {
         try {
-            const response = await this.ai.models.generateContent({
-                model: modelName,
-                contents: text,
-                config,
-            });
-            return response.text || "";
+            const model = this.ai.getGenerativeModel({ model: modelName, ...config });
+            const result = await model.generateContent(text);
+            const response = await result.response;
+            return response.text() || "";
         } catch (error: any) {
             console.error(`[GeminiBridge] Erro ao gerar conteúdo com modelo ${modelName}:`, error);
             
-            // Recuperação graciosa: tenta segunda vez com modelo fallback mais geral se for de outra classe
-            if (modelName !== "gemini-3.5-flash") {
-                console.warn(`[GeminiBridge] Retentando com modelo de recuperação gemini-3.5-flash...`);
+            if (modelName !== "gemini-1.5-flash") {
+                console.warn(`[GeminiBridge] Retentando com modelo de recuperação gemini-1.5-flash...`);
                 try {
-                    const fallbackResponse = await this.ai.models.generateContent({
-                        model: "gemini-3.5-flash",
-                        contents: text,
-                        config,
-                    });
-                    return fallbackResponse.text || "";
+                    const fallbackModel = this.ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+                    const result = await fallbackModel.generateContent(text);
+                    const response = await result.response;
+                    return response.text() || "";
                 } catch (fallbackError: any) {
                     console.error(`[GeminiBridge] Modelo de recuperação também falhou:`, fallbackError);
                     throw new Error(`Falha Gemini API: ${error.message}. Fallback também falhou: ${fallbackError.message}`);
@@ -60,15 +55,12 @@ export class GeminiBridge {
     /**
      * Suporta streaming assíncrono para respostas do modelo chunk por chunk.
      */
-    async *promptStream(text: string, modelName: string = "gemini-3.5-flash", config: any = {}) {
+    async *promptStream(text: string, modelName: string = "gemini-1.5-flash", config: any = {}) {
         try {
-            const responseStream = await this.ai.models.generateContentStream({
-                model: modelName,
-                contents: text,
-                config,
-            });
-            for await (const chunk of responseStream) {
-                yield chunk.text || "";
+            const model = this.ai.getGenerativeModel({ model: modelName, ...config });
+            const result = await model.generateContentStream(text);
+            for await (const chunk of result.stream) {
+                yield chunk.text() || "";
             }
         } catch (error: any) {
             console.error(`[GeminiBridge] Erro no streaming com modelo ${modelName}:`, error);
@@ -79,13 +71,12 @@ export class GeminiBridge {
     /**
      * Geração simples de texto a partir de um prompt.
      */
-    async generateCompletion(prompt: string, modelName: string = "gemini-3.5-flash"): Promise<string> {
+    async generateCompletion(prompt: string, modelName: string = "gemini-1.5-flash"): Promise<string> {
         try {
-            const response = await this.ai.models.generateContent({
-                model: modelName,
-                contents: prompt,
-            });
-            return response.text || "";
+            const model = this.ai.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            return response.text() || "";
         } catch (error: any) {
             console.error(`[GeminiBridge] Erro ao gerar completion com modelo ${modelName}:`, error);
             throw new Error(`Falha Gemini API na geração de completion: ${error.message}`);

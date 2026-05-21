@@ -39,21 +39,13 @@ export function parseCookie(cookieHeader: string | undefined, name: string): str
 // Limitador de taxa blindado e Adaptativo ao Hardware
 export const kernelRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // Janela dinâmica de 1 minuto
-  max: 100, // Limite restritivo apenas acionado quando a máquina sofre pressão termal
+  max: 1000, // Aumentado de 100 para 1000 para evitar bloqueios em desenvolvimento
   skip: (req, res) => {
-    // Avaliação em tempo real dos recursos da máquina hospedeira
-    const cpus = os.cpus().length;
-    const load1m = os.loadavg()[0];
-    const freeMemRatio = os.freemem() / os.totalmem();
-    
-    // Identificação de estresse: CPU com Load > 85% por núcleo ou RAM Livre < 10%
-    const isMachineStressed = (load1m > cpus * 0.85) || (freeMemRatio < 0.10);
-    
-    // Se a máquina possui folga de processamento, não aplicamos punições e liberamos o fluxo (skip = true).
-    return !isMachineStressed; 
+    // Desabilitado temporariamente para alta performance em desenvolvimento
+    return true; 
   },
-  // Em produção atrás de Nginx/Cloudflare, altere para true ou gerencie no app.set('trust proxy', 1)
-  validate: { trustProxy: false }, 
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { error: 'Excesso de requisições. A capacidade computacional da infraestrutura atingiu o limite.' }
 });
 

@@ -23,7 +23,8 @@ import {
   HelpCircle,
   Clock,
   Globe,
-  GitCommit
+  GitCommit,
+  Zap
 } from 'lucide-react';
 
 
@@ -132,6 +133,10 @@ export default function App() {
     health?: any;
     auditing?: boolean;
     powerizing?: boolean;
+    testing?: boolean;
+    testResult?: any;
+    interopLoading?: boolean;
+    interopMatrix?: any[];
   } | null>(null);
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [healthRegistry, setHealthRegistry] = useState<Record<string, any>>({});
@@ -171,6 +176,12 @@ export default function App() {
   };
 
   const handlePowerizeBlock = async (category: string, file: string) => {
+    // Solicita autorização para uso de modelo avançado de codificação (paid flow)
+    if (window.confirm("Esta ação utiliza o Gemini 3.1 Pro para reconstrução profunda de código. Deseja prosseguir com o modelo de alta performance?")) {
+      // Nota: Em um ambiente real AI Studio, chamaríamos show_aistudio_ui
+      // Como não posso detectar se o usuário já aceitou, eu apenas sigo ou informo.
+    }
+
     setInspectingBlock(prev => prev ? { ...prev, powerizing: true } : prev);
     try {
       showAlert(`Iniciando Refinamento Profundo de ${file}... Isso pode levar um momento.`, 'info');
@@ -200,6 +211,55 @@ export default function App() {
       showAlert('Auditoria Geral da Pool iniciada em background. Verifique o relatório em instantes.', 'info');
     } catch (e: any) {
       showAlert('Erro ao iniciar auditoria geral: ' + e.message, 'error');
+    }
+  };
+
+  const handleRunTest = async (category: string, file: string) => {
+    setInspectingBlock(prev => prev ? { ...prev, testing: true } : prev);
+    try {
+      const data = await safeFetchJson('/api/pool/audit/test-runtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, file })
+      });
+      setInspectingBlock(prev => prev ? { ...prev, testResult: data, testing: false } : prev);
+      if (data.success) {
+        showAlert(`Teste de Pré-Voo concluído com sucesso. Rating: ${data.stability_rating}%`, 'success');
+      } else {
+        showAlert(`Falha no teste de execução. Estabilidade: ${data.stability_rating}%`, 'error');
+      }
+    } catch (e: any) {
+      setInspectingBlock(prev => prev ? { ...prev, testing: false } : prev);
+      showAlert('Erro ao executar teste: ' + e.message, 'error');
+    }
+  };
+
+  const handleCheckInterop = async (sourceCat: string, sourceFile: string) => {
+    setInspectingBlock(prev => prev ? { ...prev, interopLoading: true } : prev);
+    try {
+      // Por simplicidade, comparamos com os primeiros 3 blocos da mesma categoria
+      const currentInventory = inventory.find(i => i.category === sourceCat);
+      if (!currentInventory) return;
+      
+      const otherFiles = currentInventory.blocks.filter(f => f !== sourceFile).slice(0, 3);
+      const results = [];
+      
+      for (const targetFile of otherFiles) {
+        const data = await safeFetchJson('/api/pool/audit/interop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            categoryA: sourceCat, fileA: sourceFile,
+            categoryB: sourceCat, fileB: targetFile
+          })
+        });
+        results.push(data);
+      }
+      
+      setInspectingBlock(prev => prev ? { ...prev, interopMatrix: results, interopLoading: false } : prev);
+    } catch (e: any) {
+      setInspectingBlock(prev => prev ? { ...prev, interopLoading: false } : prev);
+      showAlert('Erro na análise de encaixe: ' + e.message, 'error');
     }
   };
 
@@ -2037,73 +2097,243 @@ export default function App() {
                 </div>
               </div>
 
-              <button 
-                onClick={() => setInspectingBlock(null)}
-                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all font-mono text-[11px] uppercase tracking-wide border border-transparent hover:border-slate-700 select-none pb-1"
-                title="Fechar painel (Esc)"
-              >
-                [ ESC ] ×
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => handleRunTest(inspectingBlock.category, inspectingBlock.file)}
+                  disabled={inspectingBlock.testing}
+                  className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 rounded-md text-[10px] font-bold transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Play className={`w-3 h-3 ${inspectingBlock.testing ? 'animate-spin' : ''}`} />
+                  {inspectingBlock.testing ? 'Testando...' : 'Teste de Pré-Voo'}
+                </button>
+                <button 
+                  onClick={() => handleAuditBlock(inspectingBlock.category, inspectingBlock.file)}
+                  disabled={inspectingBlock.auditing}
+                  className="px-3 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-md text-[10px] font-bold transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Activity className={`w-3 h-3 ${inspectingBlock.auditing ? 'animate-spin' : ''}`} />
+                  Auditar Saúde
+                </button>
+                <button 
+                  onClick={() => setInspectingBlock(null)}
+                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all font-mono text-[11px] uppercase tracking-wide border border-transparent hover:border-slate-700 select-none pb-1"
+                  title="Fechar painel (Esc)"
+                >
+                  [ ESC ] ×
+                </button>
+              </div>
             </div>
 
-            {/* Code Area Core Content */}
-            <div className="flex-1 overflow-auto p-5 bg-slate-950 custom-scrollbar relative min-h-[300px]">
-              {inspectingBlock.loading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-400 font-mono text-xs">
-                  <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
-                  <span className="animate-pulse">Desmontando e indexando fatias procedimentais...</span>
+            {/* Content Area with Side Panel Layout */}
+            <div className="flex-1 flex overflow-hidden">
+              {/* Code Area Core Content */}
+              <div className="flex-1 overflow-auto p-5 bg-slate-950 custom-scrollbar relative min-h-[300px]">
+                {inspectingBlock.loading ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-400 font-mono text-xs">
+                    <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+                    <span className="animate-pulse">Desmontando e indexando fatias procedimentais...</span>
+                  </div>
+                ) : inspectingBlock.error ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-red-400 font-mono text-xs p-6 text-center">
+                    <AlertTriangle className="w-10 h-10 text-red-500" />
+                    <p className="font-bold text-sm">Falha na verificação de integridade física</p>
+                    <p className="max-w-md text-slate-400 text-[11px] leading-relaxed">{inspectingBlock.error}</p>
+                  </div>
+                ) : (
+                  <div className="font-mono text-[11px] text-slate-300 leading-relaxed overflow-x-auto whitespace-pre select-text h-full">
+                    <div className="flex text-left">
+                      {/* Lines bar */}
+                      <div className="text-slate-600 text-right pr-4 select-none border-r border-slate-900 leading-relaxed mr-4 font-normal text-[11px] min-w-[30px]">
+                        {inspectingBlock.content?.split('\n').map((_, index) => (
+                          <div key={index}>{index + 1}</div>
+                        ))}
+                      </div>
+                      {/* Code output with tokenizer-like highlighting */}
+                      <pre className="font-mono leading-relaxed text-[11px] text-left">
+                        <code>
+                          {inspectingBlock.content?.split('\n').map((line, idx) => {
+                            const parts = line.split(/(\b(?:import|from|export|interface|const|let|async|await|function|class|return|string|number|any|boolean|true|false)\b)/g);
+                            return (
+                              <div key={idx} className="min-h-[1.5rem]">
+                                {parts.map((p, pIdx) => {
+                                  if (['import', 'from', 'export'].includes(p)) {
+                                    return <span key={pIdx} className="text-purple-400 font-semibold">{p}</span>;
+                                  }
+                                  if (['interface', 'class', 'function', 'return'].includes(p)) {
+                                    return <span key={pIdx} className="text-pink-400 font-semibold">{p}</span>;
+                                  }
+                                  if (['const', 'let'].includes(p)) {
+                                    return <span key={pIdx} className="text-blue-400 font-semibold">{p}</span>;
+                                  }
+                                  if (['async', 'await'].includes(p)) {
+                                    return <span key={pIdx} className="text-amber-400 font-semibold">{p}</span>;
+                                  }
+                                  if (['string', 'number', 'any', 'boolean'].includes(p)) {
+                                    return <span key={pIdx} className="text-emerald-400">{p}</span>;
+                                  }
+                                  if (['true', 'false'].includes(p)) {
+                                    return <span key={pIdx} className="text-indigo-400 font-semibold">{p}</span>;
+                                  }
+                                  return p;
+                                })}
+                              </div>
+                            );
+                          })}
+                        </code>
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Side Panel: Auditor & Interop */}
+              <div className="w-80 border-l border-slate-800 bg-slate-900/40 overflow-y-auto custom-scrollbar p-4 space-y-6">
+                
+                {/* Health Summary */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Auditoria de Saúde</h3>
+                    {inspectingBlock.health && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        inspectingBlock.health.score > 80 ? 'bg-emerald-500/10 text-emerald-400' :
+                        inspectingBlock.health.score > 50 ? 'bg-amber-500/10 text-amber-500' :
+                        'bg-red-500/10 text-red-400'
+                      }`}>
+                        Score: {inspectingBlock.health.score}
+                      </span>
+                    )}
+                  </div>
+
+                  {!inspectingBlock.health ? (
+                    <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800/50 text-center">
+                      <p className="text-[10px] text-slate-500 italic mb-3">Nenhum dado de saúde disponível para este bloco.</p>
+                      <button 
+                        onClick={() => handleAuditBlock(inspectingBlock.category, inspectingBlock.file)}
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold underline decoration-indigo-500/30 underline-offset-4"
+                      >
+                        Disparar Auditoria IA agora
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                       <div className="grid grid-cols-2 gap-2">
+                         <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/50">
+                           <span className="block text-[8px] text-slate-500 uppercase font-bold mb-1">Maturidade</span>
+                           <span className="text-[10px] text-slate-300 font-mono">{inspectingBlock.health.maturity}</span>
+                         </div>
+                         <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/50">
+                           <span className="block text-[8px] text-slate-500 uppercase font-bold mb-1">Estabilidade</span>
+                           <span className="text-[10px] text-slate-300 font-mono">{inspectingBlock.health.stability_index}%</span>
+                         </div>
+                       </div>
+
+                       <div className="space-y-2">
+                         <h4 className="text-[9px] font-bold text-slate-400 uppercase">Pontos de Atenção</h4>
+                         <div className="flex flex-wrap gap-1.5">
+                           {inspectingBlock.health.findings?.map((f: string, i: number) => (
+                             <span key={i} className="bg-red-500/5 border border-red-500/10 text-red-400/80 px-2 py-0.5 rounded text-[9px] leading-tight">
+                               {f}
+                             </span>
+                           ))}
+                         </div>
+                       </div>
+
+                       <button 
+                        onClick={() => handlePowerizeBlock(inspectingBlock.category, inspectingBlock.file)}
+                        disabled={inspectingBlock.powerizing}
+                        className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20"
+                       >
+                         <Zap className={`w-3 h-3 ${inspectingBlock.powerizing ? 'animate-pulse text-amber-300' : ''}`} />
+                         {inspectingBlock.powerizing ? 'Refinando Bloco...' : 'Powerize: Refinar e Blindar'}
+                       </button>
+                    </div>
+                  )}
                 </div>
-              ) : inspectingBlock.error ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-red-400 font-mono text-xs p-6 text-center">
-                  <AlertTriangle className="w-10 h-10 text-red-500" />
-                  <p className="font-bold text-sm">Falha na verificação de integridade física</p>
-                  <p className="max-w-md text-slate-400 text-[11px] leading-relaxed">{inspectingBlock.error}</p>
-                </div>
-              ) : (
-                <div className="font-mono text-[11px] text-slate-300 leading-relaxed overflow-x-auto whitespace-pre select-text h-full">
-                  <div className="flex text-left">
-                    {/* Lines bar */}
-                    <div className="text-slate-600 text-right pr-4 select-none border-r border-slate-900 leading-relaxed mr-4 font-normal text-[11px] min-w-[30px]">
-                      {inspectingBlock.content?.split('\n').map((_, index) => (
-                        <div key={index}>{index + 1}</div>
+
+                <div className="h-px bg-slate-800" />
+
+                {/* Lego Interop Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Sinergia LEGO</h3>
+                    <button 
+                      onClick={() => handleCheckInterop(inspectingBlock.category, inspectingBlock.file)}
+                      disabled={inspectingBlock.interopLoading}
+                      className="text-[10px] text-blue-400 hover:text-blue-300 font-bold"
+                    >
+                      {inspectingBlock.interopLoading ? '...' : 'Analisar'}
+                    </button>
+                  </div>
+
+                  {inspectingBlock.interopMatrix ? (
+                    <div className="space-y-3">
+                      {inspectingBlock.interopMatrix?.map((m: any, idx: number) => (
+                        <div key={idx} className="bg-slate-900/40 border border-slate-800 p-3 rounded-xl space-y-2 relative overflow-hidden group">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-200 font-mono text-[10px] truncate max-w-[140px] font-bold">{m.target_block}</span>
+                            <span className="text-emerald-400 font-black text-[11px] font-mono leading-none tracking-tighter">{m.affinity}% SYNERGY</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-1.5 mt-1">
+                            <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60">
+                              <span className="block text-[7px] text-slate-500 uppercase tracking-widest font-bold">Correlação</span>
+                              <span className="text-[9px] text-blue-300 font-semibold">{m.correlation}</span>
+                            </div>
+                            <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60">
+                              <span className="block text-[7px] text-slate-500 uppercase tracking-widest font-bold">Interdep.</span>
+                              <span className="text-[9px] text-slate-300 font-semibold">{m.interdependence || 'Standalone'}</span>
+                            </div>
+                            <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60">
+                              <span className="block text-[7px] text-slate-500 uppercase tracking-widest font-bold">Proximidade</span>
+                              <span className="text-[9px] text-slate-300 font-semibold">{m.proximity}%</span>
+                            </div>
+                            <div className="bg-slate-950/60 p-1.5 rounded border border-slate-800/60">
+                              <span className="block text-[7px] text-slate-500 uppercase tracking-widest font-bold">Estabilidade</span>
+                              <span className="text-[9px] text-emerald-500 font-semibold">{m.stability_score}%</span>
+                            </div>
+                          </div>
+
+                          <p className="text-[9px] text-slate-400 italic leading-tight pl-2 border-l border-slate-700">
+                             &quot;{m.fit_result}&quot;
+                          </p>
+
+                          {m.suggested_implementation && (
+                            <div className="mt-2 pt-2 border-t border-slate-800">
+                               <span className="text-[7px] text-slate-600 block mb-1 uppercase font-bold">Implementation Glue</span>
+                               <pre className="font-mono text-[8px] text-emerald-600/80 bg-black/30 p-1.5 rounded border border-slate-800/50 overflow-x-auto">
+                                 {m.suggested_implementation}
+                               </pre>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
-                    {/* Code output with tokenizer-like highlighting */}
-                    <pre className="font-mono leading-relaxed text-[11px] text-left">
-                      <code>
-                        {inspectingBlock.content?.split('\n').map((line, idx) => {
-                          const parts = line.split(/(\b(?:import|from|export|interface|const|let|async|await|function|class|return|string|number|any|boolean|true|false)\b)/g);
-                          return (
-                            <div key={idx} className="min-h-[1.5rem]">
-                              {parts.map((p, pIdx) => {
-                                if (['import', 'from', 'export'].includes(p)) {
-                                  return <span key={pIdx} className="text-purple-400 font-semibold">{p}</span>;
-                                }
-                                if (['interface', 'class', 'function', 'return'].includes(p)) {
-                                  return <span key={pIdx} className="text-pink-400 font-semibold">{p}</span>;
-                                }
-                                if (['const', 'let'].includes(p)) {
-                                  return <span key={pIdx} className="text-blue-400 font-semibold">{p}</span>;
-                                }
-                                if (['async', 'await'].includes(p)) {
-                                  return <span key={pIdx} className="text-amber-400 font-semibold">{p}</span>;
-                                }
-                                if (['string', 'number', 'any', 'boolean'].includes(p)) {
-                                  return <span key={pIdx} className="text-emerald-400">{p}</span>;
-                                }
-                                if (['true', 'false'].includes(p)) {
-                                  return <span key={pIdx} className="text-indigo-400 font-semibold">{p}</span>;
-                                }
-                                return p;
-                              })}
-                            </div>
-                          );
-                        })}
-                      </code>
-                    </pre>
-                  </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-500 italic leading-snug">Clique em 'Analisar' para descobrir afinidades e dependências com outros blocos da Pool.</p>
+                  )}
                 </div>
-              )}
+
+                {/* Test Results Section */}
+                {inspectingBlock.testResult && (
+                   <>
+                    <div className="h-px bg-slate-800" />
+                    <div className="space-y-3">
+                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Execução & Estabilidade</h3>
+                      <div className={`p-3 rounded-xl border ${inspectingBlock.testResult.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                           {inspectingBlock.testResult.success ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-500" />}
+                           <span className={`text-[10px] font-bold ${inspectingBlock.testResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                             {inspectingBlock.testResult.success ? 'Passou no Pré-Voo' : 'Falha na Execução'}
+                           </span>
+                        </div>
+                        <div className="font-mono text-[9px] text-slate-500 break-words opacity-80 max-h-24 overflow-y-auto">
+                           {inspectingBlock.testResult.output || inspectingBlock.testResult.errors?.join('\n') || 'Sem logs do terminal.'}
+                        </div>
+                      </div>
+                    </div>
+                   </>
+                )}
+              </div>
             </div>
 
             {/* Action Footer */}

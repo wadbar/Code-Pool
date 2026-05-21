@@ -6,7 +6,7 @@ import { execSync } from 'child_process';
 import { logSystem } from '../utils/logger';
 import { getCache, setCache, logUserActivity, getActivityLogs, invalidateCache } from '../utils/redisCache';
 import { SSHManager } from '../../POOL/modules/AUTH';
-import { QualityAuditor } from '../../POOL/modules/AUDIT';
+import { QualityAuditor, LegoInteroperability, LegoRuntimeTester } from '../../POOL/modules/AUDIT';
 
 export function createPoolRouter(
     updateManager: any, 
@@ -634,6 +634,35 @@ export function createPoolRouter(
       }
       res.status(404).json({ error: 'Relatório global ainda não gerado.' });
     } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Endpoints de Interoperabilidade e Testes de Encaixe LEGO (Sinergia de Blocos)
+  router.post('/audit/interop', async (req, res) => {
+    try {
+      const { categoryA, fileA, categoryB, fileB } = req.body;
+      const pathA = path.join(process.cwd(), 'POOL', 'modules', categoryA, fileA);
+      const pathB = path.join(process.cwd(), 'POOL', 'modules', categoryB, fileB);
+      
+      const interop = new LegoInteroperability(process.env.GEMINI_API_KEY!);
+      const matrix = await interop.analyzeFit(pathA, pathB);
+      res.json(matrix);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.post('/audit/test-runtime', async (req, res) => {
+    try {
+      const { category, file } = req.body;
+      const filePath = path.join(process.cwd(), 'POOL', 'modules', category, file);
+      
+      const tester = new LegoRuntimeTester(process.env.GEMINI_API_KEY!);
+      const result = await tester.runPreflight(filePath);
+      res.json(result);
+    } catch (e: any) {
+      logSystem(`[AUDIT-TEST] Erro no teste de runtime: ${e.message}`);
       res.status(500).json({ error: e.message });
     }
   });

@@ -1,10 +1,10 @@
 {
-  "lastScanTime": "2026-05-21T16:01:17.087Z",
-  "totalRepos": 2164,
+  "lastScanTime": "2026-05-21T16:05:31.337Z",
+  "totalRepos": 6274,
   "totalBlocks": 27,
-  "totalBlueprints": 31,
+  "totalBlueprints": 28,
   "totalDigestedFiles": 7832,
-  "diskSizeKB": 184,
+  "diskSizeKB": 179,
   "categoriesCount": {
     "AI": 2,
     "AUDIT": 2,
@@ -19,6 +19,76 @@
     "VISION": 1
   },
   "events": [
+    {
+      "timestamp": "2026-05-21T16:04:41.772Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/wesbos/JavaScript30"
+    },
+    {
+      "timestamp": "2026-05-21T16:04:41.771Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/TheOdinProject/curriculum"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:54.496Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/themesberg/flowbite"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:54.496Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/donnemartin/system/design/primer"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:49.492Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/vinta/awesome/python"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:49.492Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/radix/ui/primitives"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:49.492Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/pydantic/fastui"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:49.491Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/ohmyzsh/ohmyzsh"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:49.491Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/eveningkid/denodb"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:44.338Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/supertone/inc/supertonic"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:39.277Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/soujava/vagas/java"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:29.288Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/goldbergyoni/javascript/testing/best/practices"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:29.288Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/EbookFoundation/free/programming/books"
+    },
+    {
+      "timestamp": "2026-05-21T16:03:24.278Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/Nebula"
+    },
     {
       "timestamp": "2026-05-21T15:57:24.621Z",
       "type": "BLUEPRINT",
@@ -448,76 +518,6 @@
       "timestamp": "2026-05-19T23:36:04.342Z",
       "type": "BLUEPRINT",
       "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/papervideo"
-    },
-    {
-      "timestamp": "2026-05-19T23:36:04.342Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/papermu"
-    },
-    {
-      "timestamp": "2026-05-19T23:36:04.341Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/Minecrafter/ai"
-    },
-    {
-      "timestamp": "2026-05-19T23:36:04.341Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/levyvix/scraper/filmes"
-    },
-    {
-      "timestamp": "2026-05-19T23:35:59.342Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/paperfabrik"
-    },
-    {
-      "timestamp": "2026-05-19T23:35:59.342Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/papercreeper"
-    },
-    {
-      "timestamp": "2026-05-19T23:35:59.341Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/Fliper"
-    },
-    {
-      "timestamp": "2026-05-19T23:35:34.338Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/wesbos/JavaScript30"
-    },
-    {
-      "timestamp": "2026-05-19T23:35:24.337Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/TheOdinProject/curriculum"
-    },
-    {
-      "timestamp": "2026-05-19T23:35:09.333Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/K/Dense/AI/scientific/agent/skills"
-    },
-    {
-      "timestamp": "2026-05-19T23:34:59.336Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/humanlayer/12/factor/agents"
-    },
-    {
-      "timestamp": "2026-05-19T23:34:59.335Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/NVlabs/Sana"
-    },
-    {
-      "timestamp": "2026-05-19T23:34:49.333Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/videolan/vlc"
-    },
-    {
-      "timestamp": "2026-05-19T23:34:49.332Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/themesberg/flowbite"
-    },
-    {
-      "timestamp": "2026-05-19T23:34:49.332Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/donnemartin/system/design/primer"
     }
   ]
 }

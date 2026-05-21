@@ -26,18 +26,60 @@ export class UpdateManager {
         }
     }
 
-    private getRegistry(): { repositories: WatchedRepository[] } {
-        const data = fs.readFileSync(this.registryPath, 'utf8');
-        const parsed = JSON.parse(data);
-        const originalLength = parsed.repositories.length;
-        parsed.repositories = parsed.repositories.filter((repo: WatchedRepository) => 
-            UpdateManager.isValidGitHubRepoUrl(repo.url)
-        );
-        if (parsed.repositories.length < originalLength) {
-            console.log(`[UPDATE-MANAGER] Removendo ${originalLength - parsed.repositories.length} repositórios inválidos/ruído do registro.`);
-            this.saveRegistry(parsed);
+    private updateRegistry(updater: (registry: { repositories: WatchedRepository[] }) => void) {
+        const lockPath = this.registryPath + '.lock';
+        let retries = 0;
+        while (retries < 1000) {
+            try {
+                fs.mkdirSync(lockPath);
+                break;
+            } catch (err: any) {
+                if (err.code === 'EEXIST') {
+                    try {
+                        const stats = fs.statSync(lockPath);
+                        if (Date.now() - stats.mtimeMs > 15000) {
+                            fs.rmdirSync(lockPath); continue;
+                        }
+                    } catch (e) {}
+                    const start = Date.now(); while (Date.now() - start < 20) {} // spin lock 20ms
+                    retries++;
+                } else throw err;
+            }
         }
-        return parsed;
+
+        try {
+            const data = fs.readFileSync(this.registryPath, 'utf8');
+            let parsed;
+            try {
+                parsed = JSON.parse(data);
+            } catch (e) {
+                parsed = { repositories: [] };
+            }
+            
+            // Clean invalid urls automatically during update
+            const originalLength = parsed.repositories.length;
+            parsed.repositories = parsed.repositories.filter((repo: WatchedRepository) => 
+                UpdateManager.isValidGitHubRepoUrl(repo.url)
+            );
+            if (parsed.repositories.length < originalLength) {
+                console.log(`[UPDATE-MANAGER] Removendo ${originalLength - parsed.repositories.length} repositórios corrompidos.`);
+            }
+
+            updater(parsed);
+
+            fs.writeFileSync(this.registryPath, JSON.stringify(parsed, null, 2));
+        } finally {
+            try { fs.rmdirSync(lockPath); } catch(e) {}
+        }
+    }
+
+    private getRegistry(): { repositories: WatchedRepository[] } {
+        try {
+            const data = fs.readFileSync(this.registryPath, 'utf8');
+            return JSON.parse(data);
+        } catch {
+            return { repositories: [] };
+        }
     }
 
     public static isValidGitHubRepoUrl(url: string | null | undefined): boolean {
@@ -101,30 +143,31 @@ export class UpdateManager {
             return false;
         }
 
-        const registry = this.getRegistry();
-        if (!registry.repositories.find(repo => repo.url === url)) {
-            registry.repositories.push({ url, lastSync: null });
-            this.saveRegistry(registry);
-            console.log(`[UPDATE-MANAGER] Novo repositório adicionado à vigilância: ${url}`);
-            return true;
-        }
-        return false;
+        let added = false;
+        this.updateRegistry((registry) => {
+            if (!registry.repositories.find(repo => repo.url === url)) {
+                registry.repositories.push({ url, lastSync: null });
+                added = true;
+                console.log(`[UPDATE-MANAGER] Novo repositório adicionado à vigilância: ${url}`);
+            }
+        });
+        return added;
     }
 
     /**
      * Remove um repositório da lista de monitoramento
      */
     removeRepository(url: string) {
-        const registry = this.getRegistry();
-        const initialLength = registry.repositories.length;
-        registry.repositories = registry.repositories.filter(repo => repo.url !== url);
-        
-        if (registry.repositories.length < initialLength) {
-            this.saveRegistry(registry);
-            console.log(`[UPDATE-MANAGER] Repositório removido da vigilância: ${url}`);
-            return true;
-        }
-        return false;
+        let removed = false;
+        this.updateRegistry((registry) => {
+            const initialLength = registry.repositories.length;
+            registry.repositories = registry.repositories.filter(repo => repo.url !== url);
+            if (registry.repositories.length < initialLength) {
+                removed = true;
+                console.log(`[UPDATE-MANAGER] Repositório removido da vigilância: ${url}`);
+            }
+        });
+        return removed;
     }
 
     /**
@@ -206,67 +249,62 @@ export class UpdateManager {
                 // Se falhou 5 vezes, vamos parar de tentar essa presa e marcar lastSync com erro
                 if ((repo.retryCount || 0) >= 5) {
                     console.log(`[UPDATE-MANAGER] Presa indigesta demais (${repo.url}). Abortando após 5 tentativas.`);
-                    repo.lastSync = new Date().toISOString();
-                    repo.status = "error";
-                    registryArr[i] = repo;
-                    this.saveRegistry({ repositories: registryArr });
+                    this.updateRegistry(registry => {
+                        let idx = registry.repositories.findIndex(r => r.url === repo.url);
+                        if (idx !== -1) {
+                            registry.repositories[idx].lastSync = new Date().toISOString();
+                            registry.repositories[idx].status = "error";
+                        }
+                    });
                     continue;
                 }
 
                 // Ingestão autônoma de código
                 const result = await RepoIngester.ingestFromGitHub(repo.url, repo.isMonster ? 180000 : 45000);
                 
-                // REFRESH REGISTRY AFTER AWAIT TO PREVENT RACE CONDITION OVERWRITES
-                const freshRegistryArr = this.getRegistry().repositories;
-                let freshIndex = freshRegistryArr.findIndex(r => r.url === repo.url);
-                if (freshIndex !== -1) {
-                    if (result.status === "monster") {
-                        console.log(`[UPDATE-MANAGER] REPO MONSTRO DETECTADO: ${repo.url}. Escalando prioridade e adiando para o próximo ciclo.`);
-                        repo.isMonster = true;
-                        repo.retryCount = (repo.retryCount || 0) + 1;
-                        
-                        freshRegistryArr.splice(freshIndex, 1);
-                        freshRegistryArr.push(repo);
-                        this.saveRegistry({ repositories: freshRegistryArr });
-                        continue;
-                    }
-
-                    if (result.status === "partial") {
-                        console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila.`);
-                        
-                        repo.digestedCount = (repo.digestedCount || 0) + (result.filesProcessed || 0);
-                        repo.totalFiles = result.totalFiles;
-                        
-                        if (result.totalFiles && result.totalFiles > 600) {
-                            repo.isMonster = true;
-                        } else if (result.totalFiles && result.totalFiles < 300) {
-                            repo.isMonster = false; 
-                        } else if (result.filesProcessed === 0 && (repo.retryCount || 0) > 3) {
-                            repo.isMonster = true; 
+                // ATUALIZAÇÃO SEGURA E ATÔMICA DO REGISTRO
+                this.updateRegistry(freshRegistry => {
+                    let freshIndex = freshRegistry.repositories.findIndex(r => r.url === repo.url);
+                    if (freshIndex !== -1) {
+                        const freshRepo = freshRegistry.repositories[freshIndex];
+                        if (result.status === "monster") {
+                            console.log(`[UPDATE-MANAGER] REPO MONSTRO DETECTADO: ${repo.url}. Escalando prioridade e adiando para o próximo ciclo.`);
+                            freshRepo.isMonster = true;
+                            freshRepo.retryCount = (freshRepo.retryCount || 0) + 1;
+                            
+                            freshRegistry.repositories.splice(freshIndex, 1);
+                            freshRegistry.repositories.push(freshRepo);
+                        } else if (result.status === "partial") {
+                            console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila.`);
+                            
+                            freshRepo.digestedCount = (freshRepo.digestedCount || 0) + (result.filesProcessed || 0);
+                            freshRepo.totalFiles = result.totalFiles;
+                            
+                            if (result.totalFiles && result.totalFiles > 600) {
+                                freshRepo.isMonster = true;
+                            } else if (result.totalFiles && result.totalFiles < 300) {
+                                freshRepo.isMonster = false; 
+                            } else if (result.filesProcessed === 0 && (freshRepo.retryCount || 0) > 3) {
+                                freshRepo.isMonster = true; 
+                            }
+                            
+                            if (result.totalFiles && result.totalFiles > 500) {
+                                freshRepo.isMonster = true;
+                            } else if (result.totalFiles && result.totalFiles <= 500) {
+                                freshRepo.isMonster = false;
+                            }
+                            
+                            freshRegistry.repositories.splice(freshIndex, 1);
+                            freshRegistry.repositories.push(freshRepo);
+                        } else if (result.status === "success") {
+                            freshRepo.digestedCount = freshRepo.totalFiles || result.totalFiles;
+                            freshRepo.lastSync = new Date().toISOString();
+                            freshRepo.status = "synced";
                         }
                         
-                        if (result.totalFiles && result.totalFiles > 500) {
-                            repo.isMonster = true;
-                        } else if (result.totalFiles && result.totalFiles <= 500) {
-                            repo.isMonster = false;
-                        }
-                        
-                        freshRegistryArr.splice(freshIndex, 1);
-                        freshRegistryArr.push(repo);
-                        this.saveRegistry({ repositories: freshRegistryArr });
-                        continue;
+                        updatedCount++;
                     }
-
-                    if (result.status === "success") {
-                        repo.digestedCount = repo.totalFiles || result.totalFiles;
-                        repo.lastSync = new Date().toISOString();
-                        repo.status = "synced";
-                        freshRegistryArr[freshIndex] = repo;
-                    }
-                    
-                    updatedCount++;
-                    this.saveRegistry({ repositories: freshRegistryArr });
-                }
+                });
             } else {
                 console.log(`[UPDATE-MANAGER] Repositório já persistido no registro: ${repo.url}. (Use force=true para re-ingestão).`);
             }

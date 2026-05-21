@@ -1,6 +1,7 @@
 import { AuthShield } from './AuthShield';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { jest } from '@jest/globals';
 
 describe('AuthShield', () => {
     const originalEnv = process.env;

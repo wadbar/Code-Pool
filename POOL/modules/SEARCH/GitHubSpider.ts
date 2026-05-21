@@ -48,11 +48,22 @@ export class GitHubSpider {
             const { data } = await this.client.get<T>(url, { params });
             return data;
         } catch (err: any) {
-            if (retries > 0 && err.response?.status >= 500) {
-                const delay = Math.pow(2, 3 - retries) * 1000;
-                console.warn(`[SPIDER] Erro ${err.response.status} ao acessar ${url}. Tentando em ${delay}ms... (${retries} tentativas restantes)`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return this.fetchWithRetry<T>(url, params, retries - 1);
+            if (retries > 0) {
+                const remaining = err.response?.headers?.['x-ratelimit-remaining'];
+                const reset = err.response?.headers?.['x-ratelimit-reset'];
+
+                if (err.response?.status === 403 && remaining === '0' && reset) {
+                    const resetTime = parseInt(reset, 10) * 1000;
+                    const delay = Math.max(resetTime - Date.now(), 0) + 1000;
+                    console.warn(`[SPIDER] Rate limit excedido para ${url}. Aguardando reset em ${delay}ms... (${retries} tentativas restantes)`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return this.fetchWithRetry<T>(url, params, retries - 1);
+                } else if (err.response?.status >= 500) {
+                    let delay = Math.pow(2, 3 - retries) * 1000;
+                    console.warn(`[SPIDER] Erro ${err.response.status} ao acessar ${url}. Tentando em ${delay}ms... (${retries} tentativas restantes)`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return this.fetchWithRetry<T>(url, params, retries - 1);
+                }
             }
             throw err;
         }

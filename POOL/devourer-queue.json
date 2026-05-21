@@ -1,0 +1,8 @@
+[
+  {
+    "repoUrl": "https://github.com/wadbar/fake-repo-for-test-only",
+    "targetModule": "AUTH",
+    "priority": "high",
+    "status": "failed"
+  }
+]

@@ -61,14 +61,16 @@ export class DevourerAgent {
             this.saveQueue(queue);
 
             try {
-                // Aqui entraria a lógica real de identificar os blocos
-                // (simulando extração)
-                console.log(`[DEVOURER] Extraindo partes suculentas de: ${task.repoUrl}`);
+                const { RepoIngester } = await import('./RepoIngester');
+                console.log(`[DEVOURER] Analisando e extraindo partes suculentas reais de: ${task.repoUrl}`);
                 
-                // Simulação de delay assíncrono
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                task.status = 'devoured';
+                const result = await RepoIngester.ingestFromGitHub(task.repoUrl);
+                
+                if (result.status === 'success' || result.status === 'partial') {
+                    task.status = 'devoured';
+                } else {
+                    task.status = 'failed';
+                }
             } catch (error) {
                 console.error(`[DEVOURER] Erro ao devorar ${task.repoUrl}:`, error);
                 task.status = 'failed';

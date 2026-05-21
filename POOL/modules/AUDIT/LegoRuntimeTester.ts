@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import { GeminiBridge } from '../AI/GeminiBridge';
+import { UniversalAIBridge } from '../AI';
 
 export interface TestResult {
     success: boolean;
@@ -13,10 +13,15 @@ export interface TestResult {
 }
 
 export class LegoRuntimeTester {
-    private bridge: GeminiBridge;
+    private bridge: UniversalAIBridge;
 
-    constructor(apiKey: string) {
-        this.bridge = new GeminiBridge(apiKey);
+    constructor(config: any = {}) {
+        this.bridge = new UniversalAIBridge({
+            geminiKey: config.geminiKey || process.env.GEMINI_API_KEY,
+            openaiKey: config.openaiKey || process.env.OPENAI_API_KEY,
+            nvidiaKey: config.nvidiaKey || process.env.NVIDIA_API_KEY,
+            ollamaHost: config.ollamaHost || process.env.OLLAMA_HOST
+        });
     }
 
     /**
@@ -94,8 +99,8 @@ Retorne no formato JSON:
 }`;
 
         try {
-            const aiResponse = await this.bridge.prompt(prompt, 'gemini-3.5-flash', { responseMimeType: 'application/json' });
-            const data = JSON.parse(aiResponse);
+            const aiResponse = await this.bridge.prompt(prompt, 'gemini', 'gemini-3.5-flash');
+            const data = JSON.parse(aiResponse.text.replace(/^```json/, '').replace(/```$/, '').trim());
             return {
                 result: preflight,
                 correction: data.corrected_code

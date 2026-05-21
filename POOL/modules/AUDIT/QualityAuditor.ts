@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { GeminiBridge } from '../AI/GeminiBridge';
+import { UniversalAIBridge, type AIProviderName } from '../AI';
 import { POOL_SYSTEM_PROMPT } from '../AI/SystemPrompt';
 
 export type MaturityLevel = 'Skeleton' | 'Partial' | 'Functional' | 'Robust' | 'Optimized';
@@ -25,11 +25,16 @@ export interface PoolAuditReport {
 }
 
 export class QualityAuditor {
-    private bridge: GeminiBridge;
+    private bridge: UniversalAIBridge;
     private static REGISTRY_PATH = path.join(process.cwd(), 'POOL', 'data', 'health-registry.json');
 
-    constructor(apiKey: string) {
-        this.bridge = new GeminiBridge(apiKey);
+    constructor(config: any = {}) {
+        this.bridge = new UniversalAIBridge({
+            geminiKey: config.geminiKey || process.env.GEMINI_API_KEY,
+            openaiKey: config.openaiKey || process.env.OPENAI_API_KEY,
+            nvidiaKey: config.nvidiaKey || process.env.NVIDIA_API_KEY,
+            ollamaHost: config.ollamaHost || process.env.OLLAMA_HOST
+        });
         this.ensureDataDir();
     }
 
@@ -72,11 +77,9 @@ Responda APENAS um objeto JSON formatado:
 }`;
 
         try {
-            const result = await this.bridge.prompt(`${prompt}\n\nCONTENT:\n${code}`, 'gemini-3.5-flash', {
-                responseMimeType: 'application/json'
-            });
+            const result = await this.bridge.prompt(`${prompt}\n\nCONTENT:\n${code}`, 'gemini', 'gemini-3.5-flash');
             
-            const auditData = JSON.parse(result.replace(/^```json/, '').replace(/```$/, '').trim());
+            const auditData = JSON.parse(result.text.replace(/^```json/, '').replace(/```$/, '').trim());
             
             const health: BlockHealth = {
                 block_id: blockId,
@@ -126,10 +129,10 @@ ${currentCode}`;
 
         try {
             console.log(`[AUDITOR] Iniciando 'Poderização' do bloco ${fileName}...`);
-            let enhancedCode = await this.bridge.prompt(prompt, 'gemini-3.1-pro-preview'); // Use Pro for complex coding
+            const aiResponse = await this.bridge.prompt(prompt, 'gemini', 'gemini-2.0-flash-exp'); 
             
             // Cleanup just in case
-            enhancedCode = enhancedCode.replace(/^```typescript/, '').replace(/^```ts/, '').replace(/```$/, '').trim();
+            let enhancedCode = aiResponse.text.replace(/^```typescript/, '').replace(/^```ts/, '').replace(/```$/, '').trim();
 
             if (enhancedCode && enhancedCode.length > 100) {
                 fs.writeFileSync(filePath, enhancedCode);

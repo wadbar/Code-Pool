@@ -583,7 +583,7 @@ export function createPoolRouter(
       if (!category || !file) return res.status(400).json({ error: 'Category and file required' });
       
       const filePath = path.join(process.cwd(), 'POOL', 'modules', category, file);
-      const auditor = new QualityAuditor(process.env.GEMINI_API_KEY!);
+      const auditor = new QualityAuditor();
       const health = await auditor.analyzeBlock(filePath);
       
       res.json({ status: 'success', health });
@@ -599,7 +599,7 @@ export function createPoolRouter(
       if (!category || !file) return res.status(400).json({ error: 'Category and file required' });
       
       const filePath = path.join(process.cwd(), 'POOL', 'modules', category, file);
-      const auditor = new QualityAuditor(process.env.GEMINI_API_KEY!);
+      const auditor = new QualityAuditor();
       
       console.log(`[AUDIT] Refinando bloco: ${category}/${file}`);
       const result = await auditor.powerizeBlock(filePath);
@@ -613,7 +613,7 @@ export function createPoolRouter(
 
   router.post('/audit/pool', async (req, res) => {
     try {
-      const auditor = new QualityAuditor(process.env.GEMINI_API_KEY!);
+      const auditor = new QualityAuditor();
       // Run full audit in background to avoid timeout
       auditor.auditFullPool().then(report => {
         logSystem(`[AUDIT] Auditoria Geral concluída. Score médio: ${report.average_score}`);
@@ -647,7 +647,7 @@ export function createPoolRouter(
       const pathA = path.join(process.cwd(), 'POOL', 'modules', categoryA, fileA);
       const pathB = path.join(process.cwd(), 'POOL', 'modules', categoryB, fileB);
       
-      const interop = new LegoInteroperability(process.env.GEMINI_API_KEY!);
+      const interop = new LegoInteroperability();
       const matrix = await interop.analyzeFit(pathA, pathB);
       res.json(matrix);
     } catch (e: any) {
@@ -663,7 +663,7 @@ export function createPoolRouter(
       }
       
       const blockPaths = blocks.map((b: any) => path.join(process.cwd(), 'POOL', 'modules', b.category, b.file));
-      const interop = new LegoInteroperability(process.env.GEMINI_API_KEY!);
+      const interop = new LegoInteroperability();
       const report = await interop.analyzeComposition(blockPaths);
       res.json(report);
     } catch (e: any) {
@@ -676,7 +676,7 @@ export function createPoolRouter(
       const { category, file } = req.body;
       const filePath = path.join(process.cwd(), 'POOL', 'modules', category, file);
       
-      const tester = new LegoRuntimeTester(process.env.GEMINI_API_KEY!);
+      const tester = new LegoRuntimeTester();
       const result = await tester.runPreflight(filePath);
       res.json(result);
     } catch (e: any) {

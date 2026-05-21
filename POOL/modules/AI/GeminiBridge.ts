@@ -6,12 +6,16 @@ import { GoogleGenAI } from "@google/genai";
 export class GeminiBridge {
     private ai: GoogleGenAI;
 
-    constructor(apiKey: string) {
-        if (!apiKey) {
-            throw new Error("Gemini API key is required to initialize GeminiBridge.");
+    constructor(apiKey?: string) {
+        // Fallback para a chave do ambiente se não for fornecida explicitamente
+        const effectiveKey = apiKey || process.env.GEMINI_API_KEY;
+        
+        if (!effectiveKey) {
+            console.warn("[GeminiBridge] Nenhuma chave API detectada na inicialização. O modelo poderá falhar se não houver um ambiente pré-configurado.");
         }
+
         this.ai = new GoogleGenAI({
-            apiKey,
+            apiKey: effectiveKey || "DUMMY_KEY", // Evita crash na lib mas permite falhar na requisição com erro real
             httpOptions: {
                 headers: {
                     'User-Agent': 'aistudio-build',

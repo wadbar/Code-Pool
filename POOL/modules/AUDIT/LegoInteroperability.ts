@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { GeminiBridge } from '../AI/GeminiBridge';
+import { UniversalAIBridge } from '../AI';
 import { POOL_SYSTEM_PROMPT } from '../AI/SystemPrompt';
 import { BlockHealth } from './QualityAuditor';
 
@@ -27,10 +27,15 @@ export interface LegoCompositionReport {
 }
 
 export class LegoInteroperability {
-    private bridge: GeminiBridge;
+    private bridge: UniversalAIBridge;
 
-    constructor(apiKey: string) {
-        this.bridge = new GeminiBridge(apiKey);
+    constructor(config: any = {}) {
+        this.bridge = new UniversalAIBridge({
+            geminiKey: config.geminiKey || process.env.GEMINI_API_KEY,
+            openaiKey: config.openaiKey || process.env.OPENAI_API_KEY,
+            nvidiaKey: config.nvidiaKey || process.env.NVIDIA_API_KEY,
+            ollamaHost: config.ollamaHost || process.env.OLLAMA_HOST
+        });
     }
 
     /**
@@ -68,11 +73,9 @@ Responda APENAS um objeto JSON válido:
 
         try {
             const combinedContent = `CODE A (${sourceName}):\n${sourceCode}\n\nCODE B (${targetName}):\n${targetCode}`;
-            const result = await this.bridge.prompt(`${prompt}\n\n${combinedContent}`, 'gemini-3.5-flash', {
-                responseMimeType: 'application/json'
-            });
+            const result = await this.bridge.prompt(`${prompt}\n\n${combinedContent}`, 'gemini', 'gemini-3.5-flash');
 
-            const interop = JSON.parse(result.replace(/^```json/, '').replace(/```$/, '').trim());
+            const interop = JSON.parse(result.text.replace(/^```json/, '').replace(/```$/, '').trim());
             
             return {
                 source_block: sourceName,
@@ -147,11 +150,9 @@ Responda um JSON com:
 
         try {
             const combinedContent = codes.map(c => `// FILE: ${c.name}\n${c.content}`).join('\n\n');
-            const result = await this.bridge.prompt(`${prompt}\n\n${combinedContent}`, 'gemini-3.5-flash', {
-                responseMimeType: 'application/json'
-            });
+            const result = await this.bridge.prompt(`${prompt}\n\n${combinedContent}`, 'gemini', 'gemini-3.5-flash');
 
-            return JSON.parse(result.replace(/^```json/, '').replace(/```$/, '').trim());
+            return JSON.parse(result.text.replace(/^```json/, '').replace(/```$/, '').trim());
         } catch (err: any) {
             console.error(`[INTEROP] Erro na análise de composição:`, err.message);
             throw err;

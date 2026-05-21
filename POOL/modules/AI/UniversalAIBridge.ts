@@ -7,6 +7,7 @@ export interface AIResponse {
     text: string;
     model: string;
     usage?: any;
+    fallback?: boolean;
 }
 
 export interface UniversalAIConfig {
@@ -25,23 +26,64 @@ export class UniversalAIBridge {
 
     /**
      * Ponto de entrada universal para geração de conteúdo.
+     * Implementa lógica de fallback automático para o Gemini se as chaves estiverem ausentes.
      */
     async prompt(text: string, provider: AIProviderName, model: string, systemInstruction: string = POOL_SYSTEM_PROMPT): Promise<AIResponse> {
         console.log(`[UniversalAIBridge] Dispatching request to ${provider} (${model})...`);
         
-        switch (provider) {
+        // Verifica se as chaves necessárias estão presentes, caso contrário, aplica fallback para Gemini
+        let targetProvider = provider;
+        let targetModel = model;
+        let isFallback = false;
+
+        if (provider === "openai" || provider === "codex") {
+            if (!this.config.openaiKey || this.config.openaiKey === "") {
+                console.warn(`[UniversalAIBridge] OPENAI_API_KEY ausente. Aplicando fallback para Gemini.`);
+                targetProvider = "gemini";
+                targetModel = "gemini-1.5-flash"; // Modelo padrão resiliente
+                isFallback = true;
+            }
+        } else if (provider === "nvidia") {
+            if (!this.config.nvidiaKey || this.config.nvidiaKey === "") {
+                console.warn(`[UniversalAIBridge] NVIDIA_API_KEY ausente. Aplicando fallback para Gemini.`);
+                targetProvider = "gemini";
+                targetModel = "gemini-1.5-flash";
+                isFallback = true;
+            }
+        }
+
+        let response: AIResponse;
+        
+        switch (targetProvider) {
             case "gemini":
-                return this.callGemini(text, model, systemInstruction);
+                response = await this.callGemini(text, targetModel, systemInstruction);
+                break;
             case "ollama":
-                return this.callOllama(text, model, systemInstruction);
+                try {
+                    response = await this.callOllama(text, model, systemInstruction);
+                } catch (e) {
+                    console.warn(`[UniversalAIBridge] Falha ao conectar ao Ollama local. Aplicando fallback para Gemini.`);
+                    response = await this.callGemini(text, "gemini-1.5-flash", systemInstruction);
+                    isFallback = true;
+                }
+                break;
             case "openai":
             case "codex":
-                return this.callOpenAI(text, model, systemInstruction);
+                response = await this.callOpenAI(text, model, systemInstruction);
+                break;
             case "nvidia":
-                return this.callNvidia(text, model, systemInstruction);
+                response = await this.callNvidia(text, model, systemInstruction);
+                break;
             default:
-                throw new Error(`Provider ${provider} não suportado.`);
+                throw new Error(`Provider ${targetProvider} não suportado.`);
         }
+
+        if (isFallback) {
+            response.fallback = true;
+            response.text = `[AVISO: FALLBACK ATIVADO - PROVIDER ORIGINAL: ${provider}]\n\n${response.text}`;
+        }
+
+        return response;
     }
 
     private async callGemini(prompt: string, model: string, system: string): Promise<AIResponse> {

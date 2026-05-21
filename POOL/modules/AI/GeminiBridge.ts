@@ -1,10 +1,10 @@
 // Bloco Unificado: GeminiBridge
 // Finalidade: Orquestração de modelos Gemini para Texto, Visão e Código com suporte a streaming e tratamento robusto de erros.
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export class GeminiBridge {
-    private ai: GoogleGenAI;
+    private ai: GoogleGenerativeAI;
 
     constructor(apiKey?: string) {
         // Fallback para a chave do ambiente se não for fornecida explicitamente
@@ -14,14 +14,7 @@ export class GeminiBridge {
             console.warn("[GeminiBridge] Nenhuma chave API detectada na inicialização. O modelo poderá falhar se não houver um ambiente pré-configurado.");
         }
 
-        this.ai = new GoogleGenAI({
-            apiKey: effectiveKey || "DUMMY_KEY", // Evita crash na lib mas permite falhar na requisição com erro real
-            httpOptions: {
-                headers: {
-                    'User-Agent': 'aistudio-build',
-                }
-            }
-        });
+        this.ai = new GoogleGenerativeAI(effectiveKey || "DUMMY_KEY");
     }
 
     /**

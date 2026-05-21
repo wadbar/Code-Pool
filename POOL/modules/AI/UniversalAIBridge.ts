@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { POOL_SYSTEM_PROMPT } from "./SystemPrompt";
 
 export type AIProviderName = "gemini" | "ollama" | "nvidia" | "openai" | "codex";
@@ -93,7 +93,7 @@ export class UniversalAIBridge {
             console.warn("[UniversalAIBridge] Nenhuma GEMINI_API_KEY detectada. A requisição poderá falhar.");
         }
 
-        const genAI = new GoogleGenAI(apiKey || "NO_KEY_PROVIDED");
+        const genAI = new GoogleGenerativeAI(apiKey || "NO_KEY_PROVIDED");
         const aiModel = genAI.getGenerativeModel({ model, systemInstruction: system });
         const result = await aiModel.generateContent(prompt);
         const response = await result.response;

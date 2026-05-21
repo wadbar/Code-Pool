@@ -1,5 +1,4 @@
 import { UpdateManager } from './UpdateManager';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export class UrlScraper {
     /**

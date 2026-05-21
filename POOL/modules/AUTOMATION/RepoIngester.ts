@@ -88,10 +88,21 @@ export class RepoIngester {
                 // Sempre usar shallow clone (depth 1) para eficiência
                 const cloneCmd = `git ${gitConfig} clone --depth 1 --single-branch --no-tags ${repoUrl} ${destPath}`;
                 
+                const customEnv = { ...process.env };
+                try {
+                    const { SSHManager } = await import('../AUTH/SSHManager');
+                    if (SSHManager.getKeyPairInfo().exists) {
+                        customEnv.GIT_SSH_COMMAND = SSHManager.getGitSshCommand();
+                    }
+                } catch (sshErr: any) {
+                    console.warn('[INGESTER] SSHManager não pôde ser carregado para clonagem:', sshErr.message);
+                }
+                
                 execSync(cloneCmd, {
                     stdio: 'pipe',
                     timeout: activeTimeout,
-                    killSignal: 'SIGKILL'
+                    killSignal: 'SIGKILL',
+                    env: customEnv
                 });
                 
                 console.log(`[INGESTER] Clone concluído com sucesso na tentativa ${attempt}!`);
@@ -630,15 +641,16 @@ Responda SOMENTE o documento em formato Markdown sem blocos de código extras.`;
 Analise detalhadamente o arquivo ${filename} para classificação sofisticada de código e extração de blocos lógicos autônomos. 
 Como parte da análise rigorosa:
 1. Examine a finalidade do código, imports, dependências e padrões estáticos de programação.
-2. Extraia a melhor lógica modular (função, componente React ou classe TypeScript), assecurando que o código seja limpo, autossuficiente e livre de frameworks externos desnecessários ou simulacros (mocks).
+2. Extraia a lógica modular REAL (função, componente React ou classe TypeScript). É TERMINANTEMENTE PROIBIDO criar esqueletos vazios, funções de mentira ou simulacros (mocks). O código DEVE ser 100% completo, blindado com a lógica bruta e funcional.
 3. Classifique o recurso especificamente em uma das seguintes categorias canônicas baseadas nos módulos existentes do ecossistema: [AUTH, DB, GEOMETRY, MEDIA, NETWORKING, SECURITY, AUTOMATION, UI, UTILS, ALGORITHM, AI, ML, AUDITOR, DATA, PROCEDURAL, SEARCH, VISION, VALIDATION].
 4. IMPORTANTE: Defina o "block_id" de forma determinística utilizando snake_case extremamente descritiva da funcionalidade analisada.
+5. REGRA DE OURO (ANTI-SIMULACRO): Você ESTÁ PROIBIDO de usar marcadores de omissão como "// ... resto do código aqui". Você DEVE retornar a implementação COMPLETA, PROFUNDA e VERDADEIRA encontrada no repositório.
 
 Responda APENAS um objeto JSON estruturado contendo a classificação sofisticada:
 {
   "category": "string",
   "block_id": "string",
-  "code": "string (código typescript completo e funcional pronto para produção)"
+  "code": "string (código typescript COMPLETO, PODEROSO E ROBUSTO, zero placeholders, 100% implementado e pronto para produção)"
 }
 
 Source Code:
@@ -718,8 +730,10 @@ ${source}
             try {
                 const bridge = this.getBridge();
                 
-                const prompt = `${POOL_SYSTEM_PROMPT}\n\nMescle inteligentemente ou decida qual o melhor código TypeScript para o recurso de alta performance "${blockId}". 
-Mantenha exports claros, tipos consistentes e trate erros adequadamente. Retorne apenas o código TS puro sem explicações ou delimitadores.
+                const prompt = `${POOL_SYSTEM_PROMPT}\n\nMescle inteligentemente ou decida qual o melhor código TypeScript profundo e real para o recurso de alta performance "${blockId}". 
+Mantenha exports claros, tipos consistentes e trate erros adequadamente. 
+É TERMINANTEMENTE PROIBIDO resumir o código, usar marcações de "// ... (código existente)" ou gerar esqueletos vazios. A implementação final deve ser COMPLETA, PODEROSA e PRONTA PARA PRODUÇÃO.
+Retorne apenas o código TS puro sem explicações ou delimitadores.
 
 EXISTING:
 ${existingCode.substring(0, 4000)}

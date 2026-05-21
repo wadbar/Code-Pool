@@ -5,6 +5,7 @@ import os from 'os';
 import { execSync } from 'child_process';
 import { logSystem } from '../utils/logger';
 import { getCache, setCache, logUserActivity, getActivityLogs, invalidateCache } from '../utils/redisCache';
+import { SSHManager } from '../../POOL/modules/AUTH';
 
 export function createPoolRouter(
     updateManager: any, 
@@ -472,6 +473,90 @@ export function createPoolRouter(
     } catch (err: any) {
       logSystem(`[SYSTEM-HEALTH] Error: ${err.message}`);
       res.status(500).json({ error: 'Erro ao extrair system health.', details: err.message });
+    }
+  });
+
+  // Endpoints para Gerenciamento de Autenticação/Chaves SSH do GitHub (Acesso a Repositórios Privados)
+  router.get('/ssh/info', async (req, res) => {
+    try {
+      const info = SSHManager.getKeyPairInfo();
+      res.json({
+        status: 'success',
+        ...info
+      });
+    } catch (e: any) {
+      logSystem(`[SSH] Erro ao carregar informações de chaves SSH: ${e.message}`);
+      res.status(500).json({ error: 'Erro ao carregar setup SSH: ' + e.message });
+    }
+  });
+
+  router.post('/ssh/generate', async (req, res) => {
+    try {
+      const info = await SSHManager.generateKeyPair(true);
+      // Auto-configurar o SSH Config e conhecidos após gerar
+      SSHManager.configureSshConfig();
+      await SSHManager.setupKnownHosts().catch(err => {
+         console.warn('[SSH] Falha não-bloqueante ao registrar known_hosts durante geração:', err.message);
+      });
+      
+      res.json({
+        status: 'success',
+        message: 'Novo par de chaves SSH RSA de 4096 bits gerado com sucesso.',
+        ...info
+      });
+    } catch (e: any) {
+      logSystem(`[SSH] Erro ao gerar chaves SSH: ${e.message}`);
+      res.status(500).json({ error: 'Erro ao gerar par de chaves SSH: ' + e.message });
+    }
+  });
+
+  router.post('/ssh/import', async (req, res) => {
+    try {
+      const { privateKey, publicKey } = req.body;
+      if (!privateKey) {
+        return res.status(400).json({ error: 'Por favor, forneça o conteúdo da chave privada.' });
+      }
+
+      await SSHManager.saveCustomPrivateKey(privateKey, publicKey || undefined);
+      SSHManager.configureSshConfig();
+      await SSHManager.setupKnownHosts().catch(err => {
+         console.warn('[SSH] Falha não-bloqueante ao registrar known_hosts durante importação:', err.message);
+      });
+
+      res.json({
+        status: 'success',
+        message: 'Sua chave privada SSH personalizada foi importada com sucesso.'
+      });
+    } catch (e: any) {
+      logSystem(`[SSH] Erro ao importar chave SSH personalizada: ${e.message}`);
+      res.status(500).json({ error: 'Erro ao importar chave SSH: ' + e.message });
+    }
+  });
+
+  router.post('/ssh/setup-hosts', async (req, res) => {
+    try {
+      SSHManager.configureSshConfig();
+      await SSHManager.setupKnownHosts();
+      res.json({
+        status: 'success',
+        message: 'Configurações de hosts conhecidos (known_hosts) e mapeamento do SSH Config sincronizados com sucesso.'
+      });
+    } catch (e: any) {
+      logSystem(`[SSH] Erro ao reconfigurar hosts SSH: ${e.message}`);
+      res.status(500).json({ error: 'Erro ao sincronizar hosts conhecidos: ' + e.message });
+    }
+  });
+
+  router.post('/ssh/test', async (req, res) => {
+    try {
+      const testResult = await SSHManager.testGitHubConnection();
+      res.json({
+        status: 'success',
+        ...testResult
+      });
+    } catch (e: any) {
+      logSystem(`[SSH] Erro de rede/diagnóstico SSH: ${e.message}`);
+      res.status(500).json({ error: 'Erro no diagnóstico de conexão SSH: ' + e.message });
     }
   });
 

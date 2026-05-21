@@ -7,6 +7,8 @@ import { logSystem } from '../utils/logger';
 import { getCache, setCache, logUserActivity, getActivityLogs, invalidateCache } from '../utils/redisCache';
 import { SSHManager } from '../../POOL/modules/AUTH';
 import { QualityAuditor, LegoInteroperability, LegoRuntimeTester } from '../../POOL/modules/AUDIT';
+import { UniversalAIBridge, type AIProviderName } from '../../POOL/modules/AI';
+import { POOL_SYSTEM_PROMPT } from '../../POOL/modules/AI/SystemPrompt';
 
 export function createPoolRouter(
     updateManager: any, 
@@ -681,6 +683,32 @@ export function createPoolRouter(
       logSystem(`[AUDIT-TEST] Erro no teste de runtime: ${e.message}`);
       res.status(500).json({ error: e.message });
     }
+  });
+
+  router.post('/ai/generate', async (req, res) => {
+    try {
+      const { prompt, provider, model, system } = req.body;
+      if (!prompt || !provider || !model) {
+        return res.status(400).json({ error: 'Prompt, provider e model são obrigatórios.' });
+      }
+
+      const bridge = new UniversalAIBridge({
+        geminiKey: process.env.GEMINI_API_KEY,
+        openaiKey: process.env.OPENAI_API_KEY,
+        nvidiaKey: process.env.NVIDIA_API_KEY,
+        ollamaHost: process.env.OLLAMA_HOST
+      });
+
+      const response = await bridge.prompt(prompt, provider as AIProviderName, model, system);
+      res.json(response);
+    } catch (e: any) {
+      logSystem(`[AI-GENERATOR] Erro na geração com ${req.body.provider}: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.get('/ai/system-prompt', (req, res) => {
+    res.json({ prompt: POOL_SYSTEM_PROMPT });
   });
 
   return router;

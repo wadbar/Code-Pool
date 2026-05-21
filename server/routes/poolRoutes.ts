@@ -6,6 +6,7 @@ import { execSync } from 'child_process';
 import { logSystem } from '../utils/logger';
 import { getCache, setCache, logUserActivity, getActivityLogs, invalidateCache } from '../utils/redisCache';
 import { SSHManager } from '../../POOL/modules/AUTH';
+import { QualityAuditor } from '../../POOL/modules/AUDIT';
 
 export function createPoolRouter(
     updateManager: any, 
@@ -557,6 +558,83 @@ export function createPoolRouter(
     } catch (e: any) {
       logSystem(`[SSH] Erro de rede/diagnóstico SSH: ${e.message}`);
       res.status(500).json({ error: 'Erro no diagnóstico de conexão SSH: ' + e.message });
+    }
+  });
+
+  // Endpoints de Auditoria de Qualidade e Saúde dos Blocos (Quality Control)
+  router.get('/audit/registry', (req, res) => {
+    try {
+      const registryPath = path.join(process.cwd(), 'POOL', 'data', 'health-registry.json');
+      if (fs.existsSync(registryPath)) {
+        const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+        return res.json(registry);
+      }
+      res.json({});
+    } catch (e: any) {
+      res.status(500).json({ error: 'Erro ao ler registro de saúde: ' + e.message });
+    }
+  });
+
+  router.post('/audit/block', async (req, res) => {
+    try {
+      const { category, file } = req.body;
+      if (!category || !file) return res.status(400).json({ error: 'Category and file required' });
+      
+      const filePath = path.join(process.cwd(), 'POOL', 'modules', category, file);
+      const auditor = new QualityAuditor(process.env.GEMINI_API_KEY!);
+      const health = await auditor.analyzeBlock(filePath);
+      
+      res.json({ status: 'success', health });
+    } catch (e: any) {
+      logSystem(`[AUDIT] Erro ao auditar bloco: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.post('/audit/powerize', async (req, res) => {
+    try {
+      const { category, file } = req.body;
+      if (!category || !file) return res.status(400).json({ error: 'Category and file required' });
+      
+      const filePath = path.join(process.cwd(), 'POOL', 'modules', category, file);
+      const auditor = new QualityAuditor(process.env.GEMINI_API_KEY!);
+      
+      console.log(`[AUDIT] Refinando bloco: ${category}/${file}`);
+      const result = await auditor.powerizeBlock(filePath);
+      
+      res.json(result);
+    } catch (e: any) {
+      logSystem(`[AUDIT] Erro ao 'Poderizar' bloco: ${e.message}`);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.post('/audit/pool', async (req, res) => {
+    try {
+      const auditor = new QualityAuditor(process.env.GEMINI_API_KEY!);
+      // Run full audit in background to avoid timeout
+      auditor.auditFullPool().then(report => {
+        logSystem(`[AUDIT] Auditoria Geral concluída. Score médio: ${report.average_score}`);
+      }).catch(err => {
+        console.error(`[AUDIT] Falha na Auditoria Geral:`, err.message);
+      });
+      
+      res.json({ status: 'success', message: 'Auditoria geral iniciada em background.' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.get('/audit/report', (req, res) => {
+    try {
+      const reportPath = path.join(process.cwd(), 'POOL', 'data', 'full_audit_report.json');
+      if (fs.existsSync(reportPath)) {
+        const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+        return res.json(report);
+      }
+      res.status(404).json({ error: 'Relatório global ainda não gerado.' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 

@@ -129,10 +129,82 @@ export default function App() {
     content: string | null;
     loading: boolean;
     error: string | null;
+    health?: any;
+    auditing?: boolean;
+    powerizing?: boolean;
   } | null>(null);
   const [copiedNotification, setCopiedNotification] = useState(false);
+  const [healthRegistry, setHealthRegistry] = useState<Record<string, any>>({});
+  const [auditReport, setAuditReport] = useState<any>(null);
+
+  const fetchHealthRegistry = async () => {
+    try {
+      const data = await safeFetchJson('/api/pool/audit/registry');
+      setHealthRegistry(data || {});
+    } catch (e) {}
+  };
+
+  const fetchAuditReport = async () => {
+    try {
+      const data = await safeFetchJson('/api/pool/audit/report');
+      setAuditReport(data);
+    } catch (e) {}
+  };
+
+  const handleAuditBlock = async (category: string, file: string) => {
+    setInspectingBlock(prev => prev ? { ...prev, auditing: true } : prev);
+    try {
+      const data = await safeFetchJson('/api/pool/audit/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, file })
+      });
+      if (data.status === 'success') {
+        setInspectingBlock(prev => prev ? { ...prev, health: data.health, auditing: false } : prev);
+        showAlert(`Auditoria concluída para ${file}. Score: ${data.health.score}`, 'success');
+        fetchHealthRegistry();
+      }
+    } catch (e: any) {
+      setInspectingBlock(prev => prev ? { ...prev, auditing: false } : prev);
+      showAlert('Falha na auditoria: ' + e.message, 'error');
+    }
+  };
+
+  const handlePowerizeBlock = async (category: string, file: string) => {
+    setInspectingBlock(prev => prev ? { ...prev, powerizing: true } : prev);
+    try {
+      showAlert(`Iniciando Refinamento Profundo de ${file}... Isso pode levar um momento.`, 'info');
+      const data = await safeFetchJson('/api/pool/audit/powerize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, file })
+      });
+      if (data.success) {
+        showAlert(data.message, 'success');
+        // Refresh content and health
+        handleViewBlock(category, file);
+        fetchHealthRegistry();
+      } else {
+        showAlert(data.message, 'error');
+      }
+    } catch (e: any) {
+      showAlert('Falha ao refinar bloco: ' + e.message, 'error');
+    } finally {
+      setInspectingBlock(prev => prev ? { ...prev, powerizing: false } : prev);
+    }
+  };
+
+  const handleAuditPool = async () => {
+    try {
+      await safeFetchJson('/api/pool/audit/pool', { method: 'POST' });
+      showAlert('Auditoria Geral da Pool iniciada em background. Verifique o relatório em instantes.', 'info');
+    } catch (e: any) {
+      showAlert('Erro ao iniciar auditoria geral: ' + e.message, 'error');
+    }
+  };
 
   const handleViewBlock = async (category: string, blockName: string) => {
+    const cachedHealth = healthRegistry[blockName.replace(/\.[jt]sx?$/, '')];
     setInspectingBlock({
       category,
       file: blockName,
@@ -145,7 +217,8 @@ export default function App() {
       setInspectingBlock(prev => prev ? {
         ...prev,
         content: data.content,
-        loading: false
+        loading: false,
+        health: cachedHealth || null
       } : null);
     } catch (e: any) {
       setInspectingBlock(prev => prev ? {
@@ -467,6 +540,8 @@ export default function App() {
       fetchRegistry();
       fetchInventory();
       checkGeminiKey();
+      fetchHealthRegistry();
+      fetchAuditReport();
     };
 
     fetchRegistry();
@@ -478,6 +553,8 @@ export default function App() {
     fetchDaemonsStatus();
     fetchGitConfig();
     checkGeminiKey();
+    fetchHealthRegistry();
+    fetchAuditReport();
     
     // Initial data fetch
     fetchData();
@@ -818,6 +895,71 @@ export default function App() {
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             
+            {/* Pool Health Summary Card */}
+            {auditReport && (
+              <div className="bg-gradient-to-br from-indigo-950/40 via-slate-900/40 to-blue-950/40 border border-indigo-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Activity className="w-32 h-32 text-indigo-400" />
+                </div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-4 max-w-xl">
+                    <div className="flex items-center gap-3">
+                      <span className="p-2 bg-indigo-500/20 rounded-xl text-indigo-400">
+                        <Activity className="w-6 h-6" />
+                      </span>
+                      <h3 className="text-xl font-bold tracking-tight text-white">Estado de Saúde da Pool</h3>
+                    </div>
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                      A auditoria industrial identificou que a Pool possui uma maturidade média de <span className="text-indigo-400 font-bold font-mono">
+                        {auditReport.average_score}%
+                      </span>. 
+                      Os blocos estão sendo refinados para garantir implementações completas e robustas, eliminando simulacros e esqueletos.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {Object.entries(auditReport.health_by_maturity).map(([level, count]: [any, any]) => (
+                        <div key={level} className="bg-black/40 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${
+                             level === 'Optimized' ? 'bg-emerald-400' :
+                             level === 'Robust' ? 'bg-blue-400' :
+                             level === 'Functional' ? 'bg-indigo-400' :
+                             level === 'Partial' ? 'bg-amber-400' : 'bg-red-500'
+                          }`} />
+                          <span className="text-[10px] font-mono text-slate-300 uppercase tracking-wider">{level}: {count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center justify-center p-6 bg-black/40 rounded-2xl border border-slate-800 min-w-[200px]">
+                    <div className="relative w-24 h-24 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle
+                          cx="48" cy="48" r="40"
+                          stroke="currentColor" strokeWidth="8" fill="transparent"
+                          className="text-slate-800"
+                        />
+                        <circle
+                          cx="48" cy="48" r="40"
+                          stroke="currentColor" strokeWidth="8" fill="transparent"
+                          strokeDasharray={2 * Math.PI * 40}
+                          strokeDashoffset={2 * Math.PI * 40 * (1 - auditReport.average_score / 100)}
+                          className="text-indigo-500 transition-all duration-1000"
+                        />
+                      </svg>
+                      <span className="absolute text-2xl font-black text-white">{auditReport.average_score}%</span>
+                    </div>
+                    <button 
+                      onClick={handleAuditPool}
+                      className="mt-4 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest flex items-center gap-2 px-4 py-2 bg-indigo-500/10 rounded-full border border-indigo-500/20 hover:bg-indigo-500/20 transition-all"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                      Recalcular Saúde Global
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Bento Grid layout with real quantifiable numbers */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               

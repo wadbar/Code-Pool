@@ -1,10 +1,10 @@
 {
-  "lastScanTime": "2026-05-21T16:05:31.337Z",
+  "lastScanTime": "2026-05-21T16:09:10.768Z",
   "totalRepos": 6274,
   "totalBlocks": 27,
-  "totalBlueprints": 28,
+  "totalBlueprints": 33,
   "totalDigestedFiles": 7832,
-  "diskSizeKB": 179,
+  "diskSizeKB": 190,
   "categoriesCount": {
     "AI": 2,
     "AUDIT": 2,
@@ -19,6 +19,31 @@
     "VISION": 1
   },
   "events": [
+    {
+      "timestamp": "2026-05-21T16:08:25.763Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/xbmc/xbmc"
+    },
+    {
+      "timestamp": "2026-05-21T16:08:25.763Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/levyvix/scraper/filmes"
+    },
+    {
+      "timestamp": "2026-05-21T16:05:50.748Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/papervideo"
+    },
+    {
+      "timestamp": "2026-05-21T16:05:50.747Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/papermu"
+    },
+    {
+      "timestamp": "2026-05-21T16:05:50.747Z",
+      "type": "BLUEPRINT",
+      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/Minecrafter/ai"
+    },
     {
       "timestamp": "2026-05-21T16:04:41.772Z",
       "type": "BLUEPRINT",
@@ -493,31 +518,6 @@
       "timestamp": "2026-05-19T23:38:26.678Z",
       "type": "BLUEPRINT",
       "message": "Novo blueprint arquitetural compilado: https://github/com/opensearch/project/opensearch"
-    },
-    {
-      "timestamp": "2026-05-19T23:37:56.653Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/the/momentum/python/ai/kit"
-    },
-    {
-      "timestamp": "2026-05-19T23:37:56.653Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/gothinkster/realworld"
-    },
-    {
-      "timestamp": "2026-05-19T23:37:51.654Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/yangshun/tech/interview/handbook"
-    },
-    {
-      "timestamp": "2026-05-19T23:36:39.350Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/xbmc/xbmc"
-    },
-    {
-      "timestamp": "2026-05-19T23:36:04.342Z",
-      "type": "BLUEPRINT",
-      "message": "Novo blueprint arquitetural compilado: https://github/com/wadbar/papervideo"
     }
   ]
 }

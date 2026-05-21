@@ -648,11 +648,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen dark:bg-slate-950 bg-slate-50 dark:text-slate-100 text-slate-900 font-sans selection:bg-blue-500/20">
-      {globalLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      )}
+
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
         
         {/* Superior Branding & Main Header */}

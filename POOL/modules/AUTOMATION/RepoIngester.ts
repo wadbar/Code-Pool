@@ -706,7 +706,7 @@ ${source}
             return true;
         } else {
             const existingCode = fs.readFileSync(destPath, 'utf8');
-            if (existingCode.length > 10000 || newCode.length > 10000) return false; // Muito grande para LLM simples
+            if (existingCode.length > 60000 || newCode.length > 60000) return false; // Aumentado para suportar arquivos maiores e evitar truncagem
 
             const apiKey = process.env.GEMINI_API_KEY;
             const isFallback = !apiKey || apiKey === 'MY_GEMINI_API_KEY';
@@ -736,10 +736,10 @@ Mantenha exports claros, tipos consistentes e trate erros adequadamente.
 Retorne apenas o código TS puro sem explicações ou delimitadores.
 
 EXISTING:
-${existingCode.substring(0, 4000)}
+${existingCode}
 
 NEW:
-${newCode.substring(0, 4000)}`;
+${newCode}`;
 
                 let merged = await bridge.prompt(prompt, 'gemini-3.5-flash');
                 await this.sleep(3000);

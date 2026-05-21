@@ -653,6 +653,22 @@ export function createPoolRouter(
     }
   });
 
+  router.post('/audit/composition', async (req, res) => {
+    try {
+      const { blocks } = req.body; // Array of { category, file }
+      if (!blocks || !Array.isArray(blocks) || blocks.length < 2) {
+        return res.status(400).json({ error: 'Mínimo de 2 blocos para análise de composição.' });
+      }
+      
+      const blockPaths = blocks.map((b: any) => path.join(process.cwd(), 'POOL', 'modules', b.category, b.file));
+      const interop = new LegoInteroperability(process.env.GEMINI_API_KEY!);
+      const report = await interop.analyzeComposition(blockPaths);
+      res.json(report);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   router.post('/audit/test-runtime', async (req, res) => {
     try {
       const { category, file } = req.body;

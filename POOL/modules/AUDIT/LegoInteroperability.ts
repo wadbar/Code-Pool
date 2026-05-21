@@ -11,6 +11,9 @@ export interface InteropMatrix {
     correlation: 'High' | 'Medium' | 'Low' | 'None';
     interdependence: 'Critical' | 'Optional' | 'Standalone';
     proximity: number; // semantic distance
+    similarity: number; // algorithmic/logic similarity
+    origin_compatibility: boolean; // if they share architectural heritage
+    synergy_potential: number; // 0-100 potential for complex orchestration
     fit_result: string; // descriptive outcome of the combo
     stability_score: number; // probability of the combo working without errors
     suggested_implementation: string; // how to glue them
@@ -55,6 +58,9 @@ Responda APENAS um objeto JSON válido:
   "correlation": "High" | "Medium" | "Low" | "None",
   "interdependence": "Critical" | "Optional" | "Standalone",
   "proximity": number (0-100),
+  "similarity": number (0-100),
+  "origin_compatibility": boolean,
+  "synergy_potential": number (0-100),
   "fit_result": "Descrição curta do resultado da combinação",
   "stability_score": number (0-100),
   "suggested_implementation": "Código de exemplo ou instrução de como conectar os dois"
@@ -82,6 +88,9 @@ Responda APENAS um objeto JSON válido:
     /**
      * Sugere as melhores combinações para um bloco específico dentro da Pool.
      */
+    /**
+     * Sugere as melhores combinações para um bloco específico dentro da Pool.
+     */
     public async suggestSynergies(blockPath: string, poolBlocks: string[]): Promise<InteropMatrix[]> {
         const blockName = path.basename(blockPath).replace(/\.[jt]s$/, '');
         console.log(`[INTEROP] Procurando sinergias para o bloco: ${blockName}...`);
@@ -89,7 +98,6 @@ Responda APENAS um objeto JSON válido:
         const matrices: InteropMatrix[] = [];
         
         // Seleciona uma amostra se a pool for muito grande para evitar custos/tempo excessivos
-        // Em um sistema real, poderíamos usar vetores de embedding para pré-selecionar candidatos
         const candidates = poolBlocks.filter(b => b !== blockPath).slice(0, 5); 
 
         for (const candidate of candidates) {
@@ -102,5 +110,51 @@ Responda APENAS um objeto JSON válido:
         }
 
         return matrices.sort((a, b) => b.affinity - a.affinity);
+    }
+
+    /**
+     * Analisa uma "Orquestração" ou "Conjunto" de múltiplos blocos funcionando juntos.
+     */
+    public async analyzeComposition(blockPaths: string[]): Promise<{
+        synergy_score: number;
+        cohesion: number;
+        complexity: number;
+        orchestration_plan: string;
+        potential_issues: string[];
+    }> {
+        if (blockPaths.length < 2) throw new Error("Mínimo de 2 blocos para análise de composição.");
+        
+        const codes = blockPaths.map(p => ({
+            name: path.basename(p),
+            content: fs.readFileSync(p, 'utf8')
+        }));
+
+        const prompt = `${POOL_SYSTEM_PROMPT}
+Atue como um Arquiteto de Sistemas Master.
+Analise este CONJUNTO de blocos Lego que serão usados em COOPERAÇÃO.
+
+COMPONENTES:
+${codes.map(c => `- ${c.name}`).join('\n')}
+
+Responda um JSON com:
+{
+  "synergy_score": number (0-100),
+  "cohesion": number (0-100),
+  "complexity": number (0-100),
+  "orchestration_plan": "Como orquestrar esses blocos para uma aplicação real",
+  "potential_issues": ["lista de conflitos de dependência ou lógica"]
+}`;
+
+        try {
+            const combinedContent = codes.map(c => `// FILE: ${c.name}\n${c.content}`).join('\n\n');
+            const result = await this.bridge.prompt(`${prompt}\n\n${combinedContent}`, 'gemini-3.5-flash', {
+                responseMimeType: 'application/json'
+            });
+
+            return JSON.parse(result.replace(/^```json/, '').replace(/```$/, '').trim());
+        } catch (err: any) {
+            console.error(`[INTEROP] Erro na análise de composição:`, err.message);
+            throw err;
+        }
     }
 }

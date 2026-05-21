@@ -255,6 +255,18 @@ export class RepoIngester {
 
                             console.log(`[INGESTER] [${i + 1}/${filesToProcess.length}] [Tentativa ${attempt}/${fileRetries}] Decompondo: ${path.basename(filePath)}`);
                             
+                            // --- CONTEXT INJECTION: Buscar arquivos relacionados na mesma pasta para dar contexto à IA ---
+                            const folder = path.dirname(filePath);
+                            const siblingFiles = fs.readdirSync(folder).filter(f => {
+                                const ext = path.extname(f).toLowerCase();
+                                return f !== path.basename(filePath) && ['.ts', '.js', '.tsx', '.jsx'].includes(ext) && fs.statSync(path.join(folder, f)).size < 15000;
+                            }).slice(0, 3); // Pegar até 3 irmãos para não estourar contexto
+
+                            const contextData = siblingFiles.map(f => ({
+                                name: f,
+                                code: fs.readFileSync(path.join(folder, f), 'utf-8').slice(0, 5000)
+                            }));
+
                             // --- PAUSE CHECK ---
                             const { UpdateManager } = await import('./UpdateManager');
                             await UpdateManager.waitIfPaused();
@@ -265,7 +277,7 @@ export class RepoIngester {
                             }
                             // ------------------------------------
 
-                            const aiResult = await this.decomposeWithAI(code, path.basename(filePath));
+                            const aiResult = await this.decomposeWithAI(code, path.basename(filePath), contextData);
                             if (aiResult && aiResult.category && aiResult.block_id && aiResult.code) {
                                 const isNewWinner = await this.evaluateAndDeduplicate(aiResult.category, aiResult.block_id, aiResult.code, repoUrl, filePath);
                                 if (isNewWinner) {
@@ -569,7 +581,7 @@ Responda SOMENTE o documento em formato Markdown sem blocos de código extras.`;
         fs.writeFileSync(path.join(bpsPath, `${safeName}.md`), `# Blueprint Repositório: ${repoUrl}\n\n${content}`);
     }
 
-    private static async decomposeWithAI(source: string, filename: string, attempt = 1): Promise<{category: string, block_id: string, code: string} | null> {
+    private static async decomposeWithAI(source: string, filename: string, context: {name: string, code: string}[] = [], attempt = 1): Promise<{category: string, block_id: string, code: string} | null> {
         // Criar chave de cache única baseada no hash do código do arquivo
         const contentHash = crypto.createHash('sha256').update(source).digest('hex');
         const cacheKey = `decompose:${contentHash}`;
@@ -642,18 +654,22 @@ Analise detalhadamente o arquivo ${filename} para classificação sofisticada de
 Como parte da análise rigorosa:
 1. Examine a finalidade do código, imports, dependências e padrões estáticos de programação.
 2. Extraia a lógica modular REAL (função, componente React ou classe TypeScript). É TERMINANTEMENTE PROIBIDO criar esqueletos vazios, funções de mentira ou simulacros (mocks). O código DEVE ser 100% completo, blindado com a lógica bruta e funcional.
-3. Classifique o recurso especificamente em uma das seguintes categorias canônicas baseadas nos módulos existentes do ecossistema: [AUTH, DB, GEOMETRY, MEDIA, NETWORKING, SECURITY, AUTOMATION, UI, UTILS, ALGORITHM, AI, ML, AUDITOR, DATA, PROCEDURAL, SEARCH, VISION, VALIDATION].
-4. IMPORTANTE: Defina o "block_id" de forma determinística utilizando snake_case extremamente descritiva da funcionalidade analisada.
-5. REGRA DE OURO (ANTI-SIMULACRO): Você ESTÁ PROIBIDO de usar marcadores de omissão como "// ... resto do código aqui". Você DEVE retornar a implementação COMPLETA, PROFUNDA e VERDADEIRA encontrada no repositório.
+3. Se o código depender de tipos ou utilitários presentes nos ARQUIVOS DE CONTEXTO fornecidos abaixo, INTEGRE ou SINTETIZE essa lógica para dentro do código final. O objetivo é que o Bloco Lego seja AUTOSSUFICIENTE e possa ser executado de forma independente.
+4. Classifique o recurso especificamente em uma das seguintes categorias canônicas baseadas nos módulos existentes do ecossistema: [AUTH, DB, GEOMETRY, MEDIA, NETWORKING, SECURITY, AUTOMATION, UI, UTILS, ALGORITHM, AI, ML, AUDITOR, DATA, PROCEDURAL, SEARCH, VISION, VALIDATION].
+5. IMPORTANTE: Defina o "block_id" de forma determinística utilizando snake_case extremamente descritiva da funcionalidade analisada.
+6. REGRA DE OURO (ANTI-SIMULACRO): Você ESTÁ PROIBIDO de usar marcadores de omissão como "// ... resto do código aqui". Você DEVE retornar a implementação COMPLETA, PROFUNDA e VERDADEIRA encontrada no repositório.
 
 Responda APENAS um objeto JSON estruturado contendo a classificação sofisticada:
 {
   "category": "string",
   "block_id": "string",
-  "code": "string (código typescript COMPLETO, PODEROSO E ROBUSTO, zero placeholders, 100% implementado e pronto para produção)"
+  "code": "string (código typescript COMPLETO, PODEROSO E ROBUSTO, zero placeholders, 100% implementado e pronto para produção, incluindo dependências locais sintetizadas)"
 }
 
-Source Code:
+CONTEXTO ADICIONAL (Arquivos relacionados na mesma pasta):
+${context.map(c => `// FILE: ${c.name}\n${c.code}`).join('\n\n')}
+
+SOURCE CODE PRINCIPAL (${filename}):
 ${source}
 `;
             const text = await bridge.prompt(prompt, 'gemini-3.5-flash', {

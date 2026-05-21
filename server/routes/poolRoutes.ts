@@ -424,5 +424,56 @@ export function createPoolRouter(
     }
   });
 
+  // Endpoint de Saúde do Sistema (System Health)
+  router.get('/system-health', (req, res) => {
+    try {
+      const cpus = os.cpus();
+      const numCpus = cpus.length;
+      const loadavg = os.loadavg();
+      const loadAvgPercent = ((loadavg[0] / numCpus) * 100).toFixed(2);
+      const totalMem = os.totalmem();
+      const freeMem = os.freemem();
+      const usedMem = totalMem - freeMem;
+      const memUsagePercent = ((usedMem / totalMem) * 100).toFixed(2);
+      const uptime = os.uptime();
+
+      let ingestActive = false;
+      let blueprintsActive = false;
+      try {
+        ingestActive = execSync("ps aux | grep 'worker_ingest' | grep -v grep || true").toString().trim().length > 0;
+        blueprintsActive = execSync("ps aux | grep 'worker_blueprints' | grep -v grep || true").toString().trim().length > 0;
+      } catch (e) {}
+
+      res.json({
+        status: 'success',
+        cpu: {
+          cores: numCpus,
+          load1m: loadavg[0].toFixed(2),
+          loadAvgPercent: loadAvgPercent + '%',
+          model: cpus.length > 0 ? cpus[0].model : 'Unknown'
+        },
+        memory: {
+          totalMemMB: (totalMem / 1024 / 1024).toFixed(2),
+          freeMemMB: (freeMem / 1024 / 1024).toFixed(2),
+          usedMemMB: (usedMem / 1024 / 1024).toFixed(2),
+          memUsagePercent: memUsagePercent + '%'
+        },
+        os: {
+          platform: os.platform(),
+          release: os.release(),
+          uptimeSeconds: uptime
+        },
+        daemons: {
+          ingestActive,
+          blueprintsActive
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (err: any) {
+      logSystem(`[SYSTEM-HEALTH] Error: ${err.message}`);
+      res.status(500).json({ error: 'Erro ao extrair system health.', details: err.message });
+    }
+  });
+
   return router;
 }

@@ -173,9 +173,7 @@ export default function App() {
   const [blueprintLogFilter, setBlueprintLogFilter] = useState('');
   const [systemLogFilter, setSystemLogFilter] = useState('');
   
-  const [ingestUrl, setIngestUrl] = useState('');
   const [scrapeUrl, setScrapeUrl] = useState('');
-  const [ingesting, setIngesting] = useState(false);
   const [scraping, setScraping] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [hunting, setHunting] = useState(false);
@@ -533,28 +531,6 @@ export default function App() {
       showAlert('A caçada falhou: ' + e.message, 'error');
     } finally {
       setHunting(false);
-      setGlobalLoading(false);
-    }
-  };
-
-  const handleIngest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ingestUrl) return;
-    setGlobalLoading(true);
-    setIngesting(true);
-    try {
-      const data = await safeFetchJson('/api/pool/ingest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ githubUrl: ingestUrl }),
-      });
-      showAlert(data.message || 'Alvo adicionado com sucesso para decomposição.', 'success');
-      setIngestUrl('');
-      await fetchRegistry();
-    } catch (e: any) {
-      showAlert('Falha na ingestão: ' + e.message, 'error');
-    } finally {
-      setIngesting(false);
       setGlobalLoading(false);
     }
   };
@@ -1419,66 +1395,23 @@ export default function App() {
             {/* Right/Sidebar Column - Forms for adding or scraping repos */}
             <div className="space-y-6">
               
-              {/* Ingest Repo form */}
-              <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5">
-                <h3 className="font-bold text-sm dark:text-white text-black flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-emerald-500" />
-                  Alimentar Ingestão (GitHub)
-                </h3>
-                <p className="text-xs dark:text-slate-400 text-slate-600 mt-2 leading-relaxed">
-                  Adicione um endereço GitHub avulso abaixo. A esteira irá clonar o código, separar em fatias procedimentais e criar blocos na biblioteca.
-                </p>
-                
-                <div className="mt-3 p-3 dark:bg-blue-500/10 bg-blue-100 border border-blue-500/20 rounded-lg">
-                  <div className="flex gap-2 items-start">
-                    <AlertTriangle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">
-                      <strong>Sobre Monorepos (Monolithic Repository):</strong>
-                      <br/>
-                      Contêm de forma agrupada <i>códigos-fonte não compilados</i>, dependências e instruções de montagem de múltiplos serviços num único local. Nosso sistema digere o código estrito para blocos reutilizáveis brutos, não gerando binários finais ou instaláveis. 
-                    </p>
-                  </div>
-                </div>
-
-                <form onSubmit={handleIngest} className="space-y-4 mt-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-mono tracking-wider dark:text-slate-400 text-slate-600 block">Link de Repositório</label>
-                    <input 
-                      type="url"
-                      placeholder="https://github.com/usuario/projeto"
-                      required
-                      className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 rounded-lg px-3 py-2 text-xs dark:text-slate-200 text-slate-800 focus:outline-none focus:border-blue-500"
-                      value={ingestUrl}
-                      onChange={(e) => setIngestUrl(e.target.value)}
-                    />
-                  </div>
-                  <button 
-                    type="submit"
-                    disabled={ingesting || !ingestUrl}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 dark:text-white text-black text-xs font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50"
-                  >
-                    {ingesting ? 'Adicionando...' : 'Adicionar Repositório'}
-                  </button>
-                </form>
-              </div>
-
-              {/* Deep Web page scraper */}
-              <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5">
+              {/* Deep Web page scraper & Single Repo Ingestion form */}
+              <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-sm dark:text-white text-black flex items-center gap-2">
-                    <Search className="w-4 h-4 text-blue-400" />
+                    <Search className="w-4 h-4 text-emerald-500" />
                     Deep Scraper
                   </h3>
                   <div className="flex dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 p-0.5 rounded-md">
                     <button 
                       onClick={() => setScrapeMode('url')}
-                      className={`px-2 py-0.5 text-[9px] rounded font-semibold transition-all ${scrapeMode === 'url' ? 'bg-blue-600 dark:text-white text-black' : 'text-slate-500'}`}
+                      className={`px-2 py-0.5 text-[9px] rounded font-semibold transition-all ${scrapeMode === 'url' ? 'bg-emerald-600 dark:text-white text-black' : 'text-slate-500'}`}
                     >
                       URL
                     </button>
                     <button 
                       onClick={() => setScrapeMode('raw')}
-                      className={`px-2 py-0.5 text-[9px] rounded font-semibold transition-all ${scrapeMode === 'raw' ? 'bg-blue-600 dark:text-white text-black' : 'text-slate-500'}`}
+                      className={`px-2 py-0.5 text-[9px] rounded font-semibold transition-all ${scrapeMode === 'raw' ? 'bg-emerald-600 dark:text-white text-black' : 'text-slate-500'}`}
                     >
                       TEXTO
                     </button>
@@ -1486,19 +1419,31 @@ export default function App() {
                 </div>
                 
                 <p className="text-xs dark:text-slate-400 text-slate-600 mt-2 leading-relaxed">
-                  Varra qualquer página web para achar repositórios ocultos e encher a watchlist de novos alvos de aprendizagem.
+                  Adicione um endereço <strong>GitHub direto</strong> ou varra uma <strong>página web</strong> para encontrar repositórios ocultos e encher a watchlist de novos alvos de aprendizagem.
                 </p>
+
+                <div className="mt-3 p-3 dark:bg-emerald-500/10 bg-emerald-100 border border-emerald-500/20 rounded-lg">
+                  <div className="flex gap-2 items-start">
+                    <AlertTriangle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-300 leading-relaxed">
+                      <strong>Sobre Monorepos (Monolithic Repository):</strong>
+                      <br/>
+                      Contêm de forma agrupada <i>códigos-fonte não compilados</i>, dependências e instruções de montagem de múltiplos serviços num único local. Nosso sistema digere estritamente o código para blocos reutilizáveis brutos.
+                    </p>
+                  </div>
+                </div>
 
                 <form onSubmit={handleScrape} className="space-y-4 mt-4">
                   {scrapeMode === 'url' ? (
                     <div className="space-y-1.5 animate-in fade-in duration-200">
-                      <label className="text-[10px] uppercase font-mono tracking-wider dark:text-slate-400 text-slate-600 block">Endereço Web</label>
+                      <label className="text-[10px] uppercase font-mono tracking-wider dark:text-slate-400 text-slate-600 block">Endereço Web / Repo Link</label>
                       <input 
                         type="url"
-                        placeholder="https://reddit.com/r/webdev/..."
-                        className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 rounded-lg px-3 py-2 text-xs dark:text-slate-200 text-slate-800 focus:outline-none focus:border-blue-500"
+                        placeholder="https://github.com/... OU https://reddit.com/..."
+                        className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 rounded-lg px-3 py-2 text-xs dark:text-slate-200 text-slate-800 focus:outline-none focus:border-emerald-500"
                         value={scrapeUrl}
                         onChange={(e) => setScrapeUrl(e.target.value)}
+                        required
                       />
                     </div>
                   ) : (
@@ -1507,16 +1452,17 @@ export default function App() {
                       <textarea 
                         placeholder="Cole códigos markdown, fontes HTML ou parágrafos..."
                         rows={4}
-                        className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 rounded-lg px-3 py-2 text-xs font-mono dark:text-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 custom-scrollbar"
+                        className="w-full dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 rounded-lg px-3 py-2 text-xs font-mono dark:text-slate-200 text-slate-800 focus:outline-none focus:border-emerald-500 custom-scrollbar"
                         value={rawContent}
                         onChange={(e) => setRawContent(e.target.value)}
+                        required
                       />
                     </div>
                   )}
                   
                   <button 
                     disabled={scraping || (scrapeMode === 'url' ? !scrapeUrl : !rawContent)}
-                    className="w-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/25 text-xs font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 dark:text-white text-black text-xs font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {scraping ? (
                       <>
@@ -1526,7 +1472,7 @@ export default function App() {
                     ) : (
                       <>
                         <Search className="w-3.5 h-3.5" />
-                        {scrapeMode === 'url' ? 'Monitorar Página' : 'Analisar Texto'}
+                        Achar e Processar Alvos
                       </>
                     )}
                   </button>

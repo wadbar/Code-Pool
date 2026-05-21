@@ -209,22 +209,21 @@ export class UrlScraper {
             let recursiveFound = 0;
             let recursiveAdded = 0;
 
-            // Se for Depth 0 (primeiro scrape) e encontrar perfis de usuários, iterar sobre eles
+            // Se for Depth 0 (primeiro scrape) e encontrar perfis de usuários, iterar sobre eles em background
             if (depth === 0 && foundProfiles.length > 0) {
-                console.log(`[URL-SCRAPER] Lista de usuários detectada (${foundProfiles.length}). Scraping iterativo iniciado...`);
+                console.log(`[URL-SCRAPER] Lista de usuários detectada (${foundProfiles.length}). Scraping iterativo iniciado em background...`);
                 // Limite de 30 usuários iniciais para não estourar rate limit da API do GitHub
                 const targetUsers = foundProfiles.slice(0, 30);
-                for (const user of targetUsers) {
-                    try {
-                        const recResult = await this.scrapeAndQueueRepos(`https://github.com/${user}`, undefined, depth + 1);
-                        if (recResult.status === "success") {
-                            recursiveFound += (recResult.found || 0);
-                            recursiveAdded += (recResult.added || 0);
-                        }
-                        // Pequeno delay para evitar 429
-                        await new Promise(r => setTimeout(r, 100));
-                    } catch (e) {}
-                }
+                // Fire and forget para não segurar a requisição Express
+                (async () => {
+                    for (const user of targetUsers) {
+                        try {
+                            await this.scrapeAndQueueRepos(`https://github.com/${user}`, undefined, depth + 1);
+                            // Maior delay para evitar 429 secundário
+                            await new Promise(r => setTimeout(r, 1000));
+                        } catch (e) {}
+                    }
+                })();
             }
 
             // 3. Sensor de Contexto (Pares usuario/repo soltos)
@@ -260,8 +259,11 @@ export class UrlScraper {
             
             return { 
                 status: "success", 
-                found: uniqueRepos.length + recursiveFound, 
-                added: addedCount + recursiveAdded 
+                found: uniqueRepos.length, 
+                added: addedCount,
+                message: foundProfiles.length > 0 && depth === 0 
+                  ? `Foram encontrados ${foundProfiles.length} perfis/usuários. O mapeamento completo ocorrerá em background (pode demorar alguns minutos para todos aparecerem na Watchlist).` 
+                  : undefined
             };
         } catch (err: any) {
              console.error(`[URL-SCRAPER] Erro no scrape:`, err.message);

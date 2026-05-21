@@ -216,57 +216,57 @@ export class UpdateManager {
                 // Ingestão autônoma de código
                 const result = await RepoIngester.ingestFromGitHub(repo.url, repo.isMonster ? 180000 : 45000);
                 
-                if (result.status === "monster") {
-                    console.log(`[UPDATE-MANAGER] REPO MONSTRO DETECTADO: ${repo.url}. Escalando prioridade e adiando para o próximo ciclo.`);
-                    repo.isMonster = true;
-                    repo.retryCount = (repo.retryCount || 0) + 1;
-                    
-                    // Joga pro final pra não bloquear, mas NÃO processar nesta mesma passada (o reposToProcess previne o loop)
-                    registryArr.splice(i, 1);
-                    registryArr.push(repo);
-                    this.saveRegistry({ repositories: registryArr });
-                    continue;
-                }
-
-                if (result.status === "partial") {
-                    console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila.`);
-                    
-                    repo.digestedCount = (repo.digestedCount || 0) + (result.filesProcessed || 0);
-                    repo.totalFiles = result.totalFiles;
-                    
-                    // Somente é MONSTRO se tiver volume massivo REAL (> 600 arquivos elite)
-                    if (result.totalFiles && result.totalFiles > 600) {
+                // REFRESH REGISTRY AFTER AWAIT TO PREVENT RACE CONDITION OVERWRITES
+                const freshRegistryArr = this.getRegistry().repositories;
+                let freshIndex = freshRegistryArr.findIndex(r => r.url === repo.url);
+                if (freshIndex !== -1) {
+                    if (result.status === "monster") {
+                        console.log(`[UPDATE-MANAGER] REPO MONSTRO DETECTADO: ${repo.url}. Escalando prioridade e adiando para o próximo ciclo.`);
                         repo.isMonster = true;
-                    } else if (result.totalFiles && result.totalFiles < 300) {
-                        repo.isMonster = false; // Corrigindo injustiça: se é pequeno, não é monstro.
-                    } else if (result.filesProcessed === 0 && (repo.retryCount || 0) > 3) {
-                        // Se falhou repetidamente sem processar NADA, talvez precise de estômago reforçado
-                        repo.isMonster = true; 
+                        repo.retryCount = (repo.retryCount || 0) + 1;
+                        
+                        freshRegistryArr.splice(freshIndex, 1);
+                        freshRegistryArr.push(repo);
+                        this.saveRegistry({ repositories: freshRegistryArr });
+                        continue;
+                    }
+
+                    if (result.status === "partial") {
+                        console.log(`[UPDATE-MANAGER] DIGESTÃO PARCIAL (${result.totalPending} restantes): ${repo.url}. Movendo para o fim da fila.`);
+                        
+                        repo.digestedCount = (repo.digestedCount || 0) + (result.filesProcessed || 0);
+                        repo.totalFiles = result.totalFiles;
+                        
+                        if (result.totalFiles && result.totalFiles > 600) {
+                            repo.isMonster = true;
+                        } else if (result.totalFiles && result.totalFiles < 300) {
+                            repo.isMonster = false; 
+                        } else if (result.filesProcessed === 0 && (repo.retryCount || 0) > 3) {
+                            repo.isMonster = true; 
+                        }
+                        
+                        if (result.totalFiles && result.totalFiles > 500) {
+                            repo.isMonster = true;
+                        } else if (result.totalFiles && result.totalFiles <= 500) {
+                            repo.isMonster = false;
+                        }
+                        
+                        freshRegistryArr.splice(freshIndex, 1);
+                        freshRegistryArr.push(repo);
+                        this.saveRegistry({ repositories: freshRegistryArr });
+                        continue;
+                    }
+
+                    if (result.status === "success") {
+                        repo.digestedCount = repo.totalFiles || result.totalFiles;
+                        repo.lastSync = new Date().toISOString();
+                        repo.status = "synced";
+                        freshRegistryArr[freshIndex] = repo;
                     }
                     
-                    if (result.totalFiles && result.totalFiles > 500) {
-                        repo.isMonster = true;
-                    } else if (result.totalFiles && result.totalFiles <= 500) {
-                        // Se é pequeno mas deu timeout, tentamos de novo sem rotular como monstro pesado
-                        repo.isMonster = false;
-                    }
-                    
-                    // Move pro fim para não trancar a fila e tenta de novo no próximo ciclo de sync
-                    registryArr.splice(i, 1);
-                    registryArr.push(repo);
-                    this.saveRegistry({ repositories: registryArr });
-                    continue;
+                    updatedCount++;
+                    this.saveRegistry({ repositories: freshRegistryArr });
                 }
-
-                if (result.status === "success") {
-                    repo.digestedCount = repo.totalFiles || result.totalFiles;
-                    repo.lastSync = new Date().toISOString();
-                    repo.status = "synced";
-                    registryArr[i] = repo;
-                }
-                
-                updatedCount++;
-                this.saveRegistry({ repositories: registryArr });
             } else {
                 console.log(`[UPDATE-MANAGER] Repositório já persistido no registro: ${repo.url}. (Use force=true para re-ingestão).`);
             }

@@ -554,7 +554,11 @@ export default function App() {
           rawContent: scrapeMode === 'raw' ? rawContent : undefined
         }),
       });
-      showAlert(`Varredura completa! ${data.found || 0} repositórios identificados. ${data.added || 0} novos enfileirados.`, 'success');
+      if (data.message) {
+        showAlert(data.message, 'success');
+      } else {
+        showAlert(`Varredura completa! ${data.found || 0} repositórios identificados. ${data.added || 0} novos enfileirados.`, 'success');
+      }
       setScrapeUrl('');
       setRawContent('');
       await fetchRegistry();

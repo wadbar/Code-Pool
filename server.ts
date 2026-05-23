@@ -16,7 +16,12 @@ import { createPoolRouter } from './server/routes/poolRoutes';
 import { authRouter } from './server/routes/authRoutes';
 import { kernelRateLimiter, AuthShield } from './POOL/modules/AUTH/AuthShield';
 
+import { MonitoringService } from './POOL/modules/UTILS/MonitoringService';
+
 const app = express();
+
+// Inicia monitoramento de recursos (CPU/RAM > 85% por 5 min)
+MonitoringService.startMonitoring(60000);
 app.set('trust proxy', 1);
 const PORT = 3000;
 const updateManager = new UpdateManager();
@@ -227,14 +232,16 @@ app.get('/api/pool/block-content', (req, res) => {
   }
 });
 
-// Code Pool Auditor API
+// API de auditoria de configuração de IA unificada
 app.get('/api/check-gemini', (req, res) => {
-    const key = process.env.GEMINI_API_KEY || '';
-    // Retorna sempre hasKey: true em ambiente de desenvolvimento / AI Studio
+    const gemini = !!process.env.GEMINI_API_KEY;
+    const openai = !!process.env.OPENAI_API_KEY;
+    const nvidia = !!process.env.NVIDIA_API_KEY;
+    
     res.json({ 
-        hasKey: true, 
-        len: key.length || 40,
-        isDefault: false,
+        gemini: { active: gemini, length: process.env.GEMINI_API_KEY?.length || 0 },
+        openai: { active: openai, length: process.env.OPENAI_API_KEY?.length || 0 },
+        nvidia: { active: nvidia, length: process.env.NVIDIA_API_KEY?.length || 0 },
         isAIStudioIntegrated: true
     });
 });

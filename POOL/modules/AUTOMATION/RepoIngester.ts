@@ -17,6 +17,7 @@ import os from 'os';
 import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { GeminiBridge } from '../AI/GeminiBridge';
+import { UniversalAIBridge } from '../AI/UniversalAIBridge';
 import { POOL_SYSTEM_PROMPT } from '../AI/SystemPrompt';
 
 export class RepoIngester {
@@ -85,9 +86,6 @@ export class RepoIngester {
                 // Robust git configuration for large and slow network transfers
                 const gitConfig = '-c http.postBuffer=1073741824 -c http.lowSpeedLimit=1 -c http.lowSpeedTime=120 -c core.compression=0';
                 
-                // Sempre usar shallow clone (depth 1) para eficiência
-                const cloneCmd = `git ${gitConfig} clone --depth 1 --single-branch --no-tags ${repoUrl} ${destPath}`;
-                
                 const customEnv = { ...process.env };
                 try {
                     const { SSHManager } = await import('../AUTH/SSHManager');
@@ -97,6 +95,27 @@ export class RepoIngester {
                 } catch (sshErr: any) {
                     console.warn('[INGESTER] SSHManager não pôde ser carregado para clonagem:', sshErr.message);
                 }
+
+                // Smart Shallow Clone mechanism
+                let targetDepth = 1;
+                try {
+                    const lsRemoteOut = execSync(`git ls-remote ${repoUrl}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 15000, env: customEnv });
+                    const refsCount = lsRemoteOut.toString().split('\n').filter(line => line.trim().length > 0).length;
+                    console.log(`[INGESTER] Smart Shallow Clone: Detectadas ${refsCount} referências remotas.`);
+                    
+                    if (refsCount < 50) {
+                        targetDepth = 10;
+                    } else if (refsCount < 500) {
+                        targetDepth = 3;
+                    } else {
+                        targetDepth = 1;
+                    }
+                    console.log(`[INGESTER] Ajustando dinamicamente --depth para ${targetDepth} para otimização de tráfego de rede.`);
+                } catch (e: any) {
+                    console.warn(`[INGESTER] Smart Shallow Clone falhou ao ler refs remotas. Fallback para depth 1.`);
+                }
+                
+                const cloneCmd = `git ${gitConfig} clone --depth ${targetDepth} --single-branch --no-tags ${repoUrl} ${destPath}`;
                 
                 execSync(cloneCmd, {
                     stdio: 'pipe',
@@ -237,6 +256,12 @@ export class RepoIngester {
 
                 console.log(`[INGESTER] Digerindo fatia de ${filesToProcess.length} arquivos com tolerância e retentativas...`);
 
+                const ingestedHashesPath = path.join(process.cwd(), 'POOL', 'ingested-hashes.json');
+                let ingestedHashes = new Set<string>();
+                if (fs.existsSync(ingestedHashesPath)) {
+                    try { ingestedHashes = new Set(JSON.parse(fs.readFileSync(ingestedHashesPath, 'utf8'))); } catch (e) {}
+                }
+
                 for (let i = 0; i < filesToProcess.length; i++) {
                     const filePath = filesToProcess[i];
                     const relativePath = filePath.replace(tmpPath, '');
@@ -251,6 +276,14 @@ export class RepoIngester {
                             if (code.trim().length === 0 || code.length > 30000) {
                                 fileSuccess = true;
                                 break; 
+                            }
+
+                            // --- DEDUPLICAÇÃO INTELIGENTE POR HASH (Early Return) ---
+                            const fileHash = crypto.createHash('sha256').update(code).digest('hex');
+                            if (ingestedHashes.has(fileHash)) {
+                                console.log(`[INGESTER] [${i + 1}/${filesToProcess.length}] Ignorando duplicata exata (Hash Match): ${path.basename(filePath)}`);
+                                fileSuccess = true;
+                                break;
                             }
 
                             console.log(`[INGESTER] [${i + 1}/${filesToProcess.length}] [Tentativa ${attempt}/${fileRetries}] Decompondo: ${path.basename(filePath)}`);
@@ -283,6 +316,11 @@ export class RepoIngester {
                                 if (isNewWinner) {
                                     extractedModules.push({ category: aiResult.category, name: aiResult.block_id });
                                 }
+                                
+                                // Salvar hash do arquivo original após sucesso da ingestão
+                                ingestedHashes.add(fileHash);
+                                fs.writeFileSync(ingestedHashesPath, JSON.stringify(Array.from(ingestedHashes), null, 2));
+                                
                                 fileSuccess = true;
                                 break; // Sucesso para o arquivo corrente!
                             } else {

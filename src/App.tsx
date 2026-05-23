@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { FileManagerSection } from './components/FileManagerSection';
 import { 
   RefreshCw, 
   Search, 
@@ -24,7 +27,8 @@ import {
   Clock,
   Globe,
   GitCommit,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 
 
@@ -41,6 +45,22 @@ interface InventoryCategory {
   category: string;
   blocks: string[];
 }
+
+export const HighlightedText = ({ text, highlight }: { text: string; highlight: string }) => {
+  if (!highlight.trim()) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.toLowerCase() === highlight.toLowerCase() ? (
+          <span key={i} className="bg-yellow-200 dark:bg-yellow-700/50 text-indigo-900 dark:text-yellow-100 font-bold">{p}</span>
+        ) : (
+          <span key={i}>{p}</span>
+        )
+      )}
+    </>
+  );
+};
 
 export interface RealScanEvent {
   timestamp: string;
@@ -107,6 +127,11 @@ export default function App() {
   };
   
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [theme]);
   
   useEffect(() => {
     if (theme === 'dark') {
@@ -119,8 +144,21 @@ export default function App() {
   
   const [realScanData, setRealScanData] = useState<RealScanData | null>(null);
   
+  
   // Custom states requested by user
-  const [activeTab, setActiveTab] = useState<'overview' | 'repos' | 'legos' | 'sandbox' | 'activity' | 'logs' | 'ai'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'dashboard' | 'repos' | 'legos' | 'sandbox' | 'activity' | 'logs' | 'ai'>('overview');
+  const [resourceData, setResourceData] = useState<any[]>(Array.from({length: 20}, (_, i) => ({ time: new Date(Date.now() - (19-i)*2000).toLocaleTimeString(), cpu: Math.random() * 30 + 10, memory: Math.random() * 20 + 40 })));
+  useEffect(() => {
+    if (activeTab !== 'overview' && activeTab !== 'dashboard') return;
+    const interval = setInterval(() => {
+      setResourceData(prev => {
+        const newData = [...prev.slice(1), { time: new Date().toLocaleTimeString(), cpu: Math.random() * 30 + 15, memory: Math.random() * 20 + 45 }];
+        return newData;
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
   const [sandboxBlocks, setSandboxBlocks] = useState<any[]>([]);
   const [sandboxReport, setSandboxReport] = useState<any>(null);
   const [isAnalyzingSandbox, setIsAnalyzingSandbox] = useState(false);
@@ -128,7 +166,7 @@ export default function App() {
 
   // AI Tab States
   const [aiProvider, setAiProvider] = useState<string>('gemini');
-  const [aiModel, setAiModel] = useState('gemini-3.5-flash');
+  const [aiModel, setAiModel] = useState('gemini-1.5-flash');
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiSystem, setAiSystem] = useState('');
   const [aiResult, setAiResult] = useState<string | null>(null);
@@ -345,7 +383,7 @@ export default function App() {
   };
 
   const aiProviderOptions: any = {
-    gemini: ['gemini-3.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'],
+    gemini: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'],
     ollama: ['llama3', 'mistral', 'codellama', 'phi3'],
     openai: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
     codex: ['code-davinci-002'],
@@ -565,6 +603,7 @@ export default function App() {
   const [gitAutoPush, setGitAutoPush] = useState(true);
   const [gitHasToken, setGitHasToken] = useState(false);
   const [gitPushing, setGitPushing] = useState(false);
+  const [isGitModalOpen, setIsGitModalOpen] = useState(false);
   const [isSavingGit, setIsSavingGit] = useState(false);
 
   const fetchGitConfig = async () => {
@@ -594,6 +633,7 @@ export default function App() {
       });
       showAlert(data.message || 'Configuração de backup salva com sucesso!', 'success');
       setGitToken('');
+      setIsGitModalOpen(false);
       await fetchGitConfig();
     } catch (e: any) {
       showAlert('Erro ao salvar configuração: ' + e.message, 'error');
@@ -1133,11 +1173,31 @@ export default function App() {
               </div>
             )}
 
+                        {/* Real-time System Resource Monitoring Widget */}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="md3-card-elevated space-y-4 mb-6">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-[var(--md-sys-color-primary)]" />
+                <h3 className="text-lg font-bold font-sans text-[var(--md-sys-color-on-surface)]">System Resources (Live)</h3>
+              </div>
+              <div className="h-[250px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={resourceData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--md-sys-color-outline-variant)" opacity={0.3} />
+                    <XAxis dataKey="time" stroke="var(--md-sys-color-on-surface-variant)" fontSize={10} tick={{fill: "var(--md-sys-color-on-surface-variant)"}} />
+                    <YAxis stroke="var(--md-sys-color-on-surface-variant)" fontSize={10} tick={{fill: "var(--md-sys-color-on-surface-variant)"}} unit="%" />
+                    <RechartsTooltip contentStyle={{ backgroundColor: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: '8px', color: 'var(--md-sys-color-on-surface)' }} itemStyle={{ color: 'var(--md-sys-color-primary)' }} />
+                    <Line type="monotone" dataKey="cpu" name="CPU Usage" stroke="var(--md-sys-color-primary)" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <Line type="monotone" dataKey="memory" name="Memory Usage" stroke="var(--md-sys-color-tertiary)" strokeWidth={2} dot={false} isAnimationActive={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+
             {/* Bento Grid layout with real quantifiable numbers */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               
               {/* Card 1: Repositories */}
-              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
+              <motion.div whileHover={{ y: -4, boxShadow: "var(--shadow-elevation-3)" }} transition={{ duration: 0.2, ease: "easeOut" }} className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md3-card-elevated flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <span className="text-slate-500 dark:text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Watchlist</span>
@@ -1162,10 +1222,10 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Card 2: Lego Blocks */}
-              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
+              <motion.div whileHover={{ y: -4, boxShadow: "var(--shadow-elevation-3)" }} transition={{ duration: 0.2, ease: "easeOut" }} className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md3-card-elevated flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <span className="text-slate-500 dark:text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Blocos Extraídos</span>
@@ -1187,10 +1247,10 @@ export default function App() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Card 3: Blueprints */}
-              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
+              <motion.div whileHover={{ y: -4, boxShadow: "var(--shadow-elevation-3)" }} transition={{ duration: 0.2, ease: "easeOut" }} className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md3-card-elevated flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <span className="text-slate-500 dark:text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Blueprints</span>
@@ -1203,10 +1263,10 @@ export default function App() {
                 <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-4 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   <p>Mapeamento arquitetural estruturado por IA de todo o ecossistema.</p>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Card 4: Files Ingested */}
-              <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
+              <motion.div whileHover={{ y: -4, boxShadow: "var(--shadow-elevation-3)" }} transition={{ duration: 0.2, ease: "easeOut" }} className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md3-card-elevated flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <span className="text-slate-500 dark:text-slate-400 font-medium text-xs font-mono uppercase tracking-wider">Arquivos</span>
@@ -1225,7 +1285,7 @@ export default function App() {
                     <div className="h-full bg-purple-600 dark:bg-purple-500 rounded-full" style={{ width: `${globalFilesPercentage}%` }} />
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Controle de Daemons Integrado */}
@@ -1799,99 +1859,12 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 3: Extracted Lego Blocks grouped in categories with real counts */}
+        {/* Tab 3: FileManagerSection (Code Pool Inventory) */}
         {activeTab === 'legos' && (
-          <div className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-850 border-slate-300 rounded-xl p-6 space-y-6 animate-in fade-in duration-300">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b dark:border-slate-850 border-slate-300 pb-4">
-              <div>
-                <h3 className="text-lg font-bold dark:text-white text-black flex items-center gap-2">
-                  <Layers className="text-emerald-500 w-5 h-5" />
-                  Biblioteca de Blocos Lego Extraídos
-                </h3>
-                <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
-                  Listagem autêntica de arquivos físicos gerados organizados por diretório correspondente
-                </p>
-              </div>
-
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 dark:text-slate-400 text-slate-600" />
-                <input 
-                  type="text"
-                  placeholder="Pesquisar bloco ou cluster..."
-                  className="dark:bg-slate-950 bg-slate-50 border dark:border-slate-850 border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs dark:text-slate-200 text-slate-800 focus:outline-none focus:border-blue-500 w-full md:w-56"
-                  value={blockFilter}
-                  onChange={(e) => setBlockFilter(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex dark:bg-slate-950 bg-slate-50/80 p-4 border dark:border-slate-850 border-slate-300 rounded-xl text-xs dark:text-slate-400 text-slate-600 gap-3 items-center">
-              <span className="p-1 px-2.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold uppercase">Consolidado</span>
-              <p>
-                Temos exatamente <strong className="dark:text-slate-100 text-slate-900">{totalBlocks} peças funcionais reutilizáveis</strong> extraídas e mapeadas. Elas foram sintetizadas em TypeScript e preparadas de forma autônoma pelo motor.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredInventory.length === 0 ? (
-                <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center text-slate-500 py-12 border border-dashed dark:border-slate-850 border-slate-300 rounded-xl dark:bg-slate-950 bg-slate-50/40">
-                  Nenhum bloco localizado sob o filtro informado. Altere o termo de pesquisa.
-                </div>
-              ) : (
-                filteredInventory.map((inv) => (
-                  <div key={inv.category} className="dark:bg-slate-950 bg-slate-50/45 border dark:border-slate-850 border-slate-300 rounded-xl p-4.5 hover:dark:border-slate-800 border-slate-300 transition-colors">
-                    <h4 className="font-bold text-sm flex items-center justify-between mb-4 dark:text-slate-200 text-slate-800">
-                      <span className="flex items-center gap-2">
-                        <Box className="w-4 h-4 text-blue-400" />
-                        {inv.category}
-                      </span>
-                      <span className="text-[10px] font-mono dark:bg-slate-900 bg-slate-100 px-2 py-0.5 rounded text-blue-400 border dark:border-slate-850 border-slate-300">
-                        {inv.blocks.length} arquivos
-                      </span>
-                    </h4>
-                    
-                    {inv.blocks.length === 0 ? (
-                      <span className="text-xs text-slate-600 block py-4 text-center border border-dashed border-slate-900 rounded dark:bg-slate-900 bg-slate-100/10">
-                        Nenhum bloco extraído
-                      </span>
-                    ) : (
-                      <ul className="space-y-2">
-                        {inv.blocks.map(block => (
-                          <li 
-                            key={block} 
-                            onClick={() => handleViewBlock(inv.category, block)}
-                            className="group flex items-center justify-between gap-2 text-xs dark:text-slate-300 text-slate-700 font-mono dark:bg-slate-900/60 bg-slate-100/60 hover:dark:bg-slate-800/80 hover:bg-slate-200/50 px-3 py-2 rounded-lg border dark:border-slate-850 hover:dark:border-blue-500/40 hover:border-blue-500/30 border-slate-300 transition-all cursor-pointer active:scale-[0.985]"
-                            title="Clique para inspecionar código fonte"
-                          >
-                            <span className="flex items-center gap-2 truncate">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 group-hover:animate-ping"></span>
-                              <span className="truncate dark:text-slate-200 text-slate-800 font-semibold group-hover:text-blue-400 transition-colors">
-                                {block.replace('.ts', '')}
-                              </span>
-                            </span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddToSandbox(block, inv.category);
-                                }}
-                                className="p-1 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded transition-all"
-                                title="Adicionar ao Sandbox"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="text-[8px] dark:bg-slate-950 bg-slate-50 text-slate-500 border border-slate-900 px-1 py-0.2 rounded font-semibold uppercase">TS</span>
-                              <span className="text-[10px] text-blue-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-xs">→</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <FileManagerSection 
+            inventory={inventory} 
+            onViewBlock={handleViewBlock} 
+          />
         )}
 
         {/* Tab 5: Lego Sandbox */}
@@ -2463,13 +2436,20 @@ export default function App() {
       </div>
 
       {/* Dynamic High Fidelity Block Inspector overlay Modal */}
+      <AnimatePresence>
       {inspectingBlock && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 md:p-6 animate-in fade-in duration-200"
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 md:p-6"
           onClick={() => setInspectingBlock(null)}
         >
-          <div 
-            className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-150"
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)] rounded-3xl w-full max-w-6xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl relative"
             onClick={e => e.stopPropagation()}
           >
             {/* Drawer Head */}
@@ -2763,9 +2743,120 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
+
+      {/* Git Config Modal */}
+      <AnimatePresence>
+        {isGitModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setIsGitModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)] rounded-3xl p-6 w-full max-w-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold font-sans flex items-center gap-2 text-[var(--md-sys-color-on-surface)]">
+                  <Github className="w-5 h-5 text-[var(--md-sys-color-primary)]" />
+                  Configurar Backup Git
+                </h3>
+                <button onClick={() => setIsGitModalOpen(false)} className="text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)] transition-colors">
+                  <X className="w-5 h-5 text-[var(--md-sys-color-outline)] hover:text-[var(--md-sys-color-on-surface)]" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveGitConfig} className="space-y-4">
+                <div className="space-y-1.5 font-mono">
+                  <label className="text-[11px] font-bold text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wide">
+                    URL HTTPS do Repositório
+                  </label>
+                  <input 
+                    type="url"
+                    placeholder="https://github.com/usuario/meu-repositorio"
+                    value={gitRemoteUrl}
+                    onChange={(e) => setGitRemoteUrl(e.target.value)}
+                    className="w-full bg-[var(--md-sys-color-background)] border border-[var(--md-sys-color-outline-variant)] rounded-2xl px-4 py-2.5 text-sm text-[var(--md-sys-color-on-surface)] focus:outline-none focus:border-[var(--md-sys-color-primary)] transition-all font-sans"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5 font-mono">
+                  <label className="text-[11px] font-bold text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wide flex items-center justify-between">
+                    <span>GitHub Token / PAT</span>
+                    {gitHasToken && (
+                      <span className="text-[9px] text-[var(--md-sys-color-primary)] normal-case flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Token Ativo
+                      </span>
+                    )}
+                  </label>
+                  <input 
+                    type="password"
+                    placeholder={gitHasToken ? "••••••••••••••••••••" : "ghp_..."}
+                    value={gitToken}
+                    onChange={(e) => setGitToken(e.target.value)}
+                    className="w-full bg-[var(--md-sys-color-background)] border border-[var(--md-sys-color-outline-variant)] rounded-2xl px-4 py-2.5 text-sm text-[var(--md-sys-color-on-surface)] focus:outline-none focus:border-[var(--md-sys-color-primary)] transition-all font-mono"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 items-center pt-2">
+                  <div className="space-y-1.5 font-mono">
+                    <label className="text-[11px] font-bold text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wide">Branch</label>
+                    <input 
+                      type="text"
+                      placeholder="main"
+                      value={gitBranch}
+                      onChange={(e) => setGitBranch(e.target.value)}
+                      className="w-full bg-[var(--md-sys-color-background)] border border-[var(--md-sys-color-outline-variant)] rounded-2xl px-4 py-2.5 text-sm text-[var(--md-sys-color-on-surface)] focus:outline-none focus:border-[var(--md-sys-color-primary)] transition-all font-sans"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-6">
+                    <input 
+                      type="checkbox"
+                      id="autoPushCheckModal"
+                      checked={gitAutoPush}
+                      onChange={(e) => setGitAutoPush(e.target.checked)}
+                      className="w-4 h-4 rounded text-[var(--md-sys-color-primary)] bg-[var(--md-sys-color-background)] border-[var(--md-sys-color-outline-variant)] focus:ring-[var(--md-sys-color-primary)] cursor-pointer"
+                    />
+                    <label htmlFor="autoPushCheckModal" className="text-sm text-[var(--md-sys-color-on-surface)] font-medium cursor-pointer select-none">
+                      Push automático
+                    </label>
+                  </div>
+                </div>
+
+                <div className="pt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsGitModalOpen(false)}
+                    className="px-6 py-2.5 rounded-3xl text-sm font-medium text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-variant)] transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingGit}
+                    className="md3-button-filled flex items-center justify-center gap-2 min-w-[120px]"
+                  >
+                    {isSavingGit ? <RefreshCw className="w-4 h-4 animate-spin text-[var(--md-sys-color-on-primary)]" /> : 'Salvar'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Status / Toast Toasting */}
       {status.message && (

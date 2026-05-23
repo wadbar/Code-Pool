@@ -83,6 +83,6 @@ export class GeminiBridge {
         const instruction = `Analise detalhadamente o seguinte pedido de recurso técnico e atue como um engenheiro principal de software.\n` +
             `Gere APENAS código TypeScript puro, modular, autossuficiente e livre de mockups ou simulacros para este recurso: ${description}.\n` +
             `Não forneça explicações em prosa antes ou depois, nem cercas de markdown do tipo \`\`\`typescript, retorne EXCLUSIVAMENTE o código-fonte executável e robusto.`;
-        return this.prompt(instruction, "gemini-3.5-flash");
+        return this.prompt(instruction, "gemini-1.5-flash");
     }
 }

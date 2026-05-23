@@ -41,15 +41,30 @@ export function createPoolRouter(
     res.json(result);
   });
 
-  // Code Pool Auditor API
-  router.get('/check-gemini', (req, res) => {
-    const key = process.env.GEMINI_API_KEY || '';
-    res.json({ 
-        hasKey: true, 
-        len: key.length || 40,
-        isDefault: false,
-        isAIStudioIntegrated: true 
-    });
+  // GitHub / Git Config Endpoints
+  router.get('/git-config', (req, res) => {
+    try {
+      const gitConfigPath = path.join(process.cwd(), 'POOL', 'git-config.json');
+      if (fs.existsSync(gitConfigPath)) {
+        const data = JSON.parse(fs.readFileSync(gitConfigPath, 'utf8'));
+        return res.json(data);
+      }
+      res.json({});
+    } catch (e: any) {
+      res.status(500).json({ error: 'Erro ao ler configuração Git: ' + e.message });
+    }
+  });
+
+  router.post('/git-config', (req, res) => {
+    try {
+      const { url, token, branch } = req.body;
+      const gitConfigPath = path.join(process.cwd(), 'POOL', 'git-config.json');
+      fs.writeFileSync(gitConfigPath, JSON.stringify({ url, token, branch }, null, 2));
+      res.json({ status: 'success', message: 'Configuração Git salva com sucesso.' });
+    } catch (e: any) {
+      logSystem(`[GIT-CONFIG] Erro ao salvar configuração: ${e.message}`);
+      res.status(500).json({ error: 'Erro ao salvar configuração: ' + e.message });
+    }
   });
 
   // Função helper para varredura recursiva de diretórios no Linux

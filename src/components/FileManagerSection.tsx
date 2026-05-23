@@ -1,196 +1,144 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Search, History, X, Folder, FileCode, Trash2, Sliders, CheckCircle2 } from 'lucide-react';
+import React from 'react';
+import { 
+  File, FolderOpen, ChevronUp, ChevronDown, 
+  Search, Filter, Plus, MoreVertical 
+} from 'lucide-react';
+import { clsx } from 'clsx';
 
-interface FileManagerSectionProps {
-  inventory: any[];
-  onViewBlock: (category: string, blockName: string) => void;
+interface FileItem {
+  id: string;
+  name: string;
+  type: string;
+  size: string;
+  category: string;
 }
 
-export const FileManagerSection: React.FC<FileManagerSectionProps> = ({ inventory, onViewBlock }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  
-  // Platform / ROM Validation Mock states as requested by directives
-  const [platform, setPlatform] = useState('GBA');
-  const [romFile, setRomFile] = useState('');
-  const [romError, setRomError] = useState('');
+interface FileManagerSectionProps {
+  files: FileItem[];
+  currentSort: { key: string; direction: 'asc' | 'desc' };
+  onSort: (key: string) => void;
+  onSelectFile: (file: FileItem) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+}
 
-  useEffect(() => {
-    const saved = localStorage.getItem('pool_search_history');
-    if (saved) setSearchHistory(JSON.parse(saved));
-  }, []);
-
-  const handleSearch = (term: string) => {
-    if (!term.trim()) return;
-    setSearchTerm(term);
-    if (!searchHistory.includes(term.trim())) {
-      const newHistory = [term.trim(), ...searchHistory].slice(0, 10);
-      setSearchHistory(newHistory);
-      localStorage.setItem('pool_search_history', JSON.stringify(newHistory));
-    }
+export const FileManagerSection: React.FC<FileManagerSectionProps> = ({
+  files,
+  currentSort,
+  onSort,
+  onSelectFile,
+  searchQuery,
+  onSearchChange
+}) => {
+  const SortIcon = ({ column }: { column: string }) => {
+    if (currentSort.key !== column) return null;
+    return currentSort.direction === 'asc' ? 
+      <ChevronUp className="w-4 h-4 ml-1 transition-transform animate-in fade-in zoom-in duration-200" /> : 
+      <ChevronDown className="w-4 h-4 ml-1 transition-transform animate-in fade-in zoom-in duration-200" />;
   };
-
-  const clearHistory = () => {
-    setSearchHistory([]);
-    localStorage.removeItem('pool_search_history');
-  };
-
-  // ROM Validation Logic
-  useEffect(() => {
-    if (!romFile) {
-      setRomError('');
-      return;
-    }
-    const ext = romFile.split('.').pop()?.toLowerCase();
-    const validMap: Record<string, string[]> = {
-      'GBA': ['gba'],
-      'SNES': ['sfc', 'smc'],
-      'NES': ['nes']
-    };
-    if (validMap[platform] && !validMap[platform].includes(ext || '')) {
-      setRomError(`Incompatível: ${platform} espera extensões [${validMap[platform].join(', ')}]`);
-    } else {
-      setRomError('');
-    }
-  }, [platform, romFile]);
 
   return (
-    <div className="space-y-6">
-      {/* ROM/Platform Validation Demonstration (As per directive) */}
-      <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-3">
-        <h4 className="text-[10px] font-bold text-amber-500 uppercase tracking-widest flex items-center gap-2">
-          <Sliders className="w-3.5 h-3.5" /> Configuração de Plataforma
-        </h4>
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="space-y-1.5 min-w-[150px]">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">Arquitetura</label>
-            <motion.div
-              layout
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              key={platform}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            >
-              <select 
-                id="platform-select"
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-900 border dark:border-slate-800 border-slate-300 rounded-lg px-3 py-2 text-xs transition-all focus:ring-1 focus:ring-amber-500 outline-none cursor-pointer"
-              >
-                <option value="GBA">Game Boy Advance</option>
-                <option value="SNES">Super Nintendo</option>
-                <option value="NES">NES Classic</option>
-              </select>
-            </motion.div>
+    <div className="flex flex-col h-full bg-[var(--md-sys-color-surface)]">
+      {/* Toolbar */}
+      <div className="p-6 border-b border-[var(--md-sys-color-outline-variant)] space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold on-surface">File Explorer</h2>
+          <div className="flex gap-2">
+            <button className="m3-button-tonal !p-2 !rounded-xl">
+              <Filter className="w-5 h-5" />
+            </button>
+            <button className="m3-button-filled !px-4 !py-2 !rounded-xl text-sm">
+              <Plus className="w-4 h-4" />
+              New Module
+            </button>
           </div>
-          <div className="space-y-1.5 flex-1 min-w-[200px] relative">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">Arquivo ROM</label>
-            <input 
-              type="text"
-              id="file-manager-rom-input"
-              placeholder="ex: pokemon.gba"
-              value={romFile}
-              onChange={(e) => setRomFile(e.target.value)}
-              className={`w-full bg-slate-100 dark:bg-slate-900 border ${romError ? 'border-red-500 mb-0' : 'dark:border-slate-800 border-slate-300'} rounded-lg px-3 py-2 text-xs outline-none transition-all`}
-            />
-            <AnimatePresence>
-              {romError && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 mt-1 z-10 p-2 bg-red-600 text-white text-[9px] font-bold rounded shadow-lg"
-                >
-                  {romError}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            disabled={!!romError || !romFile}
-            className={`px-4 py-2 rounded-lg text-[10px] font-bold transition-all ${romError || !romFile ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/20'}`}
-          >
-            Carregar na Build
-          </motion.button>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 on-surface-variant opacity-60" />
+          <input 
+            type="text"
+            placeholder="Search Pool modules..."
+            className="m3-input !pl-12"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Code Pool Inventory Browser */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1 space-y-4">
-          <div className="p-4 bg-white dark:bg-slate-900 border dark:border-slate-800 border-slate-200 rounded-2xl shadow-sm">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Busca de Blocos</h3>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text"
-                placeholder="Pesquisar na piscina..."
-                className="w-full bg-slate-50 dark:bg-slate-950 border dark:border-slate-800 border-slate-300 rounded-xl pl-9 pr-3 py-2.5 text-xs outline-none focus:border-indigo-500 transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchTerm)}
-              />
-            </div>
-            
-            {searchHistory.length > 0 && (
-              <div className="mt-6 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <History className="w-3 h-3" /> Histórico
-                  </span>
-                  <button onClick={clearHistory} className="text-[9px] text-slate-500 hover:text-red-500 font-bold uppercase">Limpar</button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {searchHistory.map((h, i) => (
-                    <button 
-                      key={i}
-                      onClick={() => setSearchTerm(h)}
-                      className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 border-slate-200 rounded-md text-[9px] text-slate-500 hover:text-indigo-500 transition-all flex items-center gap-1"
-                    >
-                      {h}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Sort Header */}
+      <div className="px-6 py-3 bg-[var(--md-sys-color-surface-container)] flex items-center gap-4 text-[11px] font-bold on-surface-variant uppercase tracking-widest border-b border-[var(--md-sys-color-outline-variant)]">
+        <button 
+          onClick={() => onSort('name')}
+          className="flex-1 flex items-center hover:on-surface transition-colors focus:outline-none group"
+        >
+          File Name
+          <span className="flex-none inline-flex items-center justify-center">
+            <SortIcon column="name" />
+            {!currentSort.key || currentSort.key !== 'name' ? (
+              <ChevronDown className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-30 transition-opacity" />
+            ) : null}
+          </span>
+        </button>
+        
+        <button 
+          onClick={() => onSort('type')}
+          className="w-32 flex items-center hover:on-surface transition-colors focus:outline-none group"
+        >
+          Type
+          <span className="flex-none inline-flex items-center justify-center">
+            <SortIcon column="type" />
+            {!currentSort.key || currentSort.key !== 'type' ? (
+              <ChevronDown className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-30 transition-opacity" />
+            ) : null}
+          </span>
+        </button>
+        
+        <div className="w-24 text-right pr-12">Size</div>
+      </div>
 
-        <div className="lg:col-span-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {inventory.filter(c => c.category.toLowerCase().includes(searchTerm.toLowerCase()) || c.blocks.some((b: string) => b.toLowerCase().includes(searchTerm.toLowerCase()))).map((cat) => (
-              <div key={cat.category} className="p-4 bg-white dark:bg-slate-900 border dark:border-slate-800 border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all group">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                      <Folder className="w-4 h-4 text-indigo-500" />
-                    </div>
-                    <span className="text-sm font-bold dark:text-slate-200 text-slate-800 capitalize tracking-tight">{cat.category}</span>
-                  </div>
-                  <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-500">{cat.blocks.length} blocos</span>
+      {/* File List */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+        {files.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
+            <div className="p-6 rounded-full bg-[var(--md-sys-color-surface-container-high)]">
+              <FolderOpen className="w-12 h-12 on-surface-variant opacity-40" />
+            </div>
+            <p className="on-surface font-medium">No results found</p>
+            <p className="on-surface-variant text-sm max-w-xs">Try adjusting your search or filters to find specific modules in the Lego Pool.</p>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {files.map((file) => (
+              <button
+                key={file.id}
+                onClick={() => onSelectFile(file)}
+                className="w-full group flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-[var(--md-sys-color-surface-container-highest)] transition-all text-left focus:outline-none active:scale-[0.99] border border-transparent hover:border-[var(--md-sys-color-outline-variant)]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[var(--md-sys-color-primary-container)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <File className="w-5 h-5 text-[var(--md-sys-color-on-primary-container)]" />
                 </div>
-                <div className="space-y-1.5">
-                  {cat.blocks.filter((b: string) => b.toLowerCase().includes(searchTerm.toLowerCase())).map((block: string) => (
-                    <button 
-                      key={block}
-                      onClick={() => onViewBlock(cat.category, block)}
-                      className="w-full flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg group/item transition-colors"
-                    >
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        <FileCode className="w-3.5 h-3.5 text-slate-400 group-hover/item:text-indigo-400 transition-colors shrink-0" />
-                        <span className="text-[11px] text-slate-500 group-hover/item:text-slate-300 transition-colors truncate">{block}</span>
-                      </div>
-                      <span className="text-[9px] text-slate-400 opacity-0 group-hover/item:opacity-100 transition-opacity font-mono">INSPIRE</span>
-                    </button>
-                  ))}
+                
+                <div className="flex-1 min-w-0">
+                  <p className="on-surface font-bold text-sm truncate">{file.name}</p>
+                  <p className="on-surface-variant text-[11px] font-mono opacity-70">{file.category}</p>
                 </div>
-              </div>
+
+                <div className="w-32 on-surface-variant text-xs font-mono">
+                  {file.type}
+                </div>
+
+                <div className="w-24 text-right on-surface-variant text-xs pr-2">
+                  {file.size}
+                </div>
+
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity px-2">
+                  <MoreVertical className="w-4 h-4 on-surface-variant" />
+                </div>
+              </button>
             ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

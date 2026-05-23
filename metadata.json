@@ -1,6 +1,6 @@
 {
-  "name": "Wadbar Code Pool & Blueprint Auditor",
-  "description": "Terminal puro para indexação, auditoria e armazenamento modular de repositórios GitHub @wadbar. Atua como pool de códigos e mapas blueprint para projetos reutilizáveis.",
+  "name": "Lego Pool Engine",
+  "description": "Industrial-grade modular software engineering ecosystem for automated module health auditing and synergy analysis.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

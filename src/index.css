@@ -1,96 +1,131 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-
-  /* Elevation Shadows */
-  --shadow-elevation-1: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
-  --shadow-elevation-2: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 2px 6px 2px rgba(0,0,0,0.15);
-  --shadow-elevation-3: 0px 1px 3px 0px rgba(0,0,0,0.3), 0px 4px 8px 3px rgba(0,0,0,0.15);
-}
-
-* {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Spacing System (4dp increments) */
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+
+  /* Level Elevation Shadows */
+  --shadow-l1: 0px 1px 3px 1px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.3);
+  --shadow-l2: 0px 2px 6px 2px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.3);
+  --shadow-l3: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.3);
+
+  /* Material Design 3 Color System - LIGHT */
   --md-sys-color-primary: #0061a4;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #d1e4ff;
   --md-sys-color-on-primary-container: #001d36;
-  
   --md-sys-color-secondary: #535f70;
   --md-sys-color-on-secondary: #ffffff;
   --md-sys-color-secondary-container: #d7e3f7;
   --md-sys-color-on-secondary-container: #101c2b;
-
-  --md-sys-color-tertiary: #6b5778;
-  --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #f2daff;
-  --md-sys-color-on-tertiary-container: #251431;
-
-  --md-sys-color-error: #ba1a1a;
-  --md-sys-color-on-error: #ffffff;
-  --md-sys-color-error-container: #ffdad6;
-  --md-sys-color-on-error-container: #410002;
-
-  --md-sys-color-background: #fdfcff;
-  --md-sys-color-on-background: #1a1c1e;
-  
   --md-sys-color-surface: #fdfcff;
   --md-sys-color-on-surface: #1a1c1e;
-  
   --md-sys-color-surface-variant: #dfe2eb;
   --md-sys-color-on-surface-variant: #43474e;
-  
   --md-sys-color-outline: #73777f;
   --md-sys-color-outline-variant: #c3c7cf;
-
-  --md-sys-color-surface-container: #f2f3f7;
-  --md-sys-color-surface-container-high: #eceef3;
-  --md-sys-color-surface-container-highest: #e6e8ee;
+  --md-sys-color-surface-container: #f0f4f9;
+  --md-sys-color-surface-container-high: #eaeaef;
+  --md-sys-color-surface-container-highest: #e2e2e6;
+  --md-sys-color-error: #ba1a1a;
 }
 
-html[data-theme='dark'] {
-  --md-sys-color-primary: #9ecaeb;
+[data-theme='dark'], .dark {
+  /* Material Design 3 Color System - DARK */
+  --md-sys-color-primary: #9ecaff;
   --md-sys-color-on-primary: #003258;
   --md-sys-color-primary-container: #00497d;
   --md-sys-color-on-primary-container: #d1e4ff;
-  
   --md-sys-color-secondary: #bbc7db;
   --md-sys-color-on-secondary: #253140;
   --md-sys-color-secondary-container: #3b4858;
   --md-sys-color-on-secondary-container: #d7e3f7;
-
-  --md-sys-color-tertiary: #d6bee4;
-  --md-sys-color-on-tertiary: #3b2948;
-  --md-sys-color-tertiary-container: #523f5f;
-  --md-sys-color-on-tertiary-container: #f2daff;
-
-  --md-sys-color-error: #ffb4ab;
-  --md-sys-color-on-error: #690005;
-  --md-sys-color-error-container: #93000a;
-  --md-sys-color-on-error-container: #ffdad6;
-
-  --md-sys-color-background: #1a1c1e;
-  --md-sys-color-on-background: #e2e2e6;
-  
   --md-sys-color-surface: #1a1c1e;
   --md-sys-color-on-surface: #e2e2e6;
-  
   --md-sys-color-surface-variant: #43474e;
   --md-sys-color-on-surface-variant: #c3c7cf;
-  
   --md-sys-color-outline: #8d9199;
   --md-sys-color-outline-variant: #43474e;
-
-  /* Material Design 3 Surface Containers */
   --md-sys-color-surface-container: #1e2022;
   --md-sys-color-surface-container-high: #282a2d;
   --md-sys-color-surface-container-highest: #333537;
+  --md-sys-color-error: #ffb4ab;
 }
+
+* {
+  @apply transition-colors duration-200;
+}
+
+body {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--font-sans);
+}
+
+/* Material Design 3 Utilities */
+.m3-button-filled {
+  @apply rounded-full px-6 py-2.5 font-medium transition-all duration-200 inline-flex items-center justify-center gap-2;
+  @apply active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  box-shadow: var(--shadow-l1);
+}
+.m3-button-filled:hover {
+  box-shadow: var(--shadow-l2);
+  filter: brightness(1.08);
+}
+
+.m3-button-tonal {
+  @apply rounded-full px-6 py-2.5 font-medium transition-all duration-200 inline-flex items-center justify-center gap-2;
+  @apply active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+.m3-button-tonal:hover {
+  box-shadow: var(--shadow-l1);
+  filter: brightness(0.96);
+}
+
+.m3-input {
+  @apply w-full rounded-xl px-4 py-3 text-sm transition-all duration-200;
+  @apply focus:outline-none focus:ring-2;
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-bottom: 2px solid var(--md-sys-color-outline);
+}
+.m3-input:focus {
+  border-bottom-color: var(--md-sys-color-primary);
+  box-shadow: var(--shadow-l1);
+}
+
+.m3-card {
+  @apply rounded-3xl transition-all duration-200 border;
+  padding: var(--spacing-24);
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  border-color: var(--md-sys-color-outline-variant);
+  gap: var(--spacing-16);
+}
+.m3-card > * + * {
+  margin-top: var(--spacing-16);
+}
+
+.on-surface { color: var(--md-sys-color-on-surface); }
+.on-surface-variant { color: var(--md-sys-color-on-surface-variant); }
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -104,31 +139,4 @@ html[data-theme='dark'] {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--md-sys-color-outline);
-}
-
-/* Material Design 3 Interactive Elements */
-.md3-button {
-  @apply rounded-3xl px-6 py-2.5 font-medium transition-all duration-200;
-  @apply active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
-}
-.md3-button-filled {
-  @apply rounded-3xl px-6 py-2.5 font-medium transition-all duration-200;
-  @apply active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
-  background-color: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
-}
-.md3-button-filled:hover {
-  box-shadow: var(--shadow-elevation-1);
-}
-.md3-card {
-  @apply rounded-3xl p-4 transition-all duration-200;
-  background-color: var(--md-sys-color-surface-container);
-  color: var(--md-sys-color-on-surface);
-  border: 1px solid var(--md-sys-color-outline-variant);
-}
-.md3-card-elevated {
-  @apply rounded-3xl p-4 transition-all duration-200 border-none;
-  background-color: var(--md-sys-color-surface-container);
-  color: var(--md-sys-color-on-surface);
-  box-shadow: var(--shadow-elevation-1);
 }

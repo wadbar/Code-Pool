@@ -1,40 +1,11 @@
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-export default defineConfig(() => {
-  return {
-    plugins: [react(), tailwindcss()],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
-    },
-    server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: {
-        ignored: [
-          '**/POOL/**',
-          '**/POOL/.tmp/**',
-          '**/node_modules/**',
-          '**/dist/**',
-          '**/.git/**'
-        ],
-      },
-      fs: {
-        deny: ['POOL/**', '.tmp/**'],
-      },
-    },
-    optimizeDeps: {
-      exclude: ['POOL'],
-    },
-    build: {
-      rollupOptions: {
-        external: [/^\/POOL\/.*/],
-      },
-    },
-  };
-});
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000,
+    host: '0.0.0.0',
+  }
+})

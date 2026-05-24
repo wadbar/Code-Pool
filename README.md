@@ -1,119 +1,52 @@
-# 📦 Lego Pool Engine - Ecossistema do Conhecimento
+# 🌌 Universal Lego Pool: Supreme Synchronization Oracle 🌌
+> **Ecossistema Autônomo de Engenharia de Software de Alta Performance**
 
-Uma arquitetura de engenharia de software de alta performance, projetada como um compilador determinístico para ingestão, rastreamento, auditoria estática e indexação modular de conhecimento de repositórios reais. 
+## 🧬 Visão Geral Suprema
+A Universal Lego Pool não é apenas uma ferramenta; é uma **infraestrutura soberana** projetada para centralizar, auditar e distribuir blocos de lógica determinística (Lego Blocks) com precisão industrial. Operando sob o Kernel V2.6, ela garante que cada fragmento de código na sua piscina global siga padrões rigorosos de telemetria, segurança e interconectividade.
 
-Este ecossistema opera manipulando o Git em tempo real, varrendo o disco físico por modificações no diretório `/POOL` e indexando blocos lógicos autônomos prontos para produção.
+## 🚀 Capacidades Industriais
+- **Molecular Standardization**: Transformação de código bruto em blocos modulares purificados.
+- **Real-Time Atomic Sync**: Sincronização via SocketHub com latência ultra-baixa entre daemons e terminais.
+- **JVM Manager & Optimization**: Varredura dinâmica de PIDs Java com priorização via `renice` e otimização de heap atômica.
+- **Java/AI Auto-Harvester**: Geração dinâmica de configurações otimizadas para servidores Java de alta pressão e modelos LLM (Gemini 1.5 Pro).
+- **Extreme Asset Downloader**: Motor de download paralelo com resiliência a falhas e recuperação exponencial.
+- **RetroForge MeshProcessor**: Processamento de malhas e matrizes de lógica em WebWorkers isolados.
 
----
+## 🛠 Arquitetura do Kernel
+- **Frontend**: React 18 + Vite + Tailwind CSS (Material Design 3 Glassmorphism).
+- **Backend Orchestrator**: Express + Socket.io + Redis Cache Layer.
+- **Watcher Logic**: Monitoramento atômico de arquivos via Chokidar.
+- **Infrastructure**: WSL2 Debian Native Simulation.
 
-## 🚀 Como Rodar Localmente no seu PC (Passo a Passo)
+## 🔧 Instalação e Ativação Suprema
+1. **Ativação do Ambiente**:
+   ```bash
+   npm install --include=dev
+   ```
+2. **Ignição em Modo Desenvolvimento**:
+   ```bash
+   npm run dev
+   ```
+3. **Compilação Industrial**:
+   ```bash
+   npm run build
+   ```
+4. **Deploy Soberano**:
+   ```bash
+   npm start
+   ```
 
-### 1. Pré-requisitos
-Certifique-se de ter instalado em sua máquina:
-- **Node.js** (Versão `>= 18.0.0`, recomendado v20 ou v22 LTS)
-- **Git** (Instalado e configurado com seu e-mail e nome globalmente)
-- **NPM** (Geralmente vem integrado ao Node)
-
----
-
-### 2. Clonar e Instalar Dependências
-No seu terminal local, execute:
-```bash
-# Clone o repositório do seu ecossistema para a sua máquina
-git clone <URL-DO-SEU-REPOSITORIO>
-
-# Entre na pasta raiz
-cd lego-pool
-
-# Instale os pacotes e dependências (o NPM resolverá as dependências nativas e patches)
-npm install
-```
-
----
-
-### 3. Configurar Variáveis de Ambiente (`.env`)
-Duplique o arquivo de exemplo para criar a sua configuração local:
-```bash
-cp .env.example .env
-```
-Abra o arquivo `.env` gerado e configure as variáveis reais:
+## 📜 Configurações de Elite (.env)
 ```env
-# Sua chave secreta do Gemini AI (usada pelos Workers/Scanner de Inteligência do Pool)
-GEMINI_API_KEY="AIzaSy..."
-
-# URL onde seu servidor vai rodar localmente (padrão do Applet)
-APP_URL="http://localhost:3000"
-
-# Segredo para autenticação e assinatura de sessões JWT locais
-JWT_SECRET="sua_chave_secreta_e_robusta_aqui"
-
-# Integrações opcionais do GitHub OAuth se desejar autenticação externa
-GITHUB_CLIENT_ID=""
-GITHUB_CLIENT_SECRET=""
+PORT=3000
+REDIS_URL=redis://127.0.0.1:6379
+GIT_SYNC_SCHEDULE='*/30 * * * *'
+AUTO_SYNC_ON_CHANGE=true
+GEMINI_API_KEY=YOUR_KEY_HERE
 ```
 
----
-
-### 4. Inicializar em Modo de Desenvolvimento
-Inicie o ecossistema com um único comando:
-```bash
-npm run dev
-```
-O servidor começará a escutar em **`http://localhost:3000`**.
-O terminal reportará a inicialização automática de todos os daemons secundários em background:
-- **`worker_ingest`**: Monitora filas e faz a ingestão real de repositórios descompactados ou links.
-- **`worker_blueprints`**: Processa a extração analítica das regras de negócio.
-- **`ScannerAgent`**: Realiza varreduras assíncronas no disco a cada 5 segundos buscando mutações.
-- **`Auto-Commit Gradual`**: Detecta e registra de forma distribuída modificações na piscina a cada 15 segundos para evitar sobrecargas de CPU/IO.
+## 🛡 Regra de Ouro
+**Nunca remova um recurso. Refine ao extremo. Audite recursivamente. Sincronize infinitamente.**
 
 ---
-
-## 🛠️ Arquitetura e Estrutura de Diretórios Locals
-
-Quando rodar o app localmente, a estrutura física do ecossistema se assentará em seu diretório de execução:
-- 📁 `POOL/` - O núcleo físico de persistência dos módulos.
-  - 📁 `modules/` - Todas as categorias lógicas de blocos ts puros extraídos (ex: `AI`, `DB`, `AUTH`).
-  - 📁 `blueprints/` - Lógicas de modelagem e arquiteturas deduzidas.
-  - 📄 `worker-status.json` - Controle de estado em tempo real (Pause/Run) usado pelos subprocessos.
-  - 📄 `git-config.json` - Configuração da salvaguarda remota vinculada pelo painel administrativo.
-- 📁 `packages/` - Modificações de baixo nível e patches locais de dependências do ecossistema.
-- 📁 `src/` - Interface gráfica rica (Vite + React + Tailwind + Motion).
-- 📄 `server.ts` - Core HTTP Express + Gateways de Comunicação Físicos + Orquestrador de Processos de Auto-Cura.
-- 📄 `ingest.log` / `blueprints.log` / `system.log` - Documentação física de logs em tempo real que você pode ler no seu PC.
-
----
-
-## 🔄 Fluxo de Trabalho Sem Falso Funcionamento (Real & Robusto)
-
-1. **Gestão de Daemons Físicos (Graceful Recovery)**:
-   Se em algum momento um processo do node falhar localmente ou for encerrado pelo sistema operacional, o core de auto-cura (`checkAndResurrectDaemons`) o re-erguerá de forma transparente na próxima requisição do painel de controle.
-2. **Auto-Cura do Git local**:
-   Se a pasta `.git` estiver corrompida localmente, o servidor inicializará um repositório git limpo, configurará o usuário administrativo (`Lego Pool Bot`), gerará o primeiro index e manterá a integridade do banco de arquivos intacta.
-3. **Mecanismo de Salvaguarda de Backup Remoto (Instant Push)**:
-   - Vincule a URL do seu repositório de backup persistente no Github no painel de controle (`Sincronia Remota`).
-   - Insira o seu Token de Acesso Pessoal (PAT) do GitHub.
-   - O ecossistema fará o commit distribuído localmente de forma automática e, caso a flag de `Auto-Push` esteja ativa, subirá as alterações instantaneamente e de forma forçada (`force-push`) para a branch selecionada sob total fidelidade.
-4. **Resolução de Conflitos e Travamentos Locais**:
-   Se algum daemon local travar ou a fila ficar ociosa devido a arquivos temporários órfãos de processos anteriores, utilize os botões:
-   - **Purge Temporary Directory** (Apaga caches locais com segurança).
-   - **Limpar Logs Globais** (Limpa arquivos `.log` do disco).
-   - **Restart Workers** (Força o encerramento de processos mortos via `kill_stuck.js` e inicia daemons limpos).
-
----
-
-## 💎 Comandos do Console Administrativo Local
-
-Use estas ferramentas de linha de comando úteis para operar o sistema por fora do painel web se desejar:
-
-- **Iniciar logs em tempo real**:
-  ```bash
-  tail -f system.log -f ingest.log
-  ```
-- **Limpar todos os artefatos compilados temporários**:
-  ```bash
-  npm run clean
-  ```
-- **Auditoria de Tipagem Estática do TypeScript**:
-  ```bash
-  npm run lint
-  ```
+*Crafted inside the Cosmic Grid by the Lego Pool Harvester Agent.*

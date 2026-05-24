@@ -103,56 +103,36 @@ export const FileManagerSection: React.FC<FileManagerSectionProps> = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-6 pb-20">
+          <div className="space-y-4 pb-20">
             {files.map((file) => (
               <button
                 key={file.id}
                 onClick={() => onSelectFile(file)}
-                className="w-full group flex items-center gap-8 px-10 py-10 rounded-[3rem] bg-[var(--md-sys-color-surface)] hover:bg-[var(--md-sys-color-on-surface)] transition-all duration-500 text-left focus:outline-none active:scale-[0.97] border-2 border-[var(--md-sys-color-outline-variant)] hover:border-transparent shadow-xl hover:shadow-[0_64px_128px_-24px_rgba(0,0,0,0.4)] relative overflow-hidden"
+                className="w-full group flex items-center gap-6 p-6 rounded-3xl bg-[var(--md-sys-color-surface-container-low)] hover:bg-[var(--md-sys-color-surface-container-highest)] border-2 border-[var(--md-sys-color-outline-variant)] hover:border-[var(--md-sys-color-primary)] transition-all duration-300 text-left focus:outline-none active:scale-[0.98] shadow-sm hover:shadow-xl relative overflow-hidden"
               >
-                {/* Visual Feedback Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute top-0 right-0 p-8 opacity-[0.03] translate-x-10 -translate-y-10 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-1000">
-                  {file.category === 'AUTH' && <ShieldCheck className="w-40 h-40" />}
-                  {file.category === 'INFRA' && <Activity className="w-40 h-40" />}
-                  {file.category === 'AI' && <Zap className="w-40 h-40" />}
-                  {file.category === 'UI' && <File className="w-40 h-40" />}
-                </div>
-
-                <div className="w-20 h-20 rounded-[2rem] bg-[var(--md-sys-color-surface-container-highest)] flex items-center justify-center group-hover:bg-white group-hover:text-black transition-all shadow-inner group-hover:rotate-12 relative z-10">
-                  <File className="w-10 h-10 on-surface-variant group-hover:text-black transition-colors" />
+                <div className="w-16 h-16 rounded-2xl bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-on-surface-variant)] flex items-center justify-center group-hover:bg-[var(--md-sys-color-primary)] group-hover:text-white transition-all transform group-hover:rotate-6 shadow-inner relative z-10">
+                  <File className="w-8 h-8 transition-colors" />
                 </div>
                 
                 <div className="flex-1 min-w-0 relative z-10">
-                  <div className="flex items-center gap-5 mb-3">
-                    <p className="on-surface font-black text-2xl truncate group-hover:text-white transition-colors tracking-tighter leading-none">{file.name}</p>
-                    <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-black bg-[var(--md-sys-color-surface-container-high)] px-4 py-1.5 rounded-xl border border-[var(--md-sys-color-outline-variant)] group-hover:bg-white/20 group-hover:text-white group-hover:border-white/20 transition-all uppercase tracking-widest shadow-sm">V.{file.version}</span>
-                    </div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <p className="on-surface font-black text-xl truncate tracking-tighter leading-none">{file.name}</p>
+                    <span className="text-[9px] font-black bg-[var(--md-sys-color-surface-container-high)] px-3 py-1 rounded-lg border border-[var(--md-sys-color-outline-variant)] uppercase tracking-widest opacity-60">V.{file.version}</span>
                   </div>
-                  <div className="flex items-center gap-5 text-[11px] font-black opacity-30 group-hover:opacity-80 transition-all group-hover:text-white group-hover:tracking-widest">
-                    <span className="uppercase tracking-[0.3em] font-black">{file.category}</span>
-                    <div className="w-2 h-2 rounded-full bg-current" />
-                    <span className="font-mono tracking-tighter opacity-60">F_ID: {file.id}</span>
+                  <div className="flex items-center gap-3 text-[10px] font-black on-surface-variant opacity-40 uppercase tracking-[0.2em]">
+                    <span>{file.category}</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                    <span>{file.type}</span>
                   </div>
                 </div>
 
-                <div className="w-48 px-8 border-l-2 border-[var(--md-sys-color-outline-variant)] group-hover:border-white/20 transition-all relative z-10 h-12 flex items-center">
-                  <div className="flex items-center gap-4 group-hover:text-white transition-colors">
-                    {file.category === 'AUTH' && <ShieldCheck className="w-5 h-5 opacity-40 group-hover:opacity-100 group-hover:animate-pulse" />}
-                    {file.category === 'INFRA' && <Activity className="w-5 h-5 opacity-40 group-hover:opacity-100 group-hover:animate-pulse" />}
-                    {file.category === 'AI' && <Zap className="w-5 h-5 opacity-40 group-hover:opacity-100 group-hover:animate-pulse shadow-blue-500" />}
-                    <span className="text-[12px] font-black uppercase tracking-[0.2em] whitespace-nowrap">{file.type}</span>
-                  </div>
-                </div>
-
-                <div className="w-24 text-right on-surface-variant text-xs font-black pr-4 group-hover:text-white transition-colors relative z-10 opacity-30 group-hover:opacity-70 font-mono tracking-tighter">
+                <div className="w-20 text-right text-[10px] font-black on-surface-variant opacity-30 font-mono tracking-tighter px-4">
                   {file.size}
                 </div>
 
-                <div className="opacity-0 group-hover:opacity-100 transition-all translate-x-10 group-hover:translate-x-0 p-4 relative z-10">
-                  <div className="w-12 h-12 rounded-full border-2 border-white/20 flex items-center justify-center hover:bg-white/10">
-                    <MoreVertical className="w-6 h-6 text-white" />
+                <div className="opacity-0 group-hover:opacity-100 transition-all p-2 relative z-10">
+                  <div className="w-10 h-10 rounded-full hover:bg-[var(--md-sys-color-primary-container)] flex items-center justify-center transition-colors">
+                    <MoreVertical className="w-5 h-5 text-[var(--md-sys-color-primary)]" />
                   </div>
                 </div>
               </button>

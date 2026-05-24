@@ -9,13 +9,22 @@ import {
 import { Panel } from './components/Panel';
 import { FileManagerSection } from './components/FileManagerSection';
 import { MeshProcessor } from './components/MeshProcessor';
+import { JvmDashboard } from './components/JvmDashboard';
+import { RedisHealthIndicator } from './components/RedisHealthIndicator';
 import { LiveLogDashboard } from './components/LiveLogDashboard';
+import { FullAuditHistory } from './components/FullAuditHistory';
+import { LoggingMonitor } from './components/LoggingMonitor';
+import { BlueprintExplorer } from './components/BlueprintExplorer';
+import { EcosystemHealthMonitor } from './components/EcosystemHealthMonitor';
+import { RegistryAuditGrid } from './components/RegistryAuditGrid';
+import { GitConflictResolution } from './components/GitConflictResolution';
 import { socketHub } from './POOL/modules/AUTOMATION/SocketHub';
 import { clsx } from 'clsx';
 import { logger } from './telemetry';
 import { LogLevel, LegoModule, InteropResult } from './types';
 import { authShield } from './auth';
 import { infra } from './infrastructure';
+import { Download, Monitor, GitMerge } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, 
   XAxis, YAxis, CartesianGrid, Tooltip 
@@ -95,12 +104,56 @@ export default function App() {
   const [timelineData, setTimelineData] = useState(ECOSYSTEM_TIMELINE);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
+  const [activeDownloads, setActiveDownloads] = useState<number>(0);
+  const [isLoggingMonitorOpen, setIsLoggingMonitorOpen] = useState(false);
+  const [isGitConflictOpen, setIsGitConflictOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<'HARVEST' | 'TELEMETRY' | 'SECURITY' | 'ECOSYSTEM' | 'REGISTRY'>('HARVEST');
 
   const handleSort = useCallback((key: string) => {
     setSort(prev => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
+  }, []);
+
+  const handleAuditRequest = useCallback(() => {
+    setIsAuditing(true);
+    socketHub.emitEvent('audit:start', {});
+    setTimeout(() => {
+       setIsAuditing(false);
+       logger.log(LogLevel.INFO, 'AUDIT', 'Global ecosystem audit synchronized.');
+    }, 2500);
+  }, []);
+
+  const handleConfigSync = useCallback(() => {
+    logger.log(LogLevel.INFO, 'CONFIG', 'Harvesting localized Java and AI trajectories...');
+    socketHub.emitEvent('log', { 
+      level: 'INFO', 
+      context: 'HARVESTER', 
+      message: 'Generating localized JVM and LLM optimization matrices.' 
+    });
+  }, []);
+
+  const handleDownloadRegistry = useCallback(async () => {
+    try {
+      logger.log(LogLevel.INFO, 'HARVESTER', 'Exporting repository registry state...');
+      const response = await fetch('/api/repo-registry');
+      if (response.ok) {
+        const data = await response.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `repo-registry-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        logger.log(LogLevel.INFO, 'HARVESTER', 'Registry export synchronized successfully.');
+      }
+    } catch (err) {
+      logger.log(LogLevel.ERROR, 'HARVESTER', 'Registry export trajectory failed.');
+    }
   }, []);
 
   // Dynamic Telemetry Jitter
@@ -280,10 +333,10 @@ export default function App() {
         </motion.div>
         
         <div className="flex-1 flex flex-col gap-10">
-          <NavItem icon={<Package />} label="Harvest" active />
-          <NavItem icon={<Activity />} label="Telemetry" />
-          <NavItem icon={<ShieldCheck />} label="Security" />
-          <NavItem icon={<Globe />} label="Ecosystem" />
+          <NavItem icon={<Package />} label="Harvest" active={currentView === 'HARVEST'} onClick={() => setCurrentView('HARVEST')} />
+          <NavItem icon={<Activity />} label="Telemetry" active={currentView === 'TELEMETRY'} onClick={() => setCurrentView('TELEMETRY')} />
+          <NavItem icon={<ShieldCheck />} label="Security" active={currentView === 'SECURITY'} onClick={() => setCurrentView('SECURITY')} />
+          <NavItem icon={<Globe />} label="Ecosystem" active={currentView === 'ECOSYSTEM'} onClick={() => setCurrentView('ECOSYSTEM')} />
         </div>
 
         <div className="flex flex-col gap-8 mb-4 border-t border-[var(--md-sys-color-outline-variant)] pt-10">
@@ -293,7 +346,7 @@ export default function App() {
           >
             {theme === 'light' ? <Moon className="w-7 h-7" /> : <Sun className="w-7 h-7" />}
           </button>
-          <NavItem icon={<Settings />} label="Registry" />
+          <NavItem icon={<Settings />} label="Registry" active={currentView === 'REGISTRY'} onClick={() => setCurrentView('REGISTRY')} />
         </div>
       </nav>
 
@@ -311,13 +364,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-12">
-            <div className="flex items-center gap-5 px-10 py-5 rounded-[2rem] bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)] shadow-inner group">
-              <div className="relative">
-                <span className="block w-4 h-4 rounded-full bg-emerald-500" />
-                <span className="absolute inset-0 w-4 h-4 rounded-full bg-emerald-400 animate-ping opacity-75" />
-              </div>
-              <span className="text-[11px] font-black on-surface tracking-widest uppercase opacity-80 group-hover:opacity-100 transition-opacity">Ecosystem: Purified</span>
-            </div>
+            <RedisHealthIndicator />
             
             <div className="h-16 w-px bg-[var(--md-sys-color-outline-variant)] opacity-50" />
 
@@ -329,172 +376,167 @@ export default function App() {
         </header>
 
         <section className="flex-1 flex overflow-hidden">
-          {/* Module Harvesting Panel */}
-          <div className="w-[600px] flex-none border-r border-[var(--md-sys-color-outline-variant)] shadow-[32px_0_64px_-24px_rgba(0,0,0,0.1)] z-20 bg-[var(--md-sys-color-surface)]/95 backdrop-blur-3xl overflow-hidden">
-            <FileManagerSection 
-              files={filteredModules}
-              currentSort={sort}
-              onSort={handleSort}
-              onSelectFile={handleModuleIngestion}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-            />
-          </div>
-
-          {/* Workbench Dashboard */}
-          <div className="flex-1 bg-[var(--md-sys-color-surface-container)] p-20 overflow-auto custom-scrollbar">
-             <div className="w-full max-w-7xl mx-auto space-y-20">
-                <motion.div 
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  className="flex items-start justify-between gap-16"
-                >
-                  <div className="flex items-start gap-16">
-                    <div className="p-10 rounded-[3rem] bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] shadow-[0_64px_128px_-24px_rgba(0,0,0,0.2)] flex-none transform hover:rotate-6 transition-transform">
-                      <Sparkles className="w-20 h-20" />
-                    </div>
-                    <div className="space-y-5 pt-5">
-                      <h2 className="text-7xl font-black on-surface tracking-tighter leading-none">Standardization Lab</h2>
-                      <p className="on-surface-variant text-3xl leading-relaxed max-w-3xl font-medium opacity-70">Enforce deterministic architectural synchronization across your repository matrix by harvesting industrial Lego blocks.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-6 mt-8">
-                     <button 
-                       onClick={() => setIsLogOpen(true)}
-                       className="p-8 rounded-[2.5rem] bg-[var(--md-sys-color-surface)] border border-[var(--md-sys-color-outline-variant)] shadow-xl hover:scale-110 transition-all text-[var(--md-sys-color-primary)] group"
-                       title="Live Log Dashboard"
-                     >
-                        <Terminal className="w-10 h-10" />
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsAuditing(true);
-                         socketHub.emitEvent('audit:start', {});
-                         setTimeout(() => setIsAuditing(false), 2000);
-                       }}
-                       disabled={isAuditing}
-                       className="p-8 rounded-[2.5rem] bg-[var(--md-sys-color-primary)] text-white shadow-xl hover:scale-110 transition-all hover:bg-[var(--md-sys-color-primary-fixed-dim)] disabled:opacity-50 group"
-                       title="Run Global Audit"
-                     >
-                        <ShieldCheck className={clsx("w-10 h-10", isAuditing && "animate-spin")} />
-                     </button>
-                  </div>
-                </motion.div>
-
-                <div className="grid grid-cols-3 gap-12">
-                   <StatCard icon={<Cpu />} label="Telemetry Flows" value="4.2k" sub="Active Contexts" />
-                   <StatCard icon={<ShieldCheck />} label="Security Index" value="1.00" sub="Universal Auth Sync" />
-                   <StatCard icon={<BarChart3 />} label="Logic Health" value="100%" sub="Production Ready" />
+          <AnimatePresence mode="wait">
+            {currentView === 'HARVEST' && (
+              <motion.div 
+                key="harvest-view"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="flex-1 flex overflow-hidden"
+              >
+                {/* Module Harvesting Panel */}
+                <div className="w-[500px] flex-none border-r border-[var(--md-sys-color-outline-variant)] shadow-2xl z-20 bg-[var(--md-sys-color-surface)]/95 backdrop-blur-3xl overflow-hidden">
+                  <FileManagerSection 
+                    files={filteredModules}
+                    currentSort={sort}
+                    onSort={handleSort}
+                    onSelectFile={handleModuleIngestion}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                  />
                 </div>
 
-                <div className="grid grid-cols-5 gap-12">
-                   <div className="col-span-3">
-                      <MeshProcessor />
+                {/* Workbench Dashboard */}
+                <div className="flex-1 bg-[var(--md-sys-color-surface-container)] p-12 overflow-auto custom-scrollbar">
+                  <div className="w-full max-w-7xl mx-auto space-y-12">
+                    <motion.div 
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      className="flex items-start justify-between gap-12"
+                    >
+                      <div className="flex items-start gap-12">
+                        <div className="p-8 rounded-[2.5rem] bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] shadow-xl flex-none transform hover:rotate-6 transition-transform">
+                          <Sparkles className="w-16 h-16" />
+                        </div>
+                        <div className="space-y-4 pt-2">
+                          <h2 className="text-6xl font-black on-surface tracking-tighter leading-none">Standardization Lab</h2>
+                          <p className="on-surface-variant text-xl leading-relaxed max-w-2xl font-medium opacity-60 italic">Architectural synchronization via industrial Lego block harvesting.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4">
+                        <ActionButton onClick={handleDownloadRegistry} icon={<Download />} color="text-emerald-500" title="Registry Export" />
+                        <ActionButton onClick={() => setIsLoggingMonitorOpen(true)} icon={<Monitor />} color="text-blue-500" title="Live Telemetry" />
+                        <ActionButton onClick={handleAuditRequest} disabled={isAuditing} icon={<ShieldCheck className={clsx("w-8 h-8", isAuditing && "animate-spin")} />} color="text-[var(--md-sys-color-primary)]" title="System Audit" />
+                      </div>
+                    </motion.div>
+
+                    <div className="grid grid-cols-3 gap-8">
+                       <StatCard icon={<Cpu />} label="Telemetry Flows" value="4.2k" sub="Active Contexts" />
+                       <StatCard icon={<ShieldCheck />} label="Security Index" value="1.00" sub="Universal Auth Sync" />
+                       <StatCard icon={<BarChart3 />} label="Logic Health" value="100%" sub="Production Ready" />
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-8">
+                       <div className="col-span-3">
+                          <MeshProcessor />
+                       </div>
+                       <div className="col-span-2">
+                         <StabilityGraph timelineData={timelineData} />
+                       </div>
+                    </div>
+
+                    <JvmDashboard />
+                    <Ticker />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {currentView === 'REGISTRY' && (
+              <motion.div 
+                key="registry-view"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="flex-1 p-20 overflow-auto custom-scrollbar"
+              >
+                <div className="max-w-7xl mx-auto space-y-12">
+                   <RegistryAuditGrid />
+                   <DependencyAuditor />
+                </div>
+              </motion.div>
+            )}
+
+            {currentView === 'TELEMETRY' && (
+              <motion.div 
+                key="telemetry-view"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex-1 p-20 overflow-auto custom-scrollbar"
+              >
+                <div className="max-w-7xl mx-auto space-y-12">
+                   <div className="flex items-center gap-10 mb-12">
+                      <div className="p-5 bg-blue-500 rounded-3xl text-white shadow-xl shadow-blue-500/20">
+                         <Activity className="w-12 h-12" />
+                      </div>
+                      <div>
+                         <h2 className="text-5xl font-black on-surface tracking-tighter">Telemetry Hub</h2>
+                         <p className="text-[10px] font-black on-surface-variant uppercase tracking-[0.3em] opacity-40">Industrial Stream Processing Dashboard</p>
+                      </div>
                    </div>
-                   <div className="col-span-2">
-                     <motion.div 
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="m3-card !bg-[var(--md-sys-color-surface)] p-12 space-y-10 h-full flex flex-col shadow-2xl border-none ring-1 ring-[var(--md-sys-color-outline-variant)]"
+                   <div className="grid grid-cols-3 gap-10">
+                      <div className="col-span-2">
+                        <StabilityGraph timelineData={timelineData} />
+                      </div>
+                      <EcosystemHealthMonitor />
+                   </div>
+                   <FullAuditHistory />
+                </div>
+              </motion.div>
+            )}
+
+            {currentView === 'ECOSYSTEM' && (
+              <motion.div 
+                key="ecosystem-view"
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="flex-1 p-20 overflow-auto custom-scrollbar"
+              >
+                <div className="max-w-4xl mx-auto">
+                   <BlueprintExplorer />
+                </div>
+              </motion.div>
+            )}
+
+            {currentView === 'SECURITY' && (
+              <motion.div 
+                key="security-view"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="flex-1 p-20 overflow-auto custom-scrollbar"
+              >
+                <div className="max-w-4xl mx-auto space-y-12">
+                   <div className="flex items-center gap-10">
+                      <div className="p-5 bg-red-500 rounded-3xl text-white shadow-xl">
+                         <ShieldCheck className="w-12 h-12" />
+                      </div>
+                      <div>
+                         <h2 className="text-5xl font-black on-surface tracking-tighter">Security Perimeter</h2>
+                         <p className="text-[10px] font-black on-surface-variant uppercase tracking-[0.3em] opacity-40">Conflict Resolution & Authentication Triage</p>
+                      </div>
+                   </div>
+                   <div className="p-10 rounded-[3rem] bg-[var(--md-sys-color-surface-container-highest)] border border-red-500/20">
+                      <h3 className="text-xl font-black on-surface mb-6 flex items-center gap-4 text-red-500">
+                        <GitMerge className="w-6 h-6" />
+                        Synchronicity Conflict Detected
+                      </h3>
+                      <p className="text-sm on-surface-variant opacity-60 leading-relaxed max-w-2xl">The Git Interop Manager has flagged trajectory violations in 3 core modules. Manual resolution is required to restore sovereignty.</p>
+                      <button 
+                        onClick={() => setIsGitConflictOpen(true)}
+                        className="mt-8 px-10 py-5 rounded-2xl bg-red-500 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-red-500/20 hover:scale-105 transition-all"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-5">
-                            <TrendingUp className="w-8 h-8 text-[var(--md-sys-color-primary)]" />
-                            <h3 className="text-2xl font-black tracking-tighter uppercase whitespace-nowrap">Ecosystem Stability</h3>
-                          </div>
-                          <span className="text-[11px] font-black on-surface-variant bg-[var(--md-sys-color-surface-container-high)] px-5 py-2 rounded-full border border-[var(--md-sys-color-outline-variant)] tracking-widest">REAL-TIME_SYNC_ALIVE</span>
-                        </div>
-                        
-                        <div className="flex-1 -mx-8 h-[280px] pt-4">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={timelineData}>
-                              <defs>
-                                <linearGradient id="primaryGradient" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="var(--md-sys-color-primary)" stopOpacity={0.4}/>
-                                  <stop offset="95%" stopColor="var(--md-sys-color-primary)" stopOpacity={0}/>
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--md-sys-color-outline-variant)" opacity={0.3} />
-                              <XAxis dataKey="time" hide />
-                              <YAxis hide domain={[90, 105]} />
-                              <Tooltip 
-                                contentStyle={{ 
-                                  backgroundColor: 'var(--md-sys-color-surface)', 
-                                  border: '1px solid var(--md-sys-color-outline-variant)',
-                                  borderRadius: '24px',
-                                  padding: '16px',
-                                  fontSize: '12px',
-                                  fontWeight: '900',
-                                  boxShadow: '0 32px 64px -12px rgba(0,0,0,0.2)'
-                                }} 
-                              />
-                              <Area type="monotone" dataKey="stability" stroke="var(--md-sys-color-primary)" strokeWidth={4} fillOpacity={1} fill="url(#primaryGradient)" />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-                        <div className="flex justify-between items-center px-4">
-                           <div className="flex gap-10">
-                             <div className="flex items-center gap-3">
-                               <div className="w-3 h-3 rounded-full bg-[var(--md-sys-color-primary)] shadow-lg" />
-                               <span className="text-[12px] font-black on-surface-variant uppercase tracking-widest opacity-60">System Stability</span>
-                             </div>
-                           </div>
-                        </div>
-                      </motion.div>
+                        Launch Conflict Resolver
+                      </button>
                    </div>
                 </div>
-
-                  <motion.div 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="m3-card !bg-transparent border-dashed border-[4px] border-[var(--md-sys-color-outline-variant)] flex flex-col items-center justify-center p-16 text-center rounded-[5rem] group hover:border-[var(--md-sys-color-primary)] transition-all hover:bg-[var(--md-sys-color-surface)]/60 shadow-inner"
-                  >
-                     <div className="p-12 rounded-full bg-[var(--md-sys-color-surface-container-high)] mb-10 transition-all group-hover:scale-110 shadow-xl group-hover:rotate-6">
-                      <Terminal className="w-28 h-28 on-surface-variant opacity-20" />
-                     </div>
-                     <h3 className="text-4xl font-black on-surface tracking-tighter mb-5">Ingestion Buffer Restricted</h3>
-                     <p className="on-surface-variant max-w-sm mx-auto text-2xl leading-relaxed opacity-60 font-medium tracking-tight">
-                      Selection required from the repository harvester pool to initiate structural audit and standardization trajectories.
-                     </p>
-                  </motion.div>
-
-                 {/* Industrial Infrastructure Ticker */}
-                <div className="flex items-center gap-10 p-10 rounded-[2.5rem] bg-[var(--md-sys-color-surface)] border border-[var(--md-sys-color-outline-variant)] shadow-2xl overflow-hidden relative group">
-                   <div className="flex-none flex items-center gap-4 text-xs font-black on-surface uppercase tracking-[0.3em] relative z-10 transition-colors group-hover:text-[var(--md-sys-color-primary)]">
-                     <Info className="w-6 h-6" />
-                     LIVE TRAJECTORY:
-                   </div>
-                   <div className="flex-1 overflow-hidden relative z-10">
-                     <motion.div 
-                        initial={{ x: "0%" }}
-                        animate={{ x: "-100%" }}
-                        transition={{ 
-                          repeat: Infinity, 
-                          duration: 40, 
-                          ease: "linear" 
-                        }}
-                        className="flex gap-32 whitespace-nowrap text-xs font-mono on-surface-variant font-bold opacity-60 uppercase"
-                     >
-                       <span>[TEL] Flushing ecoystem telemetry to industrial storage...</span>
-                       <span>[AUTH] Verifying industrial Level-10 trajectory handshake...</span>
-                       <span>[INFRA] SIGTERM listener engaged - LIFO cleanup stack ready...</span>
-                       <span>[LEGO] Scanned 1.2k logic blocks from repository matrix...</span>
-                       <span>[SYNC] Ecosystem synchronization at 99.8% precision...</span>
-                       {/* Repeat for seamless loop */}
-                       <span>[TEL] Flushing ecoystem telemetry to industrial storage...</span>
-                       <span>[AUTH] Verifying industrial Level-10 trajectory handshake...</span>
-                       <span>[INFRA] SIGTERM listener engaged - LIFO cleanup stack ready...</span>
-                       <span>[LEGO] Scanned 1.2k logic blocks from repository matrix...</span>
-                       <span>[SYNC] Ecosystem synchronization at 99.8% precision...</span>
-                     </motion.div>
-                   </div>
-                   <div className="absolute inset-y-0 right-0 w-64 bg-gradient-to-l from-[var(--md-sys-color-surface)] via-[var(--md-sys-color-surface)]/80 to-transparent z-20" />
-                </div>
-             </div>
-          </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
       </main>
 
@@ -521,6 +563,7 @@ export default function App() {
       <AnimatePresence mode="wait">
         {inspectingModule && (
           <motion.div 
+            key="panel-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -531,23 +574,109 @@ export default function App() {
                onClose={() => setInspectingModule(null)}
                onRunTest={() => {}}
                onAuditBlock={() => {}}
-               onExecuteModule={() => {}}
+               onPowerizeBlock={() => {}}
                onCheckInterop={() => {}}
             />
           </motion.div>
         )}
-        <LiveLogDashboard isOpen={isLogOpen} onClose={() => setIsLogOpen(false)} />
+        <LiveLogDashboard key="live-log-dash" isOpen={isLogOpen} onClose={() => setIsLogOpen(false)} />
+        <LoggingMonitor key="log-mon" isOpen={isLoggingMonitorOpen} onClose={() => setIsLoggingMonitorOpen(false)} />
+        <GitConflictResolution key="git-conflicts" isOpen={isGitConflictOpen} onClose={() => setIsGitConflictOpen(false)} />
       </AnimatePresence>
     </div>
   );
 }
 
-const NavItem = React.memo(({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) => {
+const ActionButton = ({ onClick, icon, color, title, disabled = false }: { onClick: () => void, icon: React.ReactNode, color: string, title: string, disabled?: boolean }) => (
+  <button 
+    onClick={onClick}
+    disabled={disabled}
+    className={clsx(
+      "p-6 rounded-3xl bg-[var(--md-sys-color-surface)] border border-[var(--md-sys-color-outline-variant)] shadow-lg hover:scale-110 transition-all group disabled:opacity-50",
+      color
+    )}
+    title={title}
+  >
+    {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
+  </button>
+);
+
+const StabilityGraph = ({ timelineData }: { timelineData: any[] }) => (
+  <motion.div 
+    initial={{ y: 20, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    transition={{ delay: 0.2 }}
+    className="m3-card !bg-[var(--md-sys-color-surface)] p-10 space-y-8 h-full flex flex-col shadow-xl border-none ring-1 ring-[var(--md-sys-color-outline-variant)]"
+  >
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <TrendingUp className="w-6 h-6 text-[var(--md-sys-color-primary)]" />
+        <h3 className="text-xl font-black tracking-tighter uppercase whitespace-nowrap">Stability Matrix</h3>
+      </div>
+    </div>
+    
+    <div className="flex-1 -mx-8 h-[200px] pt-4">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={timelineData}>
+          <defs>
+            <linearGradient id="primaryGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--md-sys-color-primary)" stopOpacity={0.4}/>
+              <stop offset="95%" stopColor="var(--md-sys-color-primary)" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--md-sys-color-outline-variant)" opacity={0.3} />
+          <XAxis dataKey="time" hide />
+          <YAxis hide domain={[90, 105]} />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'var(--md-sys-color-surface)', 
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              borderRadius: '24px',
+              padding: '16px',
+              fontSize: '12px',
+              fontWeight: '900',
+              boxShadow: '0 32px 64px -12px rgba(0,0,0,0.2)'
+            }} 
+          />
+          <Area type="monotone" dataKey="stability" stroke="var(--md-sys-color-primary)" strokeWidth={4} fillOpacity={1} fill="url(#primaryGradient)" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  </motion.div>
+);
+
+const Ticker = () => (
+  <div className="flex items-center gap-8 p-8 rounded-3xl bg-[var(--md-sys-color-surface)] border border-[var(--md-sys-color-outline-variant)] shadow-xl overflow-hidden relative group">
+     <div className="flex-none flex items-center gap-3 text-[10px] font-black on-surface uppercase tracking-[0.3em] relative z-10 transition-colors group-hover:text-[var(--md-sys-color-primary)]">
+       <Info className="w-4 h-4" />
+       CORE_LIVE:
+     </div>
+     <div className="flex-1 overflow-hidden relative z-10">
+       <motion.div 
+          initial={{ x: "0%" }}
+          animate={{ x: "-100%" }}
+          transition={{ repeat: Infinity, duration: 40, ease: "linear" }}
+          className="flex gap-24 whitespace-nowrap text-[10px] font-mono on-surface-variant font-bold opacity-40 uppercase"
+       >
+         <span>[TEL] Flushing ecoystem telemetry...</span>
+         <span>[AUTH] Verifying industrial Level-10 trajectory...</span>
+         <span>[INFRA] SIGTERM listener engaged...</span>
+         <span>[LEGO] Scanned 1.2k logic blocks...</span>
+         <span>[SYNC] Ecosystem synchronization at 99.8%...</span>
+       </motion.div>
+     </div>
+  </div>
+);
+
+const NavItem = React.memo(({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) => {
   return (
-    <button className={clsx(
-      "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group relative",
-      active ? "bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] shadow-2xl scale-110 ring-4 ring-[var(--md-sys-color-primary)]/20" : "text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container-high)] hover:scale-110"
-    )}>
+    <button 
+      onClick={onClick}
+      className={clsx(
+        "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group relative",
+        active ? "bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] shadow-2xl scale-110 ring-4 ring-[var(--md-sys-color-primary)]/20" : "text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container-high)] hover:scale-110"
+      )}
+    >
       {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
       <div className="absolute left-[130%] ml-6 px-6 py-3 bg-black text-white text-[11px] font-black rounded-2xl opacity-0 group-hover:opacity-100 transition-all transform scale-50 group-hover:scale-100 group-hover:translate-x-0 -translate-x-8 whitespace-nowrap z-[110] pointer-events-none uppercase tracking-[0.3em] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] border border-white/10">
         {label}
